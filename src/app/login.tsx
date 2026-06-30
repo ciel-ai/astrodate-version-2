@@ -1,0 +1,505 @@
+import { useFonts } from 'expo-font';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ImageBackground,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+  Modal,
+  FlatList,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import Glitters from '@/components/glitters';
+import { supabase } from '@/lib/supabase';
+
+const SERIF = 'Baskerville-Old-Face';
+
+export type Country = {
+  code: string;
+  name: string;
+  dialCode: string;
+  flag: string;
+  length: number;
+};
+
+export const COUNTRIES: Country[] = [
+  { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳', length: 10 },
+  { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸', length: 10 },
+  { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧', length: 10 },
+  { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦', length: 10 },
+  { code: 'AE', name: 'United Arab Emirates', dialCode: '+971', flag: '🇦🇪', length: 9 },
+  { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺', length: 9 },
+  { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬', length: 8 },
+  { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪', length: 11 },
+  { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷', length: 9 },
+];
+
+export default function LoginScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width: deviceW, height: deviceH } = useWindowDimensions();
+
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]);
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCountries = COUNTRIES.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.dialCode.includes(searchQuery)
+  );
+
+  const closePicker = () => {
+    setSearchQuery('');
+    setCountryPickerVisible(false);
+  };
+
+  const handleSendOtp = async () => {
+    if (loading) return;
+
+    if (!phone || phone.trim().length < selectedCountry.length) {
+      Alert.alert('Invalid Phone', `Please enter a valid phone number (${selectedCountry.length} digits).`);
+      return;
+    }
+
+    setLoading(true);
+    const fullPhone = `${selectedCountry.dialCode}${phone.trim()}`;
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
+      });
+
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        router.push({
+          pathname: '/verify-otp',
+          params: { phone: fullPhone },
+        });
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [fontsLoaded] = useFonts({
+    [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
+  });
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
+  }
+
+  const LOGO_TOP = 0;
+  const LOGO_W = Math.round(deviceW * 0.50);
+  const LOGO_H = Math.round(LOGO_W * (175 / 145));
+  const TITLE_FS = Math.round(deviceW * 0.105);
+  const BG_SHIFT = Math.round(deviceH * 0.18);
+  const FORM_GAP = 65;
+
+  return (
+    <ImageBackground
+      source={require('@/assets/images/create-bg.png')}
+      style={styles.bg}
+      resizeMode="cover"
+      imageStyle={{ transform: [{ scale: 1.38 }, { translateY: -BG_SHIFT }] }}
+    >
+      <StatusBar style="light" />
+      <Glitters count={18} />
+
+      {/* Back button */}
+      <Pressable
+        onPress={() => router.back()}
+        style={[styles.backBtn, { top: insets.top + 8 }]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Text style={styles.backIcon}>‹</Text>
+      </Pressable>
+
+      {/* Main layout — plain View, no scrolling */}
+      <View style={[styles.container, { paddingTop: Math.max(0, insets.top - 2), paddingBottom: insets.bottom + 16 }]}>
+
+        {/* ── Logo lockup ── */}
+        <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
+          <Image
+            source={require('@/assets/images/logo.png')}
+            style={{ width: LOGO_W, height: LOGO_H }}
+            resizeMode="contain"
+          />
+          <Text style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30) }]}>
+            Astro date
+          </Text>
+          <View style={styles.sepRow}>
+            <View style={styles.sepLine} />
+            <View style={styles.sepDiamond} />
+            <View style={styles.sepLine} />
+          </View>
+          <Text style={styles.tagline}>LOVE, WRITTEN IN THE STARS</Text>
+        </View>
+
+        {/* ── Welcome Back ── */}
+        <View style={[styles.heroSection, { marginTop: FORM_GAP }]}>
+          <Text style={styles.welcomeTitle} numberOfLines={1} adjustsFontSizeToFit>
+            Welcome Back
+          </Text>
+          <Text style={styles.welcomeSub}>Your stars have been waiting ✦</Text>
+        </View>
+
+        {/* ── Form section ── */}
+        <View style={styles.formSection}>
+
+          {/* Phone input */}
+          <View style={styles.phoneRow}>
+            <Pressable 
+              style={styles.countryBox} 
+              hitSlop={6}
+              onPress={() => setCountryPickerVisible(true)}
+            >
+              <Text style={styles.flag}>{selectedCountry.flag}</Text>
+              <Text style={styles.countryCode}>{selectedCountry.dialCode}</Text>
+              <Text style={styles.chevron}>▾</Text>
+            </Pressable>
+            <View style={styles.phoneDivider} />
+            <TextInput
+              value={phone}
+              onChangeText={(txt) => setPhone(txt.replace(/[^0-9]/g, ''))}
+              placeholder="Phone number"
+              placeholderTextColor="#7C7796"
+              keyboardType="phone-pad"
+              style={styles.phoneInput}
+              maxLength={selectedCountry.length}
+            />
+          </View>
+
+          {/* Send OTP */}
+          <Pressable
+            onPress={handleSendOtp}
+            style={({ pressed }) => [styles.otpButton, pressed && styles.otpPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Send OTP"
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.otpSparkle}>➤</Text>
+                <Text style={styles.otpText}>Send OTP</Text>
+              </>
+            )}
+          </Pressable>
+
+          {/* OR divider */}
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>or</Text>
+            <View style={styles.orLine} />
+          </View>
+
+          {/* Continue with Apple */}
+          <Pressable
+            style={({ pressed }) => [styles.socialBtn, styles.appleBtnBg, pressed && styles.socialPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Apple"
+          >
+            <Text style={styles.appleIcon}></Text>
+            <Text style={styles.appleBtnText}>Continue with Apple</Text>
+          </Pressable>
+
+          {/* Continue with Google */}
+          <Pressable
+            style={({ pressed }) => [styles.socialBtn, styles.googleBtnBg, pressed && styles.socialPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+          >
+            <Text style={styles.googleIcon}>G</Text>
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </Pressable>
+
+          <Text style={styles.footerText}>
+            {"Don't have an account? "}
+            <Text style={styles.signupLink} onPress={() => router.push('/create-account')}>
+              Sign up
+            </Text>
+          </Text>
+        </View>
+      </View>
+
+      <Modal
+        visible={countryPickerVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closePicker}
+      >
+        <Pressable style={styles.modalOverlay} onPress={closePicker}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Country</Text>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search country..."
+              placeholderTextColor="#7C7796"
+              style={styles.modalSearchInput}
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+            <FlatList
+              data={filteredCountries}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={styles.countryItem}
+                  onPress={() => {
+                    setSelectedCountry(item);
+                    setPhone('');
+                    closePicker();
+                  }}
+                >
+                  <Text style={styles.itemFlag}>{item.flag}</Text>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemDialCode}>{item.dialCode}</Text>
+                </Pressable>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </ImageBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  bg: { flex: 1, width: '100%', height: '100%', backgroundColor: '#09031C' },
+  container: { flex: 1 },
+
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: { color: '#FFFFFF', fontSize: 26, lineHeight: 28, marginTop: -2 },
+
+  // ── Lockup ──
+  lockup: { alignItems: 'center' },
+  wordmark: { fontFamily: SERIF, color: '#FFFFFF' },
+  sepRow: { flexDirection: 'row', alignItems: 'center', width: 150, marginTop: 2 },
+  sepLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.40)' },
+  sepDiamond: {
+    width: 6,
+    height: 6,
+    marginHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    transform: [{ rotate: '45deg' }],
+  },
+  tagline: {
+    color: '#E6D8FF',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 3,
+    opacity: 0.75,
+    marginTop: 8,
+  },
+
+  // ── Welcome Back ──
+  heroSection: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  welcomeTitle: {
+    fontFamily: SERIF,
+    color: '#FFFFFF',
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  welcomeSub: {
+    color: '#C9C3DE',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 6,
+    opacity: 0.85,
+  },
+
+  // ── Form section ──
+  formSection: {
+    paddingHorizontal: 24,
+  },
+
+  // ── Phone input ──
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: 'rgba(20,12,40,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 14,
+  },
+  countryBox: { flexDirection: 'row', alignItems: 'center' },
+  flag: { 
+    fontSize: 20, 
+    marginRight: 6, 
+    ...Platform.select({
+      android: { marginTop: -2 },
+      ios: { marginTop: 0 }
+    })
+  },
+  countryCode: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  chevron: { color: '#B57BFF', fontSize: 12, marginLeft: 4, fontWeight: '700', marginTop: 1 },
+  phoneDivider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.14)', marginHorizontal: 12 },
+  phoneInput: { flex: 1, color: '#FFFFFF', fontSize: 15, height: '100%' },
+
+  // ── Send OTP ──
+  otpButton: {
+    height: 52,
+    borderRadius: 26,
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    experimental_backgroundImage: 'linear-gradient(100deg, #C026D3, #7C3AED 55%, #2563EB)',
+    ...Platform.select({
+      ios: { shadowColor: '#7C3AED', shadowOpacity: 0.55, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 10 },
+      web: { boxShadow: '0 8px 28px 0 rgba(124,58,237,0.55)' } as any,
+    }),
+  } as any,
+  otpPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  otpSparkle: { color: '#FFFFFF', fontSize: 15, marginRight: 8 },
+  otpText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+  // ── OR divider ──
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.18)' },
+  orText: { color: '#9A93B5', fontSize: 13, marginHorizontal: 12 },
+
+  // ── Social buttons ──
+  socialBtn: {
+    height: 54,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  socialPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
+
+  appleBtnBg: {
+    backgroundColor: '#141018',
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  appleIcon: { color: '#FFFFFF', fontSize: 22, marginRight: 12 },
+  appleBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+
+  googleBtnBg: {
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  googleIcon: {
+    color: '#4285F4',
+    fontSize: 18,
+    fontWeight: '800',
+    marginRight: 12,
+  },
+  googleBtnText: { color: '#111', fontSize: 15, fontWeight: '700' },
+
+  // ── Footer ──
+  footerText: {
+    color: '#9A93B5',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  signupLink: { color: '#A855F7', fontWeight: '700' },
+
+  // ── Country Modal Styles ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(9, 3, 28, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    maxHeight: '60%',
+    backgroundColor: '#15102a',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.12)',
+    padding: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15 },
+      android: { elevation: 15 },
+      web: { boxShadow: '0 10px 30px rgba(0,0,0,0.5)' } as any,
+    }),
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  itemFlag: {
+    fontSize: 22,
+    marginRight: 14,
+  },
+  itemName: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+  itemDialCode: {
+    color: '#B57BFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalSearchInput: {
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+});
