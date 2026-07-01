@@ -37,15 +37,15 @@ export default function SignBackInScreen() {
 
   const handleAuth = (type: 'google' | 'apple') => {
     setLoadingType(type);
-    // Simulate linking auth and redirect home
+    // Simulate linking auth and redirect
     setTimeout(() => {
       setLoadingType(null);
-      router.replace('/');
+      router.push('/finish-onboarding');
     }, 1500);
   };
 
   const handleSkip = () => {
-    router.replace('/');
+    router.push('/finish-onboarding');
   };
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;

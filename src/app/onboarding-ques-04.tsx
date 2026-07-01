@@ -1,0 +1,351 @@
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ImageBackground,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import Glitters from '@/components/glitters';
+import { supabase } from '@/lib/supabase';
+
+const SERIF = 'Baskerville-Old-Face';
+
+interface HobbyOption {
+  id: string;
+  label: string;
+  dbValue: string;
+}
+
+const HOBBY_OPTIONS: HobbyOption[] = [
+  { id: 'movies', label: 'Movies/series', dbValue: 'movies' },
+  { id: 'travel', label: 'Travel', dbValue: 'travel' },
+  { id: 'music', label: 'Music', dbValue: 'music' },
+  { id: 'fitness', label: 'Gym/fitness', dbValue: 'fitness' },
+  { id: 'reading', label: 'Reading', dbValue: 'reading' },
+  { id: 'gaming', label: 'Gaming', dbValue: 'gaming' },
+];
+
+export default function OnboardingQues4Screen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = useWindowDimensions();
+
+  const [fontsLoaded] = useFonts({
+    [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
+  });
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
+  }
+
+  const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
+  const deviceH = isDesktopWeb ? 844 : screenH;
+  const FORM_GAP = Math.round(deviceH * 0.04);
+
+  const handleSelectOption = (optId: string) => {
+    let nextSelected = [...selectedIds];
+    if (nextSelected.includes(optId)) {
+      nextSelected = nextSelected.filter(id => id !== optId);
+    } else {
+      nextSelected.push(optId);
+    }
+    setSelectedIds(nextSelected);
+  };
+
+  const handleNext = async () => {
+    const dbSelections = HOBBY_OPTIONS
+      .filter(opt => selectedIds.includes(opt.id))
+      .map(opt => opt.dbValue);
+
+    if (dbSelections.length === 0) {
+      Alert.alert('Selection Required', 'Please select at least one hobby option.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Save user response to section1_qns table
+      const { error } = await supabase.from('section1_qns').upsert({
+        user_id: user.id,
+        hobbies: dbSelections,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      // Proceed to Page 5 of 9
+      router.push('/onboarding-ques-05');
+    } catch (e: any) {
+      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your hobbies.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ImageBackground
+      source={require('@/assets/images/onboard-bg.png')}
+      style={styles.bg}
+      resizeMode="cover"
+    >
+      <StatusBar style="light" />
+      <Glitters count={14} />
+
+      <ScrollView
+        style={styles.scrollStyle}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: Math.max(insets.top, 20) + 25 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          
+          {/* Progress bar — Page 4 of 9 indicator */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressRow}>
+              <View style={[styles.progressSegment, styles.progressSegmentActive]} />
+              <View style={styles.progressSegmentEmpty} />
+            </View>
+            <Text style={styles.progressText}>Page 4 of 9</Text>
+          </View>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.heading}>What are your hobbies?</Text>
+            <Text style={styles.subtitle}>
+              Select all that apply.
+            </Text>
+          </View>
+
+          {/* Options List */}
+          <View style={[styles.form, { marginTop: FORM_GAP }]}>
+            {HOBBY_OPTIONS.map((opt) => {
+              const isSelected = selectedIds.includes(opt.id);
+              return (
+                <Pressable
+                  key={opt.id}
+                  id={`btn-hobby-${opt.id}`}
+                  onPress={() => handleSelectOption(opt.id)}
+                  style={[
+                    styles.preferenceCard,
+                    isSelected && styles.preferenceCardSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.preferenceLabel,
+                      isSelected && styles.preferenceLabelSelected,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  
+                  {/* Select check/radio bubble indicator */}
+                  <View style={[
+                    styles.radioIndicator,
+                    isSelected && styles.radioIndicatorSelected
+                  ]}>
+                    {isSelected && <View style={styles.radioDot} />}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Bottom Nav Area */}
+          <View style={styles.bottomNav}>
+            {/* Back Button */}
+            <Pressable
+              id="btn-back-page4"
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
+            >
+              <Text style={styles.backNavArrow}>←</Text>
+            </Pressable>
+
+            {/* Action Continue Button */}
+            <Pressable
+              id="btn-hobbies-continue"
+              onPress={handleNext}
+              style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.actionText}>Continue  →</Text>
+              )}
+            </Pressable>
+          </View>
+
+        </View>
+      </ScrollView>
+    </ImageBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  bg: { flex: 1, width: '100%', height: '100%', backgroundColor: '#09031C' },
+  scrollStyle: { flex: 1 },
+  scrollContent: { paddingBottom: 48 },
+  container: { flex: 1, paddingHorizontal: 24 },
+
+  // ── Progress Bar ──
+  progressSection: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginTop: 10,
+    marginBottom: 32,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    width: '100%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressSegment: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  progressSegmentActive: {
+    width: '44.44%', // 4 of 9 pages active
+    backgroundColor: '#B57BFF',
+  },
+  progressSegmentEmpty: {
+    flex: 1,
+  },
+  progressText: {
+    color: '#9A93B5',
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+
+  // ── Header ──
+  header: { alignItems: 'flex-start', width: '100%' },
+  heading: {
+    color: '#FFFFFF',
+    fontSize: 27,
+    fontWeight: '800',
+    textAlign: 'left',
+    letterSpacing: 0.1,
+    marginBottom: 10,
+  },
+  subtitle: {
+    color: '#9A93B5',
+    fontSize: 14,
+    textAlign: 'left',
+    opacity: 0.85,
+    lineHeight: 20,
+  },
+
+  // ── Form Panel ──
+  form: { alignItems: 'stretch', width: '100%', gap: 12 },
+  preferenceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: 'rgba(20, 12, 40, 0.55)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
+  preferenceCardSelected: {
+    borderColor: '#A855F7',
+    backgroundColor: 'rgba(30, 15, 60, 0.65)',
+  },
+  preferenceLabel: {
+    color: '#C9C3DE',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  preferenceLabelSelected: {
+    color: '#FFFFFF',
+  },
+  radioIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioIndicatorSelected: {
+    borderColor: '#B57BFF',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#B57BFF',
+  },
+
+  // ── Bottom Navigation Row ──
+  bottomNav: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 32,
+  },
+  backNavBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(20, 12, 40, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backNavBtnPressed: {
+    opacity: 0.7,
+  },
+  backNavArrow: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+
+  // ── Action Button ──
+  actionButton: {
+    flex: 1,
+    height: 54,
+    borderRadius: 27,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    experimental_backgroundImage: 'linear-gradient(90deg, #7C3AED, #C026D3)',
+    ...Platform.select({
+      ios: { shadowColor: '#C026D3', shadowOpacity: 0.55, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 10 },
+      web: { boxShadow: '0 8px 28px 0 rgba(192,38,211,0.55)' } as any,
+    }),
+  } as any,
+  actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+});

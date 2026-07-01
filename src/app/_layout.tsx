@@ -35,6 +35,20 @@ export default function RootLayout() {
           <Stack.Screen name="profile-preview" options={{ headerShown: false }} />
           {/* Sign back in third-party account link option screen */}
           <Stack.Screen name="sign-back-in" options={{ headerShown: false }} />
+          {/* Final empty onboarding step with a single continue button */}
+          <Stack.Screen name="finish-onboarding" options={{ headerShown: false }} />
+          {/* Onboarding Questionnaire Pages */}
+          <Stack.Screen name="onboarding-ques-01" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-02" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-03" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-04" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-05" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-06" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-07" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-08" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-09" options={{ headerShown: false }} />
+          {/* Final transition screen after questionnaire */}
+          <Stack.Screen name="finish-ques" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
     </AuthProvider>
