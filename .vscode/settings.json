@@ -3,5 +3,27 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+
+  // This is a React Native / Expo project — the Android app is built via the
+  // Expo CLI (`expo run:android`), not the VS Code Java/Gradle language server.
+  // Letting the Java extension auto-import the generated `android/` Gradle
+  // project (and React Native's internal Gradle plugins under node_modules)
+  // produces spurious "missing required library" / "build path" errors, so we
+  // turn that importer off for this workspace.
+  "java.import.gradle.enabled": false,
+  "java.import.maven.enabled": false,
+  "java.configuration.updateBuildConfiguration": "disabled",
+  "java.project.importOnFirstTimeStartup": "disabled",
+  "java.autobuild.enabled": false,
+  "java.project.referencedLibraries": [],
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/android/**",
+    "**/.gradle/**",
+    "**/build/**"
+  ],
+  "files.exclude": {
+    "**/.gradle": true
   }
 }

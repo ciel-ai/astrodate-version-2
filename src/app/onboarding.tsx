@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,26 +16,57 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Region } from 'react-native-maps';
-import * as Location from 'expo-location';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 
 const SERIF = 'Baskerville-Old-Face';
 
-const DEFAULT_REGION: Region = {
-  latitude: 13.0827,
-  longitude: 80.2707,
-  latitudeDelta: 0.01,
-  longitudeDelta: 0.01,
-};
+type GenderOption = 'male' | 'female' | 'nonBinary';
 
-const GENDER_OPTIONS = [
-  { id: 'male', label: 'Male', emoji: '👨' },
-  { id: 'female', label: 'Female', emoji: '👩' },
-  { id: 'non-binary', label: 'Non-binary / Other', emoji: '✨' },
+interface GenderDetailOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+const GENDER_OPTIONS: { id: GenderOption; label: string; emoji: string }[] = [
+  { id: 'male', label: 'Man', emoji: '👨' },
+  { id: 'female', label: 'Woman', emoji: '👩' },
+  { id: 'nonBinary', label: 'Beyond Binary', emoji: '✨' },
 ];
+
+const GENDER_DETAILS: Record<GenderOption, GenderDetailOption[]> = {
+  male: [
+    { value: 'cis-man', label: 'Cis Man', description: 'A man whose gender aligns with the sex they were assigned at birth.' },
+    { value: 'intersex-man', label: 'Intersex Man', description: "A man born with one or more variations in sex characteristics that don't fit binary ideas of male or female bodies." },
+    { value: 'trans-man', label: 'Trans Man', description: 'A man whose gender is different from his sex assigned at birth.' },
+    { value: 'transmasculine', label: 'Transmasculine', description: 'Assigned female at birth but presents as masculine; may see themselves as a man or transgender man.' },
+    { value: 'not-listed-man', label: 'Not listed', description: "Tell us what's missing." },
+  ],
+  female: [
+    { value: 'cis-woman', label: 'Cis Woman', description: 'A woman whose gender aligns with the sex they were assigned at birth.' },
+    { value: 'intersex-woman', label: 'Intersex Woman', description: "A woman born with one or more variations in sex characteristics that don't fit binary ideas of male or female bodies." },
+    { value: 'trans-woman', label: 'Trans Woman', description: 'A woman whose gender is different from her sex assigned at birth.' },
+    { value: 'transfeminine', label: 'Transfeminine', description: 'Assigned male at birth but presents as feminine; may see themselves as a woman or transgender woman.' },
+    { value: 'not-listed-woman', label: 'Not listed', description: "Tell us what's missing." },
+  ],
+  nonBinary: [
+    { value: 'agender', label: 'Agender', description: 'A person who does not have a gender.' },
+    { value: 'bigender', label: 'Bigender', description: 'A person whose gender has two or more forms.' },
+    { value: 'genderfluid', label: 'Genderfluid', description: 'A person whose gender is not simply fixed.' },
+    { value: 'gender-questioning', label: 'Gender Questioning', description: 'Questioning their current gender and/or exploring other genders.' },
+    { value: 'genderqueer', label: 'Genderqueer', description: 'Does not identify or express their gender within the gender binary.' },
+    { value: 'intersex', label: 'Intersex', description: 'Refers to people born with variations in sex characteristics.' },
+    { value: 'nonbinary', label: 'Nonbinary', description: 'A gender beyond the exclusive categories of man and woman.' },
+    { value: 'pangender', label: 'Pangender', description: 'Experiences multiple genders either simultaneously or over time.' },
+    { value: 'trans-person', label: 'Trans Person', description: 'Transgender and their gender is different from the sex assigned at birth.' },
+    { value: 'transfeminine', label: 'Transfeminine', description: 'Assigned male at birth, presents as feminine.' },
+    { value: 'transmasculine', label: 'Transmasculine', description: 'Assigned female at birth, presents as masculine.' },
+    { value: 'two-spirit', label: 'Two-Spirit', description: 'An umbrella term used across some Native communities for spiritual roles.' },
+    { value: 'not-listed-nb', label: 'Not listed', description: "Tell us what's missing." },
+  ],
+};
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -48,273 +79,9 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
-  const [gender, setGender] = useState('');
-  const [address, setAddress] = useState('');
-  const [district, setDistrict] = useState('');
-  const [stateVal, setStateVal] = useState('');
-  const [countryVal, setCountryVal] = useState('');
-  const [neighborhood, setNeighborhood] = useState('Chennai');
-  const [isLocating, setIsLocating] = useState(false);
-  const [isLocated, setIsLocated] = useState(false);
+  const [gender, setGender] = useState<GenderOption | ''>('');
+  const [genderDetail, setGenderDetail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
-
-  const mapRef = useRef<MapView | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoDetectedRef = useRef(false);
-
-  const googleApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-
-  // Recenter the native map on the given coordinate.
-  const moveMapTo = (lat: number, lng: number) => {
-    const newRegion: Region = {
-      latitude: lat,
-      longitude: lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    };
-    setMapRegion(newRegion);
-    mapRef.current?.animateToRegion(newRegion, 600);
-  };
-
-  const reverseGeocode = async (lat: number, lng: number) => {
-    let resolved = false;
-
-    if (googleApiKey) {
-      try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${googleApiKey}`;
-        const res = await fetch(url);
-        const parsed = await res.json();
-        if (parsed.status === 'OK' && parsed.results && parsed.results.length > 0) {
-          const result = parsed.results[0];
-          let sub = '', dist = '', st = '', co = '';
-          result.address_components.forEach((comp: any) => {
-            if (comp.types.includes('sublocality') || comp.types.includes('neighborhood') || comp.types.includes('sublocality_level_1')) sub = comp.long_name;
-            if (comp.types.includes('administrative_area_level_2') || comp.types.includes('locality')) dist = comp.long_name;
-            if (comp.types.includes('administrative_area_level_1')) st = comp.long_name;
-            if (comp.types.includes('country')) co = comp.long_name;
-          });
-          const resolvedName = sub || dist || 'Selected Location';
-          setNeighborhood(resolvedName);
-          setAddress(resolvedName);
-          setDistrict(dist); setStateVal(st); setCountryVal(co); setIsLocated(true);
-          resolved = true;
-        }
-      } catch {}
-    }
-
-    if (!resolved) {
-      try {
-        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'AstroDateMobileApp/1.0' } });
-        const text = await res.text();
-        if (res.ok) {
-          const parsed = JSON.parse(text);
-          if (parsed && parsed.address) {
-            const addr = parsed.address;
-            const suburb = addr.suburb || addr.neighbourhood || addr.village || addr.city_district || addr.city || '';
-            const dist = addr.district || addr.county || addr.city_district || addr.suburb || addr.city || '';
-            const resolvedName = suburb || dist || 'Selected Location';
-            setNeighborhood(resolvedName);
-            setAddress(resolvedName);
-            setDistrict(dist); setStateVal(addr.state || ''); setCountryVal(addr.country || ''); setIsLocated(true);
-          }
-        }
-      } catch {}
-    }
-  };
-
-  const handleRegionChangeComplete = (region: Region) => {
-    if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
-    geocodeTimerRef.current = setTimeout(() => {
-      reverseGeocode(region.latitude, region.longitude);
-    }, 600);
-  };
-
-  const handleGPSLocation = async () => {
-    setIsLocating(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location access is required to detect your position.');
-        setIsLocating(false);
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const { latitude, longitude } = loc.coords;
-      moveMapTo(latitude, longitude);
-      await reverseGeocode(latitude, longitude);
-    } catch {
-      Alert.alert('Location Error', 'Unable to fetch your location. Please type your address manually.');
-    } finally {
-      setIsLocating(false);
-    }
-  };
-
-  const performGeocoding = async (query: string) => {
-    if (!query.trim() || query.trim().length < 5) {
-      setDistrict('');
-      setStateVal('');
-      setCountryVal('');
-      setIsLocated(false);
-      return;
-    }
-
-    setIsLocating(true);
-    let resolved = false;
-
-    // 1. Try Google Geocoding API if key is present
-    if (googleApiKey) {
-      try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleApiKey}`;
-        const res = await fetch(url);
-        const parsed = await res.json();
-        if (parsed.status === 'OK' && parsed.results && parsed.results.length > 0) {
-          const result = parsed.results[0];
-          const { lat, lng } = result.geometry.location;
-          let sub = '';
-          let dist = '';
-          let st = '';
-          let co = '';
-
-          result.address_components.forEach((comp: any) => {
-            if (comp.types.includes('sublocality') || comp.types.includes('neighborhood') || comp.types.includes('sublocality_level_1')) {
-              sub = comp.long_name;
-            }
-            if (comp.types.includes('administrative_area_level_2') || comp.types.includes('locality')) {
-              dist = comp.long_name;
-            }
-            if (comp.types.includes('administrative_area_level_1')) {
-              st = comp.long_name;
-            }
-            if (comp.types.includes('country')) {
-              co = comp.long_name;
-            }
-          });
-
-          setNeighborhood(sub || dist || 'Selected Location');
-          setDistrict(dist);
-          setStateVal(st);
-          setCountryVal(co);
-          setIsLocated(true);
-          resolved = true;
-
-          moveMapTo(lat, lng);
-        }
-      } catch (gErr) {
-        console.log('Google Geocoding API failed, falling back:', gErr);
-      }
-    }
-
-    // 2. Fallback to Nominatim OSM if Google Key is not present or query failed
-    if (!resolved) {
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`;
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': 'AstroDateMobileAppClient/1.0 (contact@astrodateapp.com)'
-          }
-        });
-        
-        const resText = await res.text();
-        if (res.ok) {
-          try {
-            const data = JSON.parse(resText);
-            if (data && data.length > 0) {
-              const addr = data[0].address;
-              const dist = addr.district || addr.county || addr.city_district || addr.suburb || addr.city || '';
-              const st = addr.state || '';
-              const co = addr.country || '';
-              const { lat, lon } = data[0];
-
-              setNeighborhood(addr.suburb || addr.neighbourhood || addr.village || dist || 'Selected Location');
-              setDistrict(dist);
-              setStateVal(st);
-              setCountryVal(co);
-              setIsLocated(true);
-              resolved = true;
-
-              moveMapTo(parseFloat(lat), parseFloat(lon));
-            }
-          } catch (jsonErr) {
-            console.log('JSON Parse error on OSM response:', jsonErr);
-          }
-        }
-      } catch (err) {
-        console.log('Network error during geocoding:', err);
-      }
-    }
-
-    setIsLocating(false);
-
-    // 3. String Split Fallback if geocoding yields no results
-    if (!resolved) {
-      const segments = query.split(',').map(s => s.trim()).filter(Boolean);
-      let dist = '';
-      let st = '';
-      let co = 'India';
-
-      if (segments.length >= 3) {
-        co = segments[segments.length - 1] || '';
-        st = segments[segments.length - 2] || '';
-        dist = segments[segments.length - 3] || '';
-      } else if (segments.length === 2) {
-        dist = segments[0] || '';
-        st = segments[1] || '';
-      } else if (segments.length === 1 && segments[0].length > 3) {
-        dist = segments[0] || '';
-      }
-
-      setDistrict(dist);
-      setStateVal(st);
-      setCountryVal(co);
-      setIsLocated(true);
-
-      // Best-effort coordinate from a known-city keyword match.
-      let fallbackLat = 13.0827; // Chennai default
-      let fallbackLng = 80.2707;
-      const lowerQuery = query.toLowerCase();
-
-      if (lowerQuery.includes('mumbai') || lowerQuery.includes('bombay')) {
-        fallbackLat = 19.076; fallbackLng = 72.8777;
-      } else if (lowerQuery.includes('delhi') || lowerQuery.includes('noida') || lowerQuery.includes('gurgaon')) {
-        fallbackLat = 28.7041; fallbackLng = 77.1025;
-      } else if (lowerQuery.includes('bangalore') || lowerQuery.includes('bengaluru')) {
-        fallbackLat = 12.9716; fallbackLng = 77.5946;
-      } else if (lowerQuery.includes('kolkata') || lowerQuery.includes('calcutta')) {
-        fallbackLat = 22.5726; fallbackLng = 88.3639;
-      } else if (lowerQuery.includes('hyderabad')) {
-        fallbackLat = 17.385; fallbackLng = 78.4867;
-      } else if (lowerQuery.includes('pune')) {
-        fallbackLat = 18.5204; fallbackLng = 73.8567;
-      }
-
-      moveMapTo(fallbackLat, fallbackLng);
-    }
-  };
-
-  const handleAddressChange = (text: string) => {
-    setAddress(text);
-    setIsLocated(false);
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    timeoutRef.current = setTimeout(() => {
-      performGeocoding(text);
-    }, 1000);
-  };
-
-  // Auto-detect the user's location the first time they land on the Location step.
-  useEffect(() => {
-    if (step === 3 && !autoDetectedRef.current) {
-      autoDetectedRef.current = true;
-      handleGPSLocation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
@@ -326,6 +93,10 @@ export default function OnboardingScreen() {
   // Render planet shifted up like in login and sign up screens
   const FORM_GAP = Math.round(deviceH * 0.08);
 
+  const handleGenderSelect = (gId: GenderOption) => {
+    setGender(gId);
+    setGenderDetail(''); // Reset detail selection when changing primary option
+  };
 
   const handleNext = async () => {
     if (step === 1) {
@@ -339,10 +110,8 @@ export default function OnboardingScreen() {
         Alert.alert('Gender Required', 'Please select a gender option to continue.');
         return;
       }
-      setStep(3);
-    } else if (step === 3) {
-      if (!address.trim()) {
-        Alert.alert('Address Required', 'Please enter your address first.');
+      if (!genderDetail) {
+        Alert.alert('Details Required', 'Please select a gender detail description below.');
         return;
       }
 
@@ -355,11 +124,7 @@ export default function OnboardingScreen() {
           data: {
             display_name: name.trim(),
             gender: gender,
-            location: district || neighborhood || address.trim(),
-            address: address.trim(),
-            district: district,
-            state: stateVal,
-            country: countryVal,
+            gender_detail: genderDetail,
             onboarding_completed: true,
           },
         });
@@ -373,11 +138,7 @@ export default function OnboardingScreen() {
               id: user.id,
               display_name: name.trim(),
               gender: gender,
-              location: district || neighborhood || address.trim(),
-              address: address.trim(),
-              district: district,
-              state: stateVal,
-              country: countryVal,
+              gender_detail: genderDetail,
               updated_at: new Date().toISOString(),
             });
           } catch (dbErr) {
@@ -385,16 +146,8 @@ export default function OnboardingScreen() {
           }
         }
 
-        Alert.alert(
-          'Setup Complete!',
-          'Your profile has been configured successfully!',
-          [
-            {
-              text: 'Let\'s Go! ✦',
-              onPress: () => router.replace('/'),
-            },
-          ]
-        );
+        // 3. Proceed to address collection
+        router.push('/address');
       } catch (err: any) {
         Alert.alert('Setup Failed', err.message || 'An unexpected error occurred.');
       } finally {
@@ -445,119 +198,74 @@ export default function OnboardingScreen() {
               {GENDER_OPTIONS.map((opt) => {
                 const isSelected = gender === opt.id;
                 return (
-                  <Pressable
-                    key={opt.id}
-                    onPress={() => setGender(opt.id)}
-                    style={[
-                      styles.genderCard,
-                      isSelected && styles.genderCardSelected,
-                    ]}
-                  >
-                    <Text style={styles.genderEmoji}>{opt.emoji}</Text>
-                    <Text
+                  <View key={opt.id} style={styles.optionWrapper}>
+                    <Pressable
+                      onPress={() => handleGenderSelect(opt.id)}
                       style={[
-                        styles.genderLabel,
-                        isSelected && styles.genderLabelSelected,
+                        styles.genderCard,
+                        isSelected && styles.genderCardSelected,
                       ]}
                     >
-                      {opt.label}
-                    </Text>
-                    <View
-                      style={[
-                        styles.radioIndicator,
-                        isSelected && styles.radioIndicatorSelected,
-                      ]}
-                    >
-                      {isSelected && <View style={styles.radioDot} />}
-                    </View>
-                  </Pressable>
+                      <Text style={styles.genderEmoji}>{opt.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.genderLabel,
+                          isSelected && styles.genderLabelSelected,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      <View
+                        style={[
+                          styles.radioIndicator,
+                          isSelected && styles.radioIndicatorSelected,
+                        ]}
+                      >
+                        {isSelected && <View style={styles.radioDot} />}
+                      </View>
+                    </Pressable>
+
+                    {/* Gender details list sub-selector */}
+                    {isSelected && (
+                      <View style={styles.detailContainer}>
+                        <Text style={styles.detailTitle}>Select specific classification:</Text>
+                        {GENDER_DETAILS[opt.id].map((detail) => {
+                          const isDetailSelected = genderDetail === detail.value;
+                          return (
+                            <Pressable
+                              key={detail.value}
+                              onPress={() => setGenderDetail(detail.value)}
+                              style={[
+                                styles.detailCard,
+                                isDetailSelected && styles.detailCardSelected
+                              ]}
+                            >
+                              <View style={styles.detailInfo}>
+                                <Text style={[
+                                  styles.detailLabel,
+                                  isDetailSelected && styles.detailLabelSelected
+                                ]}>
+                                  {detail.label}
+                                </Text>
+                                <Text style={styles.detailDescription}>
+                                  {detail.description}
+                                </Text>
+                              </View>
+                              <View style={[
+                                styles.detailRadio,
+                                isDetailSelected && styles.detailRadioSelected
+                              ]}>
+                                {isDetailSelected && <View style={styles.detailRadioDot} />}
+                              </View>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 );
               })}
             </View>
-          </View>
-        );
-      case 3:
-        return (
-          <View style={styles.stepContainer}>
-            <Text style={styles.heading}>Location</Text>
-            <Text style={styles.subtitle}>
-              Only the neighborhood name will appear on your profile.
-            </Text>
-
-            {/* Underlined Address Search TextInput */}
-            <View style={styles.underlineInputContainer}>
-              <TextInput
-                value={address}
-                onChangeText={handleAddressChange}
-                placeholder="Enter your address, neighborhood, or ZIP"
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                style={styles.underlineInput}
-                maxLength={100}
-              />
-            </View>
-
-            {/* Native Google / Apple Map */}
-            <View style={styles.mapContainer}>
-              <MapView
-                ref={mapRef}
-                style={styles.mapWebview}
-                initialRegion={DEFAULT_REGION}
-                region={mapRegion}
-                onRegionChangeComplete={handleRegionChangeComplete}
-                mapType="standard"
-                showsUserLocation
-                showsMyLocationButton={false}
-                showsCompass={false}
-                showsPointsOfInterests
-                showsBuildings
-                toolbarEnabled={false}
-                provider={Platform.OS === 'android' ? 'google' : undefined}
-              />
-
-              {/* Fixed center pin overlay */}
-              <View style={styles.markerOverlay} pointerEvents="none">
-                <View style={styles.tooltipBubble}>
-                  <Text style={styles.tooltipText}>{neighborhood}</Text>
-                  <View style={styles.tooltipArrow} />
-                </View>
-                <Text style={styles.overlayPin}>📍</Text>
-              </View>
-
-              {/* Floating GPS lock button */}
-              <Pressable style={styles.gpsButton} onPress={handleGPSLocation}>
-                <Text style={styles.gpsIcon}>⌖</Text>
-              </Pressable>
-            </View>
-
-            {isLocating && (
-              <View style={styles.locatingContainer}>
-                <ActivityIndicator color="#B57BFF" size="small" />
-                <Text style={styles.locatingText}>Locating address details...</Text>
-              </View>
-            )}
-
-            {isLocated && (district || stateVal || countryVal) && (
-              <View style={styles.locationDetailsCard}>
-                {district ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>District</Text>
-                    <Text style={styles.detailValue}>{district}</Text>
-                  </View>
-                ) : null}
-                {stateVal ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>State</Text>
-                    <Text style={styles.detailValue}>{stateVal}</Text>
-                  </View>
-                ) : null}
-                {countryVal ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Country</Text>
-                    <Text style={styles.detailValue}>{countryVal}</Text>
-                  </View>
-                ) : null}
-              </View>
-            )}
           </View>
         );
       default:
@@ -589,12 +297,12 @@ export default function OnboardingScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          {/* Steps Horizontal Bar Indicator */}
+          {/* Steps Horizontal Bar Indicator — 4 total (name / gender / address / birth details) */}
           <View style={styles.progressRow}>
             <View style={[styles.progressSegment, step >= 1 && styles.progressSegmentActive]} />
             <View style={[styles.progressSegment, step >= 2 && styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, step >= 3 && styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, step >= 4 && styles.progressSegmentActive]} />
+            <View style={styles.progressSegment} />
+            <View style={styles.progressSegment} />
           </View>
 
           {/* Step Body */}
@@ -610,9 +318,7 @@ export default function OnboardingScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>
-                  {step === 3 ? 'Complete Setup  →' : 'Next  →'}
-                </Text>
+                <Text style={styles.actionText}>Next  →</Text>
               )}
             </Pressable>
           </View>
@@ -642,27 +348,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backIcon: { color: '#FFFFFF', fontSize: 26, lineHeight: 28, marginTop: -2 },
-
-  // ── Lockup ──
-  lockup: { alignItems: 'center' },
-  wordmark: { fontFamily: SERIF, color: '#FFFFFF' },
-  sepRow: { flexDirection: 'row', alignItems: 'center', width: 150, marginTop: 2 },
-  sepLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.40)' },
-  sepDiamond: {
-    width: 6,
-    height: 6,
-    marginHorizontal: 8,
-    backgroundColor: '#FFFFFF',
-    transform: [{ rotate: '45deg' }],
-  },
-  tagline: {
-    color: '#E6D8FF',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 3,
-    opacity: 0.75,
-    marginTop: 8,
-  },
 
   // ── Step Indicators ──
   progressRow: {
@@ -734,6 +419,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 10,
   },
+  optionWrapper: {
+    width: '100%',
+  },
   genderCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -780,6 +468,74 @@ const styles = StyleSheet.create({
     backgroundColor: '#B57BFF',
   },
 
+  // ── Sub-selector Details ──
+  detailContainer: {
+    marginTop: 8,
+    marginLeft: 12,
+    paddingLeft: 12,
+    borderLeftWidth: 1.5,
+    borderLeftColor: 'rgba(168, 85, 247, 0.25)',
+    gap: 8,
+    marginBottom: 8,
+  },
+  detailTitle: {
+    color: '#9A93B5',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  detailCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15, 8, 30, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  detailCardSelected: {
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    backgroundColor: 'rgba(25, 12, 50, 0.55)',
+  },
+  detailInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  detailLabel: {
+    color: '#C9C3DE',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  detailLabelSelected: {
+    color: '#FFFFFF',
+  },
+  detailDescription: {
+    color: '#7C7796',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  detailRadio: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailRadioSelected: {
+    borderColor: '#B57BFF',
+  },
+  detailRadioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#B57BFF',
+  },
+
   // ── Action Button ──
   actionButton: {
     height: 54,
@@ -797,129 +553,4 @@ const styles = StyleSheet.create({
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
-
-  // ── Locate Map Styles ──
-  locatingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-    gap: 8,
-  },
-  locatingText: {
-    color: '#9A93B5',
-    fontSize: 14,
-  },
-  mapContainer: {
-    width: '100%',
-    height: 280,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    position: 'relative',
-    marginBottom: 20,
-  },
-  mapWebview: {
-    flex: 1,
-    backgroundColor: '#e8eaed',
-  },
-  markerOverlay: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginLeft: -100,
-    marginTop: -80,
-    width: 200,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tooltipBubble: {
-    backgroundColor: 'rgba(15, 10, 30, 0.94)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  tooltipText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  tooltipArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightWidth: 6,
-    borderRightColor: 'transparent',
-    borderTopWidth: 6,
-    borderTopColor: 'rgba(15, 10, 30, 0.94)',
-    position: 'absolute',
-    bottom: -6,
-    left: '50%',
-    marginLeft: -6,
-  },
-  overlayPin: {
-    fontSize: 32,
-    marginTop: 2,
-  },
-  gpsButton: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(15, 10, 30, 0.85)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gpsIcon: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: -2,
-  },
-  underlineInputContainer: {
-    width: '100%',
-    borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 8,
-    marginBottom: 16,
-  },
-  underlineInput: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  locationDetailsCard: {
-    width: '100%',
-    borderRadius: 14,
-    backgroundColor: 'rgba(20, 12, 40, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    padding: 16,
-    marginTop: 16,
-    gap: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    color: '#9A93B5',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  detailValue: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
 });

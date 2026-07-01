@@ -17,10 +17,6 @@ export default ({ config }) => ({
       foregroundImage: './assets/images/icon.png',
     },
     predictiveBackGestureEnabled: false,
-    permissions: [
-      'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.ACCESS_FINE_LOCATION',
-    ],
     package: 'com.ciel.ai.astrodate',
   },
   web: {
@@ -40,17 +36,12 @@ export default ({ config }) => ({
       },
     ],
     [
-      'react-native-maps',
-      {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY_ANDROID || '',
-        googleMapsApiKeyIOS: process.env.GOOGLE_MAPS_API_KEY_IOS || '',
-      },
-    ],
-    [
       'expo-location',
       {
-        locationWhenInUsePermission: 'Astro Date needs your location to show nearby matches.',
-        locationAlwaysPermission: 'Astro Date uses your location to find matches near you.',
+        locationWhenInUsePermission:
+          'Astro date uses your location to show you people nearby and how far away they are. Your exact location is never shown to other users.',
+        isAndroidBackgroundLocationEnabled: false,
+        isIosBackgroundLocationEnabled: false,
       },
     ],
   ],

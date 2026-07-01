@@ -82,6 +82,15 @@ export default function PrivacyScreen() {
             We collect your device&apos;s location to show you potential matches nearby. Location is used only for match suggestions and is never shared publicly on your profile without your consent.
           </Text>
 
+          <Text style={styles.subSubTitle}>Controlling Your Location</Text>
+          <Text style={styles.paragraph}>
+            You can enable or disable location sharing at any time from the{' '}
+            <Text style={styles.linkText}>Settings</Text> screen. When you disable location
+            sharing, your stored location is deleted from our servers immediately and you
+            will no longer appear with a distance label in other users&apos; discovery feeds.
+            Re-enabling location requires granting permission again through the OS prompt.
+          </Text>
+
           <Text style={styles.subSubTitle}>Usage Data</Text>
           <Text style={styles.paragraph}>We automatically collect:</Text>
           <Text style={styles.bullet}>• Device type, operating system, and IP address</Text>

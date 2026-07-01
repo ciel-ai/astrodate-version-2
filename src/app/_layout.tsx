@@ -25,6 +25,16 @@ export default function RootLayout() {
           <Stack.Screen name="terms" options={{ headerShown: false }} />
           {/* Privacy Policy */}
           <Stack.Screen name="privacy" options={{ headerShown: false }} />
+          {/* Settings */}
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          {/* Address collection */}
+          <Stack.Screen name="address" options={{ headerShown: false }} />
+          {/* Birth details collection */}
+          <Stack.Screen name="birth-details" options={{ headerShown: false }} />
+          {/* Profile preview review screen */}
+          <Stack.Screen name="profile-preview" options={{ headerShown: false }} />
+          {/* Sign back in third-party account link option screen */}
+          <Stack.Screen name="sign-back-in" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
     </AuthProvider>

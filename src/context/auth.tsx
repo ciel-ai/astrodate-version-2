@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import { syncLocationIfGranted } from '@/lib/location';
 
 type AuthContextType = {
   session: Session | null;
@@ -43,6 +45,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Silent location refresh for the "nearby" feature. Only runs when a user is
+  // signed in AND foreground permission was already granted — it never prompts.
+  // The explicit opt-in prompt lives on an "Enable location" button
+  // (see requestAndSyncLocation in @/lib/location). Refreshes on login and each
+  // time the app returns to the foreground.
+  useEffect(() => {
+    if (!user) return;
+
+    syncLocationIfGranted();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        syncLocationIfGranted();
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [user]);
 
   const signOut = async () => {
     try {
