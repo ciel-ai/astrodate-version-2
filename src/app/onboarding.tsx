@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -62,6 +62,7 @@ export default function OnboardingScreen() {
   const mapRef = useRef<MapView | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoDetectedRef = useRef(false);
 
   const googleApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -94,7 +95,9 @@ export default function OnboardingScreen() {
             if (comp.types.includes('administrative_area_level_1')) st = comp.long_name;
             if (comp.types.includes('country')) co = comp.long_name;
           });
-          setNeighborhood(sub || dist || 'Selected Location');
+          const resolvedName = sub || dist || 'Selected Location';
+          setNeighborhood(resolvedName);
+          setAddress(resolvedName);
           setDistrict(dist); setStateVal(st); setCountryVal(co); setIsLocated(true);
           resolved = true;
         }
@@ -111,8 +114,10 @@ export default function OnboardingScreen() {
           if (parsed && parsed.address) {
             const addr = parsed.address;
             const suburb = addr.suburb || addr.neighbourhood || addr.village || addr.city_district || addr.city || '';
-            const dist = addr.district || addr.county || addr.city_district || addr.city || '';
-            setNeighborhood(suburb || dist || 'Selected Location');
+            const dist = addr.district || addr.county || addr.city_district || addr.suburb || addr.city || '';
+            const resolvedName = suburb || dist || 'Selected Location';
+            setNeighborhood(resolvedName);
+            setAddress(resolvedName);
             setDistrict(dist); setStateVal(addr.state || ''); setCountryVal(addr.country || ''); setIsLocated(true);
           }
         }
@@ -302,6 +307,15 @@ export default function OnboardingScreen() {
     }, 1000);
   };
 
+  // Auto-detect the user's location the first time they land on the Location step.
+  useEffect(() => {
+    if (step === 3 && !autoDetectedRef.current) {
+      autoDetectedRef.current = true;
+      handleGPSLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
   }
@@ -490,9 +504,12 @@ export default function OnboardingScreen() {
                 initialRegion={DEFAULT_REGION}
                 region={mapRegion}
                 onRegionChangeComplete={handleRegionChangeComplete}
+                mapType="standard"
                 showsUserLocation
                 showsMyLocationButton={false}
                 showsCompass={false}
+                showsPointsOfInterests
+                showsBuildings
                 toolbarEnabled={false}
                 provider={Platform.OS === 'android' ? 'google' : undefined}
               />
@@ -804,7 +821,7 @@ const styles = StyleSheet.create({
   },
   mapWebview: {
     flex: 1,
-    backgroundColor: '#0c071d',
+    backgroundColor: '#e8eaed',
   },
   markerOverlay: {
     position: 'absolute',
