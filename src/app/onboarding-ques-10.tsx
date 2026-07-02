@@ -33,74 +33,72 @@ interface Question {
   label: string;
   dbColumn: string;
   options: Option[];
-  isMultiple?: boolean;
 }
 
 const QUESTIONS: Question[] = [
   {
-    id: 'date_excite',
+    id: 'show_care',
     icon: '❤️',
-    label: 'What type of date excites you the most?',
-    dbColumn: 'what_type_of_date_excites_you_the_most',
-    isMultiple: true, // column is TEXT[]
+    label: 'How do you show care in a relationship?',
+    dbColumn: 'how_do_you_show_care_in_a_relationship',
     options: [
-      { id: 'cafe', label: 'A cozy café where we talk for hours', dbValue: 'cafe' },
-      { id: 'explore', label: 'A random new place we decide to explore', dbValue: 'explore' },
-      { id: 'dinner', label: 'A movie or simple dinner, nothing too wild', dbValue: 'dinner' },
-      { id: 'road_trip', label: 'A totally spontaneous road trip', dbValue: 'road_trip' },
+      { id: 'small_gestures', label: 'Small gestures', dbValue: 'small_gestures' },
+      { id: 'listening', label: 'Listening when needed', dbValue: 'listening' },
+      { id: 'supporting_emotional', label: 'Supporting them emotionally', dbValue: 'supporting_emotional' },
+      { id: 'make_loved', label: 'Going out of my way to make them feel loved', dbValue: 'make_loved' },
     ],
   },
   {
-    id: 'unusual_foods',
-    icon: '🍴',
-    label: 'How do you feel about trying unusual foods or activities?',
-    dbColumn: 'how_do_you_feel_about_trying_unusual_foods_or_activities',
+    id: 'partner_type',
+    icon: '👥',
+    label: 'What kind of partner are you?',
+    dbColumn: 'what_kind_of_partner_are_you',
     options: [
-      { id: 'stick_known', label: 'Nope, I like sticking to what I know', dbValue: 'stick_known' },
-      { id: 'try_encouraged', label: "I'll try if someone encourages me", dbValue: 'try_encouraged' },
-      { id: 'open_to_it', label: "Sounds fun, I'm open to it", dbValue: 'open_to_it' },
-      { id: 'suggest_crazy', label: "I'm the one who suggests crazy ideas first", dbValue: 'suggest_crazy' },
+      { id: 'independent', label: 'Independent', dbValue: 'independent' },
+      { id: 'supportive_type', label: 'Supportive', dbValue: 'supportive' },
+      { id: 'empathetic', label: 'Empathetic', dbValue: 'empathetic' },
+      { id: 'comforting', label: 'Soft, kind, and comforting', dbValue: 'comforting' },
     ],
   },
   {
-    id: 'partner_convos',
-    icon: '💬',
-    label: 'What kind of conversations do you enjoy with a partner?',
-    dbColumn: 'what_kind_of_conversations_do_you_enjoy_with_a_partner',
+    id: 'replies_late',
+    icon: '🕒',
+    label: 'When your partner replies late, you feel...',
+    dbColumn: 'when_your_partner_replies_late_you_feel',
     options: [
-      { id: 'everyday_talks', label: 'Cute, simple, everyday talks', dbValue: 'everyday_talks' },
-      { id: 'life_related', label: 'Goal & life-related discussions', dbValue: 'life_related' },
-      { id: 'deep_chats', label: 'Deep emotional & philosophical chats', dbValue: 'deep_chats' },
-      { id: 'creative_brainstorm', label: 'Random creative brainstorming at midnight', dbValue: 'creative_brainstorm' },
+      { id: 'totally_fine', label: 'Totally fine', dbValue: 'totally_fine' },
+      { id: 'slightly_curious', label: 'Slightly curious', dbValue: 'slightly_curious' },
+      { id: 'overthinking', label: 'A bit overthinking', dbValue: 'overthinking' },
+      { id: 'very_anxious', label: 'Very anxious', dbValue: 'very_anxious' },
     ],
   },
   {
-    id: 'planning_style',
-    icon: '📅',
-    label: 'What best describes your planning style?',
-    dbColumn: 'what_best_describes_your_planning_style',
+    id: 'ups_downs',
+    icon: '😊',
+    label: 'How do you handle emotional ups and downs?',
+    dbColumn: 'how_do_you_handle_emotional_ups_and_downs',
     options: [
-      { id: 'flow', label: 'Go-with-the-flow', dbValue: 'flow' },
-      { id: 'plan_little', label: 'I plan a little', dbValue: 'plan_little' },
-      { id: 'organise', label: 'I like to organise things', dbValue: 'organise' },
-      { id: 'mini_project', label: 'I plan dates like a mini project', dbValue: 'mini_project' },
+      { id: 'rarely_stressed', label: 'I rarely feel stressed', dbValue: 'rarely_stressed' },
+      { id: 'handle_okay', label: 'I handle things okay', dbValue: 'handle_okay' },
+      { id: 'emotional_sometimes', label: 'I get emotional sometimes', dbValue: 'emotional_sometimes' },
+      { id: 'feel_deeply', label: 'I feel things very deeply', dbValue: 'feel_deeply' },
     ],
   },
   {
-    id: 'relationship_commitments',
-    icon: '🤝',
-    label: 'How do you handle commitments in a relationship?',
-    dbColumn: 'how_do_you_handle_commitments_in_a_relationship',
+    id: 'overthink_rel',
+    icon: '🧠',
+    label: 'How often do you overthink relationships?',
+    dbColumn: 'how_often_do_you_overthink_relationships',
     options: [
-      { id: 'forget_sometimes', label: 'I forget sometimes', dbValue: 'forget_sometimes' },
-      { id: 'try_remember', label: 'I try my best to remember', dbValue: 'try_remember' },
-      { id: 'responsible_steady', label: "I'm responsible and steady", dbValue: 'responsible_steady' },
-      { id: 'no_excuses', label: "If I promise, I'll do it—no excuses", dbValue: 'no_excuses' },
+      { id: 'almost_never', label: 'Almost never', dbValue: 'almost_never' },
+      { id: 'occasionally', label: 'Occasionally', dbValue: 'occasionally' },
+      { id: 'quite_often', label: 'Quite often', dbValue: 'quite_often' },
+      { id: 'all_time', label: 'All the time', dbValue: 'all_time' },
     ],
   },
 ];
 
-export default function OnboardingQues8Screen() {
+export default function OnboardingQues10Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -109,7 +107,6 @@ export default function OnboardingQues8Screen() {
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
-  // State maps question index to selected option value
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -145,11 +142,7 @@ export default function OnboardingQues8Screen() {
 
       QUESTIONS.forEach(q => {
         const val = answers[q.id];
-        if (q.isMultiple) {
-          payload[q.dbColumn] = [val]; // TEXT[] requires an array
-        } else {
-          payload[q.dbColumn] = val;
-        }
+        payload[q.dbColumn] = val;
       });
 
       // Upsert preferences to personality_qns table
@@ -157,10 +150,10 @@ export default function OnboardingQues8Screen() {
 
       if (error) throw error;
 
-      // Proceed to Page 9 of 10
-      router.push('/onboarding-ques-09');
+      // Navigate to final transition screen
+      router.push('/finish-ques');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your habits.');
+      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
     } finally {
       setLoading(false);
     }
@@ -185,20 +178,20 @@ export default function OnboardingQues8Screen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 8 of 10 indicator */}
+          {/* Progress bar — Page 10 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 8 of 10</Text>
+            <Text style={styles.progressText}>Page 10 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Let&apos;s talk lifestyle habits</Text>
+            <Text style={styles.heading}>Let&apos;s understand your relationship style</Text>
             <Text style={styles.subtitle}>
-              Do their habits match yours? You go first.
+              Help us match you with compatible partners.
             </Text>
           </View>
 
@@ -248,16 +241,16 @@ export default function OnboardingQues8Screen() {
           <View style={styles.bottomNav}>
             {/* Back Button */}
             <Pressable
-              id="btn-back-page8"
+              id="btn-back-page10"
               onPress={() => router.back()}
               style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
             >
               <Text style={styles.backNavArrow}>←</Text>
             </Pressable>
 
-            {/* Action Continue Button */}
+            {/* Action Continue Button with Heart Icon */}
             <Pressable
-              id="btn-habits-continue"
+              id="btn-relationship-continue"
               onPress={handleNext}
               style={({ pressed }) => [
                 styles.actionButton,
@@ -269,7 +262,7 @@ export default function OnboardingQues8Screen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Next {answeredCount} / 5  →</Text>
+                <Text style={styles.actionText}>Next {answeredCount} / 5 🤍</Text>
               )}
             </Pressable>
           </View>
@@ -307,7 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '80%', // 8 of 10 pages active
+    width: '100%', // 9 of 9 pages active (full progress)
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {

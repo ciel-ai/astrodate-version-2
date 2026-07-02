@@ -21,114 +21,56 @@ import { supabase } from '@/lib/supabase';
 
 const SERIF = 'Baskerville-Old-Face';
 
-interface Option {
+interface PartnerPreferenceOption {
   id: string;
   label: string;
   dbValue: string;
 }
 
-interface Question {
-  id: string;
-  icon: string;
-  label: string;
-  dbColumn: string;
-  options: Option[];
-  isMultiple?: boolean;
-}
-
-const QUESTIONS: Question[] = [
-  {
-    id: 'date_excite',
-    icon: '❤️',
-    label: 'What type of date excites you the most?',
-    dbColumn: 'what_type_of_date_excites_you_the_most',
-    isMultiple: true, // column is TEXT[]
-    options: [
-      { id: 'cafe', label: 'A cozy café where we talk for hours', dbValue: 'cafe' },
-      { id: 'explore', label: 'A random new place we decide to explore', dbValue: 'explore' },
-      { id: 'dinner', label: 'A movie or simple dinner, nothing too wild', dbValue: 'dinner' },
-      { id: 'road_trip', label: 'A totally spontaneous road trip', dbValue: 'road_trip' },
-    ],
-  },
-  {
-    id: 'unusual_foods',
-    icon: '🍴',
-    label: 'How do you feel about trying unusual foods or activities?',
-    dbColumn: 'how_do_you_feel_about_trying_unusual_foods_or_activities',
-    options: [
-      { id: 'stick_known', label: 'Nope, I like sticking to what I know', dbValue: 'stick_known' },
-      { id: 'try_encouraged', label: "I'll try if someone encourages me", dbValue: 'try_encouraged' },
-      { id: 'open_to_it', label: "Sounds fun, I'm open to it", dbValue: 'open_to_it' },
-      { id: 'suggest_crazy', label: "I'm the one who suggests crazy ideas first", dbValue: 'suggest_crazy' },
-    ],
-  },
-  {
-    id: 'partner_convos',
-    icon: '💬',
-    label: 'What kind of conversations do you enjoy with a partner?',
-    dbColumn: 'what_kind_of_conversations_do_you_enjoy_with_a_partner',
-    options: [
-      { id: 'everyday_talks', label: 'Cute, simple, everyday talks', dbValue: 'everyday_talks' },
-      { id: 'life_related', label: 'Goal & life-related discussions', dbValue: 'life_related' },
-      { id: 'deep_chats', label: 'Deep emotional & philosophical chats', dbValue: 'deep_chats' },
-      { id: 'creative_brainstorm', label: 'Random creative brainstorming at midnight', dbValue: 'creative_brainstorm' },
-    ],
-  },
-  {
-    id: 'planning_style',
-    icon: '📅',
-    label: 'What best describes your planning style?',
-    dbColumn: 'what_best_describes_your_planning_style',
-    options: [
-      { id: 'flow', label: 'Go-with-the-flow', dbValue: 'flow' },
-      { id: 'plan_little', label: 'I plan a little', dbValue: 'plan_little' },
-      { id: 'organise', label: 'I like to organise things', dbValue: 'organise' },
-      { id: 'mini_project', label: 'I plan dates like a mini project', dbValue: 'mini_project' },
-    ],
-  },
-  {
-    id: 'relationship_commitments',
-    icon: '🤝',
-    label: 'How do you handle commitments in a relationship?',
-    dbColumn: 'how_do_you_handle_commitments_in_a_relationship',
-    options: [
-      { id: 'forget_sometimes', label: 'I forget sometimes', dbValue: 'forget_sometimes' },
-      { id: 'try_remember', label: 'I try my best to remember', dbValue: 'try_remember' },
-      { id: 'responsible_steady', label: "I'm responsible and steady", dbValue: 'responsible_steady' },
-      { id: 'no_excuses', label: "If I promise, I'll do it—no excuses", dbValue: 'no_excuses' },
-    ],
-  },
+const PARTNER_PREFERENCE_OPTIONS: PartnerPreferenceOption[] = [
+  { id: 'calm_mature', label: 'Calm & mature', dbValue: 'calm_mature' },
+  { id: 'fun_outgoing', label: 'Fun & outgoing', dbValue: 'fun_outgoing' },
+  { id: 'ambitious', label: 'Ambitious', dbValue: 'ambitious' },
+  { id: 'caring_soft', label: 'Caring & soft', dbValue: 'caring_soft' },
 ];
 
-export default function OnboardingQues8Screen() {
+export default function OnboardingQues7Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
+  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
-  // State maps question index to selected option value
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
   }
 
-  const handleSelect = (questionId: string, optionValue: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: optionValue,
-    }));
+  const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
+  const deviceH = isDesktopWeb ? 844 : screenH;
+  const FORM_GAP = Math.round(deviceH * 0.04);
+
+  const handleSelectOption = (optId: string) => {
+    let nextSelected = [...selectedIds];
+    if (nextSelected.includes(optId)) {
+      nextSelected = nextSelected.filter(id => id !== optId);
+    } else {
+      nextSelected.push(optId);
+    }
+    setSelectedIds(nextSelected);
   };
 
-  const answeredCount = Object.keys(answers).length;
-
   const handleNext = async () => {
-    if (answeredCount < QUESTIONS.length) {
-      Alert.alert('Incomplete Questions', 'Please answer all 5 questions to continue.');
+    const dbSelections = PARTNER_PREFERENCE_OPTIONS
+      .filter(opt => selectedIds.includes(opt.id))
+      .map(opt => opt.dbValue);
+
+    if (dbSelections.length === 0) {
+      Alert.alert('Selection Required', 'Please select at least one partner preference.');
       return;
     }
 
@@ -137,30 +79,19 @@ export default function OnboardingQues8Screen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Convert answers state object to database row values
-      const payload: any = {
+      // Save user response to section1_qns table
+      const { error } = await supabase.from('section1_qns').upsert({
         user_id: user.id,
+        partner_preference: dbSelections,
         updated_at: new Date().toISOString(),
-      };
-
-      QUESTIONS.forEach(q => {
-        const val = answers[q.id];
-        if (q.isMultiple) {
-          payload[q.dbColumn] = [val]; // TEXT[] requires an array
-        } else {
-          payload[q.dbColumn] = val;
-        }
-      });
-
-      // Upsert preferences to personality_qns table
-      const { error } = await supabase.from('personality_qns').upsert(payload, { onConflict: 'user_id' });
+      }, { onConflict: 'user_id' });
 
       if (error) throw error;
 
-      // Proceed to Page 8 of 9
+      // Proceed to Page 8 of 10
       router.push('/onboarding-ques-08');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your habits.');
+      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your preferences.');
     } finally {
       setLoading(false);
     }
@@ -184,62 +115,55 @@ export default function OnboardingQues8Screen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          
-          {/* Progress bar — Page 7 of 9 indicator */}
+
+          {/* Progress bar — Page 7 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 7 of 9</Text>
+            <Text style={styles.progressText}>Page 7 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Let&apos;s talk lifestyle habits</Text>
+            <Text style={styles.heading}>What kind of partner do you prefer?</Text>
             <Text style={styles.subtitle}>
-              Do their habits match yours? You go first.
+              Select the traits that matter most to you.
             </Text>
           </View>
 
-          {/* Questions Container */}
-          <View style={styles.questionsContainer}>
-            {QUESTIONS.map((q) => {
+          {/* Options List */}
+          <View style={[styles.form, { marginTop: FORM_GAP }]}>
+            {PARTNER_PREFERENCE_OPTIONS.map((opt) => {
+              const isSelected = selectedIds.includes(opt.id);
               return (
-                <View key={q.id} style={styles.questionBlock}>
-                  {/* Label Row */}
-                  <View style={styles.questionLabelRow}>
-                    <Text style={styles.questionIcon}>{q.icon}</Text>
-                    <Text style={styles.questionText}>{q.label}</Text>
-                  </View>
+                <Pressable
+                  key={opt.id}
+                  id={`btn-partner-pref-${opt.id}`}
+                  onPress={() => handleSelectOption(opt.id)}
+                  style={[
+                    styles.preferenceCard,
+                    isSelected && styles.preferenceCardSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.preferenceLabel,
+                      isSelected && styles.preferenceLabelSelected,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
 
-                  {/* Options List */}
-                  <View style={styles.optionsList}>
-                    {q.options.map((opt) => {
-                      const isSelected = answers[q.id] === opt.dbValue;
-                      return (
-                        <Pressable
-                          key={opt.id}
-                          onPress={() => handleSelect(q.id, opt.dbValue)}
-                          style={[
-                            styles.optionPill,
-                            isSelected && styles.optionPillSelected,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.optionLabel,
-                              isSelected && styles.optionLabelSelected,
-                            ]}
-                          >
-                            {opt.label}
-                          </Text>
-                          {isSelected && <Text style={styles.checkmarkIcon}>✓</Text>}
-                        </Pressable>
-                      );
-                    })}
+                  {/* Select check/radio bubble indicator */}
+                  <View style={[
+                    styles.radioIndicator,
+                    isSelected && styles.radioIndicatorSelected
+                  ]}>
+                    {isSelected && <View style={styles.radioDot} />}
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -248,7 +172,7 @@ export default function OnboardingQues8Screen() {
           <View style={styles.bottomNav}>
             {/* Back Button */}
             <Pressable
-              id="btn-back-page8"
+              id="btn-back-page7"
               onPress={() => router.back()}
               style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
             >
@@ -257,19 +181,15 @@ export default function OnboardingQues8Screen() {
 
             {/* Action Continue Button */}
             <Pressable
-              id="btn-habits-continue"
+              id="btn-partner-pref-continue"
               onPress={handleNext}
-              style={({ pressed }) => [
-                styles.actionButton,
-                pressed && styles.actionPressed,
-                answeredCount < QUESTIONS.length && styles.actionButtonDisabled
-              ]}
-              disabled={loading || answeredCount < QUESTIONS.length}
+              style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
+              disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Next {answeredCount} / 5  →</Text>
+                <Text style={styles.actionText}>Continue  →</Text>
               )}
             </Pressable>
           </View>
@@ -307,7 +227,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '77.77%', // 7 of 9 pages active
+    width: '70%', // 7 of 10 pages active
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {
@@ -321,14 +241,14 @@ const styles = StyleSheet.create({
   },
 
   // ── Header ──
-  header: { alignItems: 'flex-start', width: '100%', marginBottom: 12 },
+  header: { alignItems: 'flex-start', width: '100%' },
   heading: {
     color: '#FFFFFF',
     fontSize: 27,
     fontWeight: '800',
     textAlign: 'left',
     letterSpacing: 0.1,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subtitle: {
     color: '#9A93B5',
@@ -338,67 +258,48 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── Questions List ──
-  questionsContainer: {
-    width: '100%',
-    gap: 28,
-    marginTop: 10,
-  },
-  questionBlock: {
-    width: '100%',
-    gap: 12,
-  },
-  questionLabelRow: {
+  // ── Form Panel ──
+  form: { alignItems: 'stretch', width: '100%', gap: 12 },
+  preferenceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    width: '100%',
-  },
-  questionIcon: {
-    fontSize: 20,
-    color: '#B57BFF',
-  },
-  questionText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    flex: 1,
-    lineHeight: 22,
-  },
-  optionsList: {
-    width: '100%',
-    gap: 8,
-  },
-  optionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: 'rgba(20, 12, 40, 0.55)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
   },
-  optionPillSelected: {
+  preferenceCardSelected: {
     borderColor: '#A855F7',
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+    backgroundColor: 'rgba(30, 15, 60, 0.65)',
   },
-  optionLabel: {
+  preferenceLabel: {
     color: '#C9C3DE',
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-  optionLabelSelected: {
-    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
   },
-  checkmarkIcon: {
-    color: '#B57BFF',
-    fontSize: 16,
-    fontWeight: '900',
-    marginLeft: 10,
+  preferenceLabelSelected: {
+    color: '#FFFFFF',
+  },
+  radioIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioIndicatorSelected: {
+    borderColor: '#B57BFF',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#B57BFF',
   },
 
   // ── Bottom Navigation Row ──
@@ -407,7 +308,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 16,
-    marginTop: 36,
+    marginTop: 32,
   },
   backNavBtn: {
     width: 54,
@@ -442,11 +343,6 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
       web: { boxShadow: '0 8px 28px 0 rgba(192,38,211,0.55)' } as any,
     }),
-  } as any,
-  actionButtonDisabled: {
-    opacity: 0.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    experimental_backgroundImage: 'none',
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },

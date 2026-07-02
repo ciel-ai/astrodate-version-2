@@ -77,7 +77,7 @@ export default function OnboardingQues3Screen() {
 
       if (error) throw error;
 
-      // Proceed to Page 4 of 9
+      // Proceed to Page 4 of 10
       router.push('/onboarding-ques-04');
     } catch (e: any) {
       Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your status.');
@@ -105,13 +105,13 @@ export default function OnboardingQues3Screen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 3 of 9 indicator */}
+          {/* Progress bar — Page 3 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 3 of 9</Text>
+            <Text style={styles.progressText}>Page 3 of 10</Text>
           </View>
 
           {/* Header */}
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '33.33%', // 3 of 9 pages active
+    width: '30%', // 3 of 10 pages active
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {

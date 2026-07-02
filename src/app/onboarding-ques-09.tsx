@@ -37,68 +37,68 @@ interface Question {
 
 const QUESTIONS: Question[] = [
   {
-    id: 'show_care',
+    id: 'workspace_look',
+    icon: '🏠',
+    label: 'Your room or workspace usually looks like...',
+    dbColumn: 'your_room_or_workspace_usually_looks_like',
+    options: [
+      { id: 'disaster', label: 'A disaster zone', dbValue: 'disaster' },
+      { id: 'manageable', label: 'Manageable', dbValue: 'manageable' },
+      { id: 'clean', label: 'Clean most of the time', dbValue: 'clean' },
+      { id: 'pinterest', label: 'Organised like Pinterest', dbValue: 'pinterest' },
+    ],
+  },
+  {
+    id: 'partner_time',
     icon: '❤️',
-    label: 'How do you show care in a relationship?',
-    dbColumn: 'how_do_you_show_care_in_a_relationship',
+    label: 'Your ideal way to spend time with a partner:',
+    dbColumn: 'your_ideal_way_to_spend_time_with_a_partner',
     options: [
-      { id: 'small_gestures', label: 'Small gestures', dbValue: 'small_gestures' },
-      { id: 'listening', label: 'Listening when needed', dbValue: 'listening' },
-      { id: 'supporting_emotional', label: 'Supporting them emotionally', dbValue: 'supporting_emotional' },
-      { id: 'make_loved', label: 'Going out of my way to make them feel loved', dbValue: 'make_loved' },
+      { id: 'chill_home', label: 'Chill at home doing our own thing', dbValue: 'chill_home' },
+      { id: 'quiet_date', label: 'Quiet date with just the two of us', dbValue: 'quiet_date' },
+      { id: 'fun_activities', label: 'Going out for fun activities', dbValue: 'fun_activities' },
+      { id: 'social_friends', label: 'Big social plans with friends', dbValue: 'social_friends' },
     ],
   },
   {
-    id: 'partner_type',
+    id: 'dates_energy',
+    icon: '⚡',
+    label: 'Your energy level on dates is usually...',
+    dbColumn: 'your_energy_level_on_dates_is_usually',
+    options: [
+      { id: 'calm', label: 'Low-key, calm', dbValue: 'calm' },
+      { id: 'balanced', label: 'Balanced', dbValue: 'balanced' },
+      { id: 'energetic', label: 'Fun & energetic', dbValue: 'energetic' },
+      { id: 'excitement', label: 'Hyper, full excitement', dbValue: 'excitement' },
+    ],
+  },
+  {
+    id: 'partner_prefer',
     icon: '👥',
-    label: 'What kind of partner are you?',
-    dbColumn: 'what_kind_of_partner_are_you',
+    label: 'You prefer a partner who is...',
+    dbColumn: 'you_prefer_a_partner_who_is',
     options: [
-      { id: 'independent', label: 'Independent', dbValue: 'independent' },
-      { id: 'supportive_type', label: 'Supportive', dbValue: 'supportive' },
-      { id: 'empathetic', label: 'Empathetic', dbValue: 'empathetic' },
-      { id: 'comforting', label: 'Soft, kind, and comforting', dbValue: 'comforting' },
+      { id: 'introverted', label: 'Calm and introverted', dbValue: 'introverted' },
+      { id: 'balanced_partner', label: 'Balanced', dbValue: 'balanced' },
+      { id: 'outgoing', label: 'Outgoing', dbValue: 'outgoing' },
+      { id: 'social_lively', label: 'Super social and lively', dbValue: 'social_lively' },
     ],
   },
   {
-    id: 'replies_late',
-    icon: '🕒',
-    label: 'When your partner replies late, you feel...',
-    dbColumn: 'when_your_partner_replies_late_you_feel',
+    id: 'arguments_handle',
+    icon: '💬',
+    label: 'During arguments, you usually...',
+    dbColumn: 'during_arguments_you_usually',
     options: [
-      { id: 'totally_fine', label: 'Totally fine', dbValue: 'totally_fine' },
-      { id: 'slightly_curious', label: 'Slightly curious', dbValue: 'slightly_curious' },
-      { id: 'overthinking', label: 'A bit overthinking', dbValue: 'overthinking' },
-      { id: 'very_anxious', label: 'Very anxious', dbValue: 'very_anxious' },
-    ],
-  },
-  {
-    id: 'ups_downs',
-    icon: '😊',
-    label: 'How do you handle emotional ups and downs?',
-    dbColumn: 'how_do_you_handle_emotional_ups_and_downs',
-    options: [
-      { id: 'rarely_stressed', label: 'I rarely feel stressed', dbValue: 'rarely_stressed' },
-      { id: 'handle_okay', label: 'I handle things okay', dbValue: 'handle_okay' },
-      { id: 'emotional_sometimes', label: 'I get emotional sometimes', dbValue: 'emotional_sometimes' },
-      { id: 'feel_deeply', label: 'I feel things very deeply', dbValue: 'feel_deeply' },
-    ],
-  },
-  {
-    id: 'overthink_rel',
-    icon: '🧠',
-    label: 'How often do you overthink relationships?',
-    dbColumn: 'how_often_do_you_overthink_relationships',
-    options: [
-      { id: 'almost_never', label: 'Almost never', dbValue: 'almost_never' },
-      { id: 'occasionally', label: 'Occasionally', dbValue: 'occasionally' },
-      { id: 'quite_often', label: 'Quite often', dbValue: 'quite_often' },
-      { id: 'all_time', label: 'All the time', dbValue: 'all_time' },
+      { id: 'avoid_talking', label: 'Avoid talking', dbValue: 'avoid_talking' },
+      { id: 'calm_discuss', label: 'Calm down & then discuss', dbValue: 'calm_discuss' },
+      { id: 'understand_view', label: 'Try to understand their view', dbValue: 'understand_view' },
+      { id: 'solve_patience', label: 'Solve it immediately with patience', dbValue: 'solve_patience' },
     ],
   },
 ];
 
-export default function OnboardingQues10Screen() {
+export default function OnboardingQues9Screen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -150,8 +150,8 @@ export default function OnboardingQues10Screen() {
 
       if (error) throw error;
 
-      // Navigate to final transition screen
-      router.push('/finish-ques');
+      // Proceed to Page 10 of 10
+      router.push('/onboarding-ques-10');
     } catch (e: any) {
       Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
     } finally {
@@ -178,20 +178,20 @@ export default function OnboardingQues10Screen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 9 of 9 indicator */}
+          {/* Progress bar — Page 9 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 9 of 9</Text>
+            <Text style={styles.progressText}>Page 9 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Let&apos;s understand your relationship style</Text>
+            <Text style={styles.heading}>Let&apos;s understand your personality</Text>
             <Text style={styles.subtitle}>
-              Help us match you with compatible partners.
+              Help us match you with compatible personalities.
             </Text>
           </View>
 
@@ -241,16 +241,16 @@ export default function OnboardingQues10Screen() {
           <View style={styles.bottomNav}>
             {/* Back Button */}
             <Pressable
-              id="btn-back-page10"
+              id="btn-back-page9"
               onPress={() => router.back()}
               style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
             >
               <Text style={styles.backNavArrow}>←</Text>
             </Pressable>
 
-            {/* Action Continue Button with Heart Icon */}
+            {/* Action Continue Button */}
             <Pressable
-              id="btn-relationship-continue"
+              id="btn-personality-continue"
               onPress={handleNext}
               style={({ pressed }) => [
                 styles.actionButton,
@@ -262,7 +262,7 @@ export default function OnboardingQues10Screen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Next {answeredCount} / 5 🤍</Text>
+                <Text style={styles.actionText}>Next {answeredCount} / 5  →</Text>
               )}
             </Pressable>
           </View>
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '100%', // 9 of 9 pages active (full progress)
+    width: '90%', // 9 of 10 pages active
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {

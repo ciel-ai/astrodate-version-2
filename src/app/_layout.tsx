@@ -11,6 +11,8 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AnimatedSplashOverlay />
         <Stack>
+          {/* Main app shell — 5-tab bottom navigation, frozen on blur */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* Full-screen cosmic splash — no header, no tab bar */}
           <Stack.Screen name="index" options={{ headerShown: false }} />
           {/* Create account / phone sign-up — full screen, no header */}
@@ -47,6 +49,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding-ques-07" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding-ques-08" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding-ques-09" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-ques-10" options={{ headerShown: false }} />
           {/* Final transition screen after questionnaire */}
           <Stack.Screen name="finish-ques" options={{ headerShown: false }} />
         </Stack>

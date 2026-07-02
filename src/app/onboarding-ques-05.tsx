@@ -77,7 +77,7 @@ export default function OnboardingQues5Screen() {
 
       if (error) throw error;
 
-      // Proceed to Page 6 of 9
+      // Proceed to Page 6 of 10
       router.push('/onboarding-ques-06');
     } catch (e: any) {
       Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
@@ -105,13 +105,13 @@ export default function OnboardingQues5Screen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 5 of 9 indicator */}
+          {/* Progress bar — Page 5 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 5 of 9</Text>
+            <Text style={styles.progressText}>Page 5 of 10</Text>
           </View>
 
           {/* Header */}
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '55.55%', // 5 of 9 pages active
+    width: '50%', // 5 of 10 pages active
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {

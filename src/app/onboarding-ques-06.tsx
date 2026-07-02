@@ -77,7 +77,7 @@ export default function OnboardingQues6Screen() {
 
       if (error) throw error;
 
-      // Proceed to Page 7 of 9
+      // Proceed to Page 7 of 10
       router.push('/onboarding-ques-07');
     } catch (e: any) {
       Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your social energy.');
@@ -105,13 +105,13 @@ export default function OnboardingQues6Screen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 6 of 9 indicator */}
+          {/* Progress bar — Page 6 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 6 of 9</Text>
+            <Text style={styles.progressText}>Page 6 of 10</Text>
           </View>
 
           {/* Header */}
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '66.66%', // 6 of 9 pages active
+    width: '60%', // 6 of 10 pages active
     backgroundColor: '#B57BFF',
   },
   progressSegmentEmpty: {

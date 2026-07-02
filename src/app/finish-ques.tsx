@@ -30,7 +30,7 @@ export default function FinishQuesScreen() {
   }
 
   const handleFinish = () => {
-    router.replace('/');
+    router.replace('/(tabs)/discover');
   };
 
   return (
