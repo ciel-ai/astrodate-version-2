@@ -13,6 +13,7 @@ import { useFonts } from 'expo-font';
 
 import { ThemedText } from '@/components/themed-text';
 import Glitters from '@/components/glitters';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
@@ -22,12 +23,14 @@ const LOGO_HEIGHT = 175;
 // The zodiac wheel is baked into the background image. This is the wheel's
 // centre as a fraction of screen height (the bg fills the full height on the
 // target device, so this maps 1:1). Tune if the lockup sits off the wheel.
-const WHEEL_CENTER_Y_RATIO = 0.305;
+const WHEEL_CENTER_Y_RATIO = 0.320;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { width: screenW, height: screenH } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
@@ -35,7 +38,7 @@ export default function HomeScreen() {
   });
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#0A051B' }} />;
+    return <View style={{ flex: 1, backgroundColor: isDark ? '#0A051B' : '#FFFFFF' }} />;
   }
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
@@ -49,7 +52,7 @@ export default function HomeScreen() {
   // on the wheel centre baked into the background. Fixed gaps (24 / 20 / 18 px).
   const wheelCenterY = Math.round(deviceH * WHEEL_CENTER_Y_RATIO);
 
-  const LOGO_W   = Math.round(deviceW * 0.56);                          // larger logo, fills the wheel centre
+  const LOGO_W   = Math.round(deviceW * 0.64);                          // larger logo, fills the wheel centre
   const LOGO_H   = Math.round(LOGO_W * (LOGO_HEIGHT / LOGO_WIDTH));
   const TITLE_FS = Math.round(deviceW * 0.112) - 4;                     // ~40 px elegant serif
   const TITLE_LH = Math.round(TITLE_FS * 1.05);
@@ -58,20 +61,24 @@ export default function HomeScreen() {
   // Anchor the group so the logo's centre sits on the wheel centre.
   const groupTop = wheelCenterY - Math.round(LOGO_H / 2);
 
+  const bgSource = isDark
+    ? require('@/assets/images/bg.png')
+    : require('@/assets/images/bg-light.png');
+
   // ── Content ───────────────────────────────────────────────────────────────
   const renderContent = () => (
     <ImageBackground
-      source={require('@/assets/images/bg.png')}
-      style={styles.bgImage}
+      source={bgSource}
+      style={[styles.bgImage, { backgroundColor: isDark ? '#09031C' : '#FFFFFF' }]}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Twinkling glitter overlay (decorative, behind content) */}
       <Glitters count={22} />
 
       {/* ── Logo + wordmark, centred on the wheel baked into the background ── */}
-      <View style={[styles.group, { top: groupTop, left: -12, width: deviceW }]} pointerEvents="none">
+      <View style={[styles.group, { top: groupTop, left: 0, width: deviceW }]} pointerEvents="none">
         <Image
           source={require('@/assets/images/logo.png')}
           style={{ width: LOGO_W, height: LOGO_H }}
@@ -79,19 +86,19 @@ export default function HomeScreen() {
         />
 
         <ThemedText
-          style={[styles.title, { fontSize: TITLE_FS, lineHeight: TITLE_LH, marginTop: -46 }]}
+          style={[styles.title, { fontSize: TITLE_FS, lineHeight: TITLE_LH, marginTop: -68, color: isDark ? '#FFFFFF' : '#1B1528' }]}
         >
           Astro date
         </ThemedText>
 
         {/* Decorative divider with a tiny glowing diamond */}
         <View style={[styles.sepRow, { width: sepW, marginTop: 1.5 }]}>
-          <View style={styles.sepLine} />
-          <View style={styles.sepDiamond} />
-          <View style={styles.sepLine} />
+          <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
+          <View style={[styles.sepDiamond, { backgroundColor: isDark ? '#FFFFFF' : '#7C3AED' }]} />
+          <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
         </View>
 
-        <ThemedText style={[styles.tagline, { marginTop: 1 }]}>
+        <ThemedText style={[styles.tagline, { marginTop: 1, color: isDark ? '#E6D8FF' : '#6B7280' }]}>
           LOVE, WRITTEN IN THE STARS
         </ThemedText>
       </View>
@@ -100,11 +107,17 @@ export default function HomeScreen() {
       <View style={styles.bottomArea} pointerEvents="box-none">
         <Pressable
           onPress={() => router.push('/create-account')}
-          style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaPressed]}
+          style={({ pressed }) => [
+            styles.ctaButton,
+            {
+              backgroundColor: isDark ? '#FFFFFF' : '#7C3AED',
+            },
+            pressed && styles.ctaPressed
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Get Started"
         >
-          <ThemedText style={styles.ctaText}>Get Started</ThemedText>
+          <ThemedText style={[styles.ctaText, { color: isDark ? '#0D0930' : '#FFFFFF' }]}>Get Started</ThemedText>
         </Pressable>
       </View>
     </ImageBackground>

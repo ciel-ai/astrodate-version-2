@@ -151,7 +151,7 @@ export default function OnboardingQues10Screen() {
       if (error) throw error;
 
       // Navigate to final transition screen
-      router.push('/finish-ques');
+      router.push('/upload-photos' as any);
     } catch (e: any) {
       Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
     } finally {

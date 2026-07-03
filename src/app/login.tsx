@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -48,6 +49,8 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: deviceW, height: deviceH } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -108,28 +111,40 @@ export default function LoginScreen() {
   const LOGO_W = Math.round(deviceW * 0.50);
   const LOGO_H = Math.round(LOGO_W * (175 / 145));
   const TITLE_FS = Math.round(deviceW * 0.105);
-  const BG_SHIFT = Math.round(deviceH * 0.18);
+  const BG_SHIFT = isDark ? Math.round(deviceH * 0.18) : Math.round(deviceH * 0.26);
+  const BG_SCALE = isDark ? 1.38 : 2.25;
   const FORM_GAP = 65;
+
+  const bgSource = isDark
+    ? require('@/assets/images/create-bg.png')
+    : require('@/assets/images/create-bg-light.png');
 
   return (
     <ImageBackground
-      source={require('@/assets/images/create-bg.png')}
-      style={styles.bg}
+      source={bgSource}
+      style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#E6D8FF' }]}
       resizeMode="cover"
-      imageStyle={{ transform: [{ scale: 1.38 }, { translateY: -BG_SHIFT }] }}
+      imageStyle={{ transform: [{ scale: BG_SCALE }, { translateY: -BG_SHIFT }] }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={18} />
 
       {/* Back button */}
       <Pressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: insets.top + 8 }]}
+        style={[
+          styles.backBtn, 
+          { 
+            top: insets.top + 8,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          }
+        ]}
         hitSlop={10}
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       {/* Main layout — plain View, no scrolling */}
@@ -142,47 +157,55 @@ export default function LoginScreen() {
             style={{ width: LOGO_W, height: LOGO_H }}
             resizeMode="contain"
           />
-          <Text style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30) }]}>
+          <Text style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30), color: isDark ? '#FFFFFF' : '#1B1528' }]}>
             Astro date
           </Text>
           <View style={styles.sepRow}>
-            <View style={styles.sepLine} />
-            <View style={styles.sepDiamond} />
-            <View style={styles.sepLine} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
+            <View style={[styles.sepDiamond, { backgroundColor: isDark ? '#FFFFFF' : '#7C3AED' }]} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
           </View>
-          <Text style={styles.tagline}>LOVE, WRITTEN IN THE STARS</Text>
+          <Text style={[styles.tagline, { color: isDark ? '#E6D8FF' : '#6B7280' }]}>LOVE, WRITTEN IN THE STARS</Text>
         </View>
 
         {/* ── Welcome Back ── */}
         <View style={[styles.heroSection, { marginTop: FORM_GAP }]}>
-          <Text style={styles.welcomeTitle} numberOfLines={1} adjustsFontSizeToFit>
+          <Text style={[styles.welcomeTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]} numberOfLines={1} adjustsFontSizeToFit>
             Welcome Back
           </Text>
-          <Text style={styles.welcomeSub}>Your stars have been waiting ✦</Text>
+          <Text style={[styles.welcomeSub, { color: isDark ? '#9A93B5' : '#5C5478' }]}>Your stars have been waiting ✦</Text>
         </View>
 
         {/* ── Form section ── */}
         <View style={styles.formSection}>
 
           {/* Phone input */}
-          <View style={styles.phoneRow}>
+          <View 
+            style={[
+              styles.phoneRow, 
+              { 
+                backgroundColor: isDark ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.75)',
+                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.15)' 
+              }
+            ]}
+          >
             <Pressable 
               style={styles.countryBox} 
               hitSlop={6}
               onPress={() => setCountryPickerVisible(true)}
             >
               <Text style={styles.flag}>{selectedCountry.flag}</Text>
-              <Text style={styles.countryCode}>{selectedCountry.dialCode}</Text>
-              <Text style={styles.chevron}>▾</Text>
+              <Text style={[styles.countryCode, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{selectedCountry.dialCode}</Text>
+              <Text style={[styles.chevron, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>▾</Text>
             </Pressable>
-            <View style={styles.phoneDivider} />
+            <View style={[styles.phoneDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(75,0,130,0.12)' }]} />
             <TextInput
               value={phone}
               onChangeText={(txt) => setPhone(txt.replace(/[^0-9]/g, ''))}
               placeholder="Phone number"
-              placeholderTextColor="#7C7796"
+              placeholderTextColor={isDark ? '#7C7796' : '#9E9AA8'}
               keyboardType="phone-pad"
-              style={styles.phoneInput}
+              style={[styles.phoneInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
               maxLength={selectedCountry.length}
             />
           </View>
@@ -207,34 +230,48 @@ export default function LoginScreen() {
 
           {/* OR divider */}
           <View style={styles.orRow}>
-            <View style={styles.orLine} />
-            <Text style={styles.orText}>or</Text>
-            <View style={styles.orLine} />
+            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
+            <Text style={[styles.orText, { color: isDark ? '#9A93B5' : '#5C5478' }]}>or</Text>
+            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
           </View>
 
           {/* Continue with Apple */}
           <Pressable
-            style={({ pressed }) => [styles.socialBtn, styles.appleBtnBg, pressed && styles.socialPressed]}
+            style={({ pressed }) => [
+              styles.socialBtn, 
+              { 
+                backgroundColor: isDark ? '#FFFFFF' : '#000000',
+                borderColor: isDark ? '#FFFFFF' : '#000000'
+              }, 
+              pressed && styles.socialPressed
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Continue with Apple"
           >
             <Text style={styles.appleIcon}></Text>
-            <Text style={styles.appleBtnText}>Continue with Apple</Text>
+            <Text style={[styles.appleBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Continue with Apple</Text>
           </Pressable>
 
           {/* Continue with Google */}
           <Pressable
-            style={({ pressed }) => [styles.socialBtn, styles.googleBtnBg, pressed && styles.socialPressed]}
+            style={({ pressed }) => [
+              styles.socialBtn, 
+              { 
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255, 255, 255, 0.85)',
+                borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(75,0,130,0.15)'
+              }, 
+              pressed && styles.socialPressed
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Continue with Google"
           >
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
+            <Text style={[styles.googleIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>G</Text>
+            <Text style={[styles.googleBtnText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Continue with Google</Text>
           </Pressable>
 
-          <Text style={styles.footerText}>
+          <Text style={[styles.footerText, { color: isDark ? '#9A93B5' : '#5C5478' }]}>
             {"Don't have an account? "}
-            <Text style={styles.signupLink} onPress={() => router.push('/create-account')}>
+            <Text style={[styles.signupLink, { color: isDark ? '#A855F7' : '#7C3AED' }]} onPress={() => router.push('/create-account')}>
               Sign up
             </Text>
           </Text>
@@ -248,14 +285,29 @@ export default function LoginScreen() {
         onRequestClose={closePicker}
       >
         <Pressable style={styles.modalOverlay} onPress={closePicker}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Country</Text>
+          <View 
+            style={[
+              styles.modalContent, 
+              { 
+                backgroundColor: isDark ? '#15102a' : '#F5F2FF',
+                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.12)' 
+              }
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Select Country</Text>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search country..."
-              placeholderTextColor="#7C7796"
-              style={styles.modalSearchInput}
+              placeholderTextColor={isDark ? '#7C7796' : '#9E9AA8'}
+              style={[
+                styles.modalSearchInput, 
+                { 
+                  backgroundColor: isDark ? 'rgba(20, 12, 40, 0.45)' : 'rgba(255, 255, 255, 0.85)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.12)',
+                  color: isDark ? '#FFFFFF' : '#1B1528'
+                }
+              ]}
               autoCorrect={false}
               clearButtonMode="while-editing"
             />
@@ -264,7 +316,7 @@ export default function LoginScreen() {
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <Pressable
-                  style={styles.countryItem}
+                  style={[styles.countryItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(75,0,130,0.06)' }]}
                   onPress={() => {
                     setSelectedCountry(item);
                     setPhone('');
@@ -272,7 +324,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <Text style={styles.itemFlag}>{item.flag}</Text>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={[styles.itemName, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{item.name}</Text>
                   <Text style={styles.itemDialCode}>{item.dialCode}</Text>
                 </Pressable>
               )}

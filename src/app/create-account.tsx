@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -48,6 +49,8 @@ export default function CreateAccountScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: deviceW, height: deviceH } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const [phone, setPhone] = useState('');
   const [agreed, setAgreed] = useState(false);
@@ -116,16 +119,20 @@ export default function CreateAccountScreen() {
   const LOGO_W = Math.round(deviceW * 0.50);
   const LOGO_H = Math.round(LOGO_W * (175 / 145));
   const TITLE_FS = Math.round(deviceW * 0.105);
-  const BG_SHIFT = Math.round(deviceH * 0.18);   // pull the background (planet) up
+  const BG_SHIFT = isDark ? Math.round(deviceH * 0.18) : Math.round(deviceH * 0.26);
+  const BG_SCALE = isDark ? 1.38 : 2.25;
+  const bgSource = isDark
+    ? require('@/assets/images/create-bg.png')
+    : require('@/assets/images/create-bg-light.png');
 
   return (
     <ImageBackground
-      source={require('@/assets/images/create-bg.png')}
-      style={styles.bg}
+      source={bgSource}
+      style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#E6D8FF' }]}
       resizeMode="cover"
-      imageStyle={{ transform: [{ scale: 1.38 }, { translateY: -BG_SHIFT }] }}
+      imageStyle={{ transform: [{ scale: BG_SCALE }, { translateY: -BG_SHIFT }] }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Twinkling glitter overlay (decorative, behind content) */}
       <Glitters count={18} />
@@ -133,12 +140,19 @@ export default function CreateAccountScreen() {
       {/* Back button */}
       <Pressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: insets.top + 8 }]}
+        style={[
+          styles.backBtn, 
+          { 
+            top: insets.top + 8,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          }
+        ]}
         hitSlop={10}
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <View style={styles.content}>
@@ -150,60 +164,81 @@ export default function CreateAccountScreen() {
             resizeMode="contain"
           />
           <Text
-            style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30) }]}
+            style={[
+              styles.wordmark, 
+              { 
+                fontSize: TITLE_FS, 
+                marginTop: -Math.round(LOGO_H * 0.30),
+                color: isDark ? '#FFFFFF' : '#1B1528' 
+              }
+            ]}
           >
             Astro date
           </Text>
           <View style={styles.sepRow}>
-            <View style={styles.sepLine} />
-            <View style={styles.sepDiamond} />
-            <View style={styles.sepLine} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
+            <View style={[styles.sepDiamond, { backgroundColor: isDark ? '#FFFFFF' : '#7C3AED' }]} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
           </View>
-          <Text style={styles.tagline}>LOVE, WRITTEN IN THE STARS</Text>
+          <Text style={[styles.tagline, { color: isDark ? '#E6D8FF' : '#6B7280' }]}>LOVE, WRITTEN IN THE STARS</Text>
         </View>
 
         {/* Form */}
         <View style={[styles.form, { marginTop: FORM_GAP }]}>
-          <Text style={styles.heading} numberOfLines={1} adjustsFontSizeToFit>
-            Create <Text style={styles.headingAccent}>Account</Text>
+          <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]} numberOfLines={1} adjustsFontSizeToFit>
+            Create <Text style={[styles.headingAccent, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>Account</Text>
           </Text>
-          <Text style={styles.subtitle}>Enter your mobile number to continue</Text>
+          <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#5C5478' }]}>Enter your mobile number to continue</Text>
 
           {/* Phone input */}
-          <View style={styles.phoneRow}>
+          <View 
+            style={[
+              styles.phoneRow, 
+              { 
+                backgroundColor: isDark ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.75)',
+                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.15)' 
+              }
+            ]}
+          >
             <Pressable 
               style={styles.countryBox} 
               hitSlop={6}
               onPress={() => setCountryPickerVisible(true)}
             >
               <Text style={styles.flag}>{selectedCountry.flag}</Text>
-              <Text style={styles.countryCode}>{selectedCountry.dialCode}</Text>
-              <Text style={styles.chevron}>▾</Text>
+              <Text style={[styles.countryCode, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{selectedCountry.dialCode}</Text>
+              <Text style={[styles.chevron, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>▾</Text>
             </Pressable>
-            <View style={styles.phoneDivider} />
+            <View style={[styles.phoneDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(75,0,130,0.12)' }]} />
             <TextInput
               value={phone}
               onChangeText={(txt) => setPhone(txt.replace(/[^0-9]/g, ''))}
               placeholder="Phone number"
-              placeholderTextColor="#7C7796"
+              placeholderTextColor={isDark ? '#7C7796' : '#9E9AA8'}
               keyboardType="phone-pad"
-              style={styles.phoneInput}
+              style={[styles.phoneInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
               maxLength={selectedCountry.length}
             />
           </View>
 
           {/* Terms checkbox */}
           <Pressable style={styles.termsRow} onPress={() => setAgreed((v) => !v)}>
-            <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
+            <View 
+              style={[
+                styles.checkbox, 
+                { borderColor: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(75,0,130,0.25)' },
+                agreed && styles.checkboxOn
+              ]}
+            >
               {agreed && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { color: isDark ? '#C9C3DE' : '#5C5478' }]}>
               I agree to the{' '}
-              <Text style={styles.link} onPress={() => router.push('/terms')}>
+              <Text style={[styles.link, { color: isDark ? '#A855F7' : '#7C3AED' }]} onPress={() => router.push('/terms')}>
                 Terms of Service
               </Text>{' '}
               &{' '}
-              <Text style={styles.link} onPress={() => router.push('/privacy')}>
+              <Text style={[styles.link, { color: isDark ? '#A855F7' : '#7C3AED' }]} onPress={() => router.push('/privacy')}>
                 Privacy Policy
               </Text>
             </Text>
@@ -231,21 +266,21 @@ export default function CreateAccountScreen() {
           <View style={styles.secureNote}>
             <Text style={styles.shield}>🛡️</Text>
             <View>
-              <Text style={styles.secureLine}>Your phone number is never shared.</Text>
-              <Text style={styles.secureSub}>Safe • Private • Secure</Text>
+              <Text style={[styles.secureLine, { color: isDark ? '#A79FC4' : '#5C5478' }]}>Your phone number is never shared.</Text>
+              <Text style={[styles.secureSub, { color: isDark ? '#8A82A8' : '#7C7796' }]}>Safe • Private • Secure</Text>
             </View>
           </View>
 
           {/* Footer divider */}
           <View style={[styles.sepRow, styles.footerSep]}>
-            <View style={styles.footerLine} />
-            <View style={styles.sepDiamond} />
-            <View style={styles.footerLine} />
+            <View style={[styles.footerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
+            <View style={[styles.sepDiamond, { backgroundColor: isDark ? '#FFFFFF' : '#7C3AED' }]} />
+            <View style={[styles.footerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
           </View>
 
-          <Text style={styles.footerText}>
+          <Text style={[styles.footerText, { color: isDark ? '#9A93B5' : '#5C5478' }]}>
             Already have an account?{' '}
-            <Text style={styles.link} onPress={() => router.push('/login')}>
+            <Text style={[styles.link, { color: isDark ? '#A855F7' : '#7C3AED' }]} onPress={() => router.push('/login')}>
               Log In
             </Text>
           </Text>
@@ -259,14 +294,29 @@ export default function CreateAccountScreen() {
         onRequestClose={closePicker}
       >
         <Pressable style={styles.modalOverlay} onPress={closePicker}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Country</Text>
+          <View 
+            style={[
+              styles.modalContent, 
+              { 
+                backgroundColor: isDark ? '#15102a' : '#F5F2FF',
+                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.12)' 
+              }
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Select Country</Text>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search country..."
-              placeholderTextColor="#7C7796"
-              style={styles.modalSearchInput}
+              placeholderTextColor={isDark ? '#7C7796' : '#9E9AA8'}
+              style={[
+                styles.modalSearchInput, 
+                { 
+                  backgroundColor: isDark ? 'rgba(20, 12, 40, 0.45)' : 'rgba(255, 255, 255, 0.85)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.12)',
+                  color: isDark ? '#FFFFFF' : '#1B1528'
+                }
+              ]}
               autoCorrect={false}
               clearButtonMode="while-editing"
             />
@@ -275,7 +325,7 @@ export default function CreateAccountScreen() {
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <Pressable
-                  style={styles.countryItem}
+                  style={[styles.countryItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(75,0,130,0.06)' }]}
                   onPress={() => {
                     setSelectedCountry(item);
                     setPhone('');
@@ -283,7 +333,7 @@ export default function CreateAccountScreen() {
                   }}
                 >
                   <Text style={styles.itemFlag}>{item.flag}</Text>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={[styles.itemName, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{item.name}</Text>
                   <Text style={styles.itemDialCode}>{item.dialCode}</Text>
                 </Pressable>
               )}

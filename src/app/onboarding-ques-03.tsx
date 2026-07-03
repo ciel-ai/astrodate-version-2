@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +36,12 @@ const RELATIONSHIP_OPTIONS: RelationshipOption[] = [
 ];
 
 export default function OnboardingQues3Screen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -88,11 +95,11 @@ export default function OnboardingQues3Screen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       <ScrollView
@@ -108,16 +115,24 @@ export default function OnboardingQues3Screen() {
           {/* Progress bar — Page 3 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
-              <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-              <View style={styles.progressSegmentEmpty} />
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.progressSegment,
+                    { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' },
+                    idx < 3 && styles.progressSegmentActive,
+                  ]}
+                />
+              ))}
             </View>
-            <Text style={styles.progressText}>Page 3 of 10</Text>
+            <Text style={[styles.progressText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Page 3 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>What&apos;s your relationship status?</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>What&apos;s your relationship status?</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               This helps us match you better.
             </Text>
           </View>
@@ -133,13 +148,20 @@ export default function OnboardingQues3Screen() {
                   onPress={() => setSelectedId(opt.id)}
                   style={[
                     styles.preferenceCard,
-                    isSelected && styles.preferenceCardSelected,
+                    {
+                      backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                      borderColor: isSelected
+                        ? (isDark ? '#A855F7' : '#4B0082')
+                        : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
+                    },
+                    isSelected && { backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF' }
                   ]}
                 >
                   <Text
                     style={[
                       styles.preferenceLabel,
-                      isSelected && styles.preferenceLabelSelected,
+                      { color: isDark ? '#C9C3DE' : '#6B7280' },
+                      isSelected && { color: isDark ? '#FFFFFF' : '#4B0082' }
                     ]}
                   >
                     {opt.label}
@@ -148,9 +170,10 @@ export default function OnboardingQues3Screen() {
                   {/* Select check/radio bubble indicator */}
                   <View style={[
                     styles.radioIndicator,
-                    isSelected && styles.radioIndicatorSelected
+                    { borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(75, 0, 130, 0.3)' },
+                    isSelected && { borderColor: isDark ? '#B57BFF' : '#4B0082' }
                   ]}>
-                    {isSelected && <View style={styles.radioDot} />}
+                    {isSelected && <View style={[styles.radioDot, { backgroundColor: isDark ? '#B57BFF' : '#4B0082' }]} />}
                   </View>
                 </Pressable>
               );
@@ -163,9 +186,9 @@ export default function OnboardingQues3Screen() {
             <Pressable
               id="btn-back-page3"
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
+              style={({ pressed }) => [styles.backNavBtn, { backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#E5E7EB' }, pressed && styles.backNavBtnPressed]}
             >
-              <Text style={styles.backNavArrow}>←</Text>
+              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>←</Text>
             </Pressable>
 
             {/* Action Continue Button */}
@@ -206,21 +229,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    overflow: 'hidden',
+    gap: 6,
     marginBottom: 8,
   },
   progressSegment: {
+    flex: 1,
     height: '100%',
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '30%', // 3 of 10 pages active
     backgroundColor: '#B57BFF',
-  },
-  progressSegmentEmpty: {
-    flex: 1,
   },
   progressText: {
     color: '#9A93B5',

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   ImageBackground,
@@ -20,6 +21,12 @@ import { supabase } from '@/lib/supabase';
 const SERIF = 'Baskerville-Old-Face';
 
 export default function ProfilePreviewScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -130,18 +137,18 @@ export default function ProfilePreviewScreen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) + 40, paddingBottom: insets.bottom + 40 }]}>
         
         {/* Title */}
         <View style={styles.header}>
-          <Text style={styles.titleText}>
+          <Text style={[styles.titleText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>
             Here’s how some{'\n'}of what you{'\n'}share will <Text style={styles.highlightText}>appear.</Text>
           </Text>
         </View>
@@ -152,36 +159,36 @@ export default function ProfilePreviewScreen() {
           </View>
         ) : (
           /* Preview Mockup Card */
-          <View style={styles.previewCard}>
+          <View style={[styles.previewCard, { backgroundColor: isDark ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
             
             {/* Name Row */}
             <View style={styles.cardRow}>
               <Text style={styles.icon}>👤</Text>
-              <Text style={styles.cardText}>{name}</Text>
+              <Text style={[styles.cardText, { color: isDark ? '#C9C3DE' : '#1B1528' }]}>{name}</Text>
             </View>
 
             {/* Age Row */}
             <View style={styles.cardRow}>
               <Text style={styles.icon}>🎂</Text>
-              <Text style={styles.cardText}>{age}</Text>
+              <Text style={[styles.cardText, { color: isDark ? '#C9C3DE' : '#1B1528' }]}>{age}</Text>
             </View>
 
             {/* Location Row (showing district and state) */}
             <View style={styles.cardRow}>
               <Text style={styles.icon}>📍</Text>
-              <Text style={styles.cardText} numberOfLines={1}>{location}</Text>
+              <Text style={[styles.cardText, { color: isDark ? '#C9C3DE' : '#1B1528' }]} numberOfLines={1}>{location}</Text>
             </View>
 
             {/* Gender Row */}
             <View style={styles.cardRow}>
               <Text style={styles.icon}>✨</Text>
-              <Text style={styles.cardText}>{gender}</Text>
+              <Text style={[styles.cardText, { color: isDark ? '#C9C3DE' : '#1B1528' }]}>{gender}</Text>
             </View>
 
             {/* Time of Birth Row */}
             <View style={styles.cardRow}>
               <Text style={styles.icon}>🕒</Text>
-              <Text style={styles.cardText}>{birthTime}</Text>
+              <Text style={[styles.cardText, { color: isDark ? '#C9C3DE' : '#1B1528' }]}>{birthTime}</Text>
             </View>
 
           </View>

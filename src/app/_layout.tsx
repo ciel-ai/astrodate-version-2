@@ -1,16 +1,22 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { DarkTheme as NavDarkTheme, DefaultTheme as NavDefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
+import { AppThemeProvider, useAppTheme } from '@/lib/theme-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/context/auth';
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootLayout() {
+  const { theme } = useAppTheme();
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <NavThemeProvider value={theme === 'dark' ? NavDarkTheme : NavDefaultTheme}>
         <AnimatedSplashOverlay />
-        <Stack>
+        <Stack
+          screenOptions={{
+            contentStyle: {
+              backgroundColor: theme === 'dark' ? '#09031C' : '#E6D8FF',
+            },
+          }}
+        >
           {/* Main app shell — 5-tab bottom navigation, frozen on blur */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* Full-screen cosmic splash — no header, no tab bar */}
@@ -52,8 +58,18 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding-ques-10" options={{ headerShown: false }} />
           {/* Final transition screen after questionnaire */}
           <Stack.Screen name="finish-ques" options={{ headerShown: false }} />
+          {/* Photo upload screen */}
+          <Stack.Screen name="upload-photos" options={{ headerShown: false }} />
         </Stack>
-      </ThemeProvider>
+      </NavThemeProvider>
     </AuthProvider>
+  );
+}
+
+export default function LayoutWrapper() {
+  return (
+    <AppThemeProvider>
+      <RootLayout />
+    </AppThemeProvider>
   );
 }

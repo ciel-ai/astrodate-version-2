@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -101,6 +102,12 @@ const QUESTIONS: Question[] = [
 ];
 
 export default function OnboardingQues8Screen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -168,11 +175,11 @@ export default function OnboardingQues8Screen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       <ScrollView
@@ -188,16 +195,24 @@ export default function OnboardingQues8Screen() {
           {/* Progress bar — Page 8 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
-              <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-              <View style={styles.progressSegmentEmpty} />
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.progressSegment,
+                    { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' },
+                    idx < 8 && styles.progressSegmentActive,
+                  ]}
+                />
+              ))}
             </View>
-            <Text style={styles.progressText}>Page 8 of 10</Text>
+            <Text style={[styles.progressText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Page 8 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Let&apos;s talk lifestyle habits</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Let&apos;s talk lifestyle habits</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               Do their habits match yours? You go first.
             </Text>
           </View>
@@ -210,7 +225,7 @@ export default function OnboardingQues8Screen() {
                   {/* Label Row */}
                   <View style={styles.questionLabelRow}>
                     <Text style={styles.questionIcon}>{q.icon}</Text>
-                    <Text style={styles.questionText}>{q.label}</Text>
+                    <Text style={[styles.questionText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{q.label}</Text>
                   </View>
 
                   {/* Options List */}
@@ -223,18 +238,27 @@ export default function OnboardingQues8Screen() {
                           onPress={() => handleSelect(q.id, opt.dbValue)}
                           style={[
                             styles.optionPill,
-                            isSelected && styles.optionPillSelected,
+                            {
+                              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
+                              borderColor: isSelected
+                                ? (isDark ? '#A855F7' : '#4B0082')
+                                : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB'),
+                            },
+                            isSelected && {
+                              backgroundColor: isDark ? 'rgba(168, 85, 247, 0.15)' : '#F3ECFF',
+                            }
                           ]}
                         >
                           <Text
                             style={[
                               styles.optionLabel,
-                              isSelected && styles.optionLabelSelected,
+                              { color: isDark ? '#C9C3DE' : '#6B7280' },
+                              isSelected && { color: isDark ? '#FFFFFF' : '#4B0082' }
                             ]}
                           >
                             {opt.label}
                           </Text>
-                          {isSelected && <Text style={styles.checkmarkIcon}>✓</Text>}
+                          {isSelected && <Text style={[styles.checkmarkIcon, { color: isDark ? '#B57BFF' : '#4B0082' }]}>✓</Text>}
                         </Pressable>
                       );
                     })}
@@ -250,9 +274,9 @@ export default function OnboardingQues8Screen() {
             <Pressable
               id="btn-back-page8"
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
+              style={({ pressed }) => [styles.backNavBtn, { backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#E5E7EB' }, pressed && styles.backNavBtnPressed]}
             >
-              <Text style={styles.backNavArrow}>←</Text>
+              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>←</Text>
             </Pressable>
 
             {/* Action Continue Button */}
@@ -297,21 +321,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    overflow: 'hidden',
+    gap: 6,
     marginBottom: 8,
   },
   progressSegment: {
+    flex: 1,
     height: '100%',
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '80%', // 8 of 10 pages active
     backgroundColor: '#B57BFF',
-  },
-  progressSegmentEmpty: {
-    flex: 1,
   },
   progressText: {
     color: '#9A93B5',

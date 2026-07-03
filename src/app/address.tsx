@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -41,6 +42,12 @@ const EMPTY: AddressForm = {
 };
 
 export default function AddressScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -106,7 +113,15 @@ export default function AddressScreen() {
 
   const inputStyle = (key: keyof AddressForm) => [
     styles.inputContainer,
-    focused === key && styles.inputContainerFocused,
+    {
+      backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+      borderColor: focused === key
+        ? (isDark ? '#A855F7' : '#4B0082')
+        : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
+    },
+    focused === key && {
+      backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF',
+    }
   ];
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
@@ -115,11 +130,11 @@ export default function AddressScreen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       {/* Back button */}
@@ -128,14 +143,14 @@ export default function AddressScreen() {
         style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
         hitSlop={10}
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <ScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 25 },
+          { paddingTop: Math.max(insets.top, 20) + 60 },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -143,16 +158,16 @@ export default function AddressScreen() {
         <View style={styles.container}>
           {/* Steps Horizontal Bar Indicator — step 3 of 4 */}
           <View style={styles.progressRow}>
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={styles.progressSegment} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }]} />
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Where are you based?</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Where are you based?</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               Sharing your city helps us surface better local matches.
             </Text>
           </View>
@@ -167,8 +182,8 @@ export default function AddressScreen() {
                 value={form.houseNo}
                 onChangeText={set('houseNo')}
                 placeholder="House / Flat No."
-                placeholderTextColor="#7C7796"
-                style={styles.textInput}
+                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                 returnKeyType="next"
                 onSubmitEditing={() => streetRef.current?.focus()}
                 onFocus={() => setFocused('houseNo')}
@@ -185,8 +200,8 @@ export default function AddressScreen() {
                 value={form.street}
                 onChangeText={set('street')}
                 placeholder="Street Name"
-                placeholderTextColor="#7C7796"
-                style={styles.textInput}
+                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                 returnKeyType="next"
                 onSubmitEditing={() => districtRef.current?.focus()}
                 onFocus={() => setFocused('street')}
@@ -203,8 +218,8 @@ export default function AddressScreen() {
                 value={form.district}
                 onChangeText={set('district')}
                 placeholder="District"
-                placeholderTextColor="#7C7796"
-                style={styles.textInput}
+                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                 returnKeyType="next"
                 onSubmitEditing={() => stateRef.current?.focus()}
                 onFocus={() => setFocused('district')}
@@ -221,8 +236,8 @@ export default function AddressScreen() {
                   value={form.state}
                   onChangeText={set('state')}
                   placeholder="State"
-                  placeholderTextColor="#7C7796"
-                  style={styles.textInput}
+                  placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                  style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                   returnKeyType="next"
                   onSubmitEditing={() => countryRef.current?.focus()}
                   onFocus={() => setFocused('state')}
@@ -237,8 +252,8 @@ export default function AddressScreen() {
                   value={form.country}
                   onChangeText={set('country')}
                   placeholder="Country"
-                  placeholderTextColor="#7C7796"
-                  style={styles.textInput}
+                  placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                  style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                   returnKeyType="next"
                   onSubmitEditing={() => pinRef.current?.focus()}
                   onFocus={() => setFocused('country')}
@@ -256,8 +271,8 @@ export default function AddressScreen() {
                 value={form.pinCode}
                 onChangeText={set('pinCode')}
                 placeholder="Pin / Postal Code"
-                placeholderTextColor="#7C7796"
-                style={styles.textInput}
+                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                 keyboardType="number-pad"
                 maxLength={10}
                 returnKeyType="done"
@@ -269,8 +284,14 @@ export default function AddressScreen() {
             </View>
 
             {/* Privacy Note */}
-            <View style={styles.privacyNote}>
-              <Text style={styles.privacyText}>
+            <View style={[
+              styles.privacyNote,
+              {
+                backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(168, 85, 247, 0.2)' : '#E5E7EB',
+              }
+            ]}>
+              <Text style={[styles.privacyText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
                 🔒  Your full address is private and never shown to other users. Only your city is used for match discovery.
               </Text>
             </View>
@@ -329,7 +350,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   progressSegmentActive: {
     backgroundColor: '#B57BFF',

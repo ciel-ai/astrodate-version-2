@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -27,6 +28,8 @@ export default function VerifyOtpScreen() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { width: deviceW, height: deviceH } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const phone = (params.phone as string) || '+91 98765 43210';
   const [code, setCode] = useState('');
@@ -123,29 +126,40 @@ export default function VerifyOtpScreen() {
   const LOGO_H = Math.round(LOGO_W * (175 / 145));
   const TITLE_FS = Math.round(deviceW * 0.105);
 
-  // Render planet shifted up like in login and sign up screens
-  const BG_SHIFT = Math.round(deviceH * 0.18);
+  const BG_SHIFT = isDark ? Math.round(deviceH * 0.18) : Math.round(deviceH * 0.26);
+  const BG_SCALE = isDark ? 1.38 : 2.25;
   const slotWidth = Math.floor((deviceW - 48 - 40) / 6);
+
+  const bgSource = isDark
+    ? require('@/assets/images/create-bg.png')
+    : require('@/assets/images/create-bg-light.png');
 
   return (
     <ImageBackground
-      source={require('@/assets/images/create-bg.png')}
-      style={styles.bg}
+      source={bgSource}
+      style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#E6D8FF' }]}
       resizeMode="cover"
-      imageStyle={{ transform: [{ scale: 1.38 }, { translateY: -BG_SHIFT }] }}
+      imageStyle={{ transform: [{ scale: BG_SCALE }, { translateY: -BG_SHIFT }] }}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={16} />
 
       {/* Back button */}
       <Pressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: insets.top + 8 }]}
+        style={[
+          styles.backBtn, 
+          { 
+            top: insets.top + 8,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          }
+        ]}
         hitSlop={10}
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <View style={styles.content}>
@@ -157,28 +171,35 @@ export default function VerifyOtpScreen() {
             resizeMode="contain"
           />
           <Text
-            style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.28) }]}
+            style={[
+              styles.wordmark, 
+              { 
+                fontSize: TITLE_FS, 
+                marginTop: -Math.round(LOGO_H * 0.28),
+                color: isDark ? '#FFFFFF' : '#1B1528' 
+              }
+            ]}
           >
             Astro date
           </Text>
           <View style={styles.sepRow}>
-            <View style={styles.sepLine} />
-            <View style={styles.sepDiamond} />
-            <View style={styles.sepLine} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
+            <View style={[styles.sepDiamond, { backgroundColor: isDark ? '#FFFFFF' : '#7C3AED' }]} />
+            <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
           </View>
-          <Text style={styles.tagline}>LOVE, WRITTEN IN THE STARS</Text>
+          <Text style={[styles.tagline, { color: isDark ? '#E6D8FF' : '#6B7280' }]}>LOVE, WRITTEN IN THE STARS</Text>
         </View>
 
         {/* Custom Form Layout */}
         <View style={[styles.form, { marginTop: FORM_GAP }]}>
-          <Text style={styles.heading}>Enter Verification Code</Text>
+          <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Enter Verification Code</Text>
 
           <View style={styles.subtitleRow}>
-            <Text style={styles.subtitle}>{"We've sent a 6-digit code to"}</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#5C5478' }]}>{"We've sent a 6-digit code to"}</Text>
             <View style={styles.phoneEditRow}>
-              <Text style={styles.phoneNumberText}>{phone}</Text>
+              <Text style={[styles.phoneNumberText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{phone}</Text>
               <Pressable onPress={() => router.back()} hitSlop={10}>
-                <Text style={{ color: '#B57BFF', fontSize: 13, marginLeft: 6, marginTop: -2 }}>✎</Text>
+                <Text style={{ color: isDark ? '#B57BFF' : '#7C3AED', fontSize: 13, marginLeft: 6, marginTop: -2 }}>✎</Text>
               </Pressable>
             </View>
           </View>
@@ -207,12 +228,14 @@ export default function VerifyOtpScreen() {
                   key={index}
                   style={[
                     styles.slotBox,
-                    { width: slotWidth },
-                    isFocused && styles.slotBoxFocused,
-                    char !== '' && styles.slotBoxFilled,
+                    { 
+                      width: slotWidth,
+                      borderColor: isFocused ? '#A855F7' : (char !== '' ? (isDark ? 'rgba(181, 123, 255, 0.35)' : 'rgba(124, 58, 237, 0.35)') : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(75,0,130,0.15)')),
+                      backgroundColor: isFocused ? (isDark ? 'rgba(30, 15, 60, 0.65)' : 'rgba(245, 240, 255, 0.85)') : (isDark ? 'rgba(20, 12, 40, 0.45)' : 'rgba(255, 255, 255, 0.75)')
+                    }
                   ]}
                 >
-                  <Text style={[styles.slotText, char === '' && styles.slotDash]}>
+                  <Text style={[styles.slotText, { color: isDark ? '#FFFFFF' : '#1B1528' }, char === '' && [styles.slotDash, { color: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(75,0,130,0.25)' }]]}>
                     {char || '-'}
                   </Text>
                 </View>
@@ -222,10 +245,10 @@ export default function VerifyOtpScreen() {
 
           {/* Timer Display */}
           <View style={styles.timerRow}>
-            <Text style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 13, marginRight: 6 }}>🕒</Text>
-            <Text style={styles.timerText}>
+            <Text style={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#5C5478', fontSize: 13, marginRight: 6 }}>🕒</Text>
+            <Text style={[styles.timerText, { color: isDark ? 'rgba(255, 255, 255, 0.65)' : '#5C5478' }]}>
               {"Resend code in "}
-              <Text style={styles.timerHighlight}>
+              <Text style={[styles.timerHighlight, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>
                 {resendTimer > 0
                   ? `00:${resendTimer < 10 ? `0${resendTimer}` : resendTimer}`
                   : '00:00'}
@@ -255,16 +278,16 @@ export default function VerifyOtpScreen() {
 
           {/* OR separator */}
           <View style={styles.orRow}>
-            <View style={styles.orLine} />
-            <Text style={styles.orText}>OR</Text>
-            <View style={styles.orLine} />
+            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(75, 0, 130, 0.10)' }]} />
+            <Text style={[styles.orText, { color: isDark ? 'rgba(255, 255, 255, 0.35)' : '#7C7796' }]}>OR</Text>
+            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(75, 0, 130, 0.10)' }]} />
           </View>
 
           {/* Resend Link */}
           <View style={styles.resendRow}>
-            <Text style={styles.didNotReceiveText}>{"Didn't receive the code?"}</Text>
+            <Text style={[styles.didNotReceiveText, { color: isDark ? '#8A82A8' : '#7C7796' }]}>{"Didn't receive the code?"}</Text>
             <Pressable onPress={handleResend} disabled={resendTimer > 0 || loading} hitSlop={10}>
-              <Text style={[styles.resendLink, resendTimer > 0 && styles.resendLinkDisabled]}>
+              <Text style={[styles.resendLink, { color: isDark ? '#B57BFF' : '#7C3AED' }, resendTimer > 0 && styles.resendLinkDisabled]}>
                 Resend OTP
               </Text>
             </Pressable>

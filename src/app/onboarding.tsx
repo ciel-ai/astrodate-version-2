@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -69,6 +70,12 @@ const GENDER_DETAILS: Record<GenderOption, GenderDetailOption[]> = {
 };
 
 export default function OnboardingScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -169,17 +176,17 @@ export default function OnboardingScreen() {
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.heading}>What&apos;s your name?</Text>
-            <Text style={styles.subtitle}>This will be displayed on your profile.</Text>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>What&apos;s your name?</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>This will be displayed on your profile.</Text>
 
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB' }]}>
               <Text style={styles.inputIcon}>👤</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
                 placeholder="Enter your name"
-                placeholderTextColor="#7C7796"
-                style={styles.textInput}
+                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                 maxLength={40}
                 autoFocus
               />
@@ -189,8 +196,8 @@ export default function OnboardingScreen() {
       case 2:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.heading}>What describes you?</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>What describes you?</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               Select what describes you to help us show your profile to the right people.
             </Text>
 
@@ -203,14 +210,21 @@ export default function OnboardingScreen() {
                       onPress={() => handleGenderSelect(opt.id)}
                       style={[
                         styles.genderCard,
-                        isSelected && styles.genderCardSelected,
+                        {
+                          backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                          borderColor: isSelected
+                            ? (isDark ? '#A855F7' : '#4B0082')
+                            : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
+                        },
+                        isSelected && { backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF' }
                       ]}
                     >
                       <Text style={styles.genderEmoji}>{opt.emoji}</Text>
                       <Text
                         style={[
                           styles.genderLabel,
-                          isSelected && styles.genderLabelSelected,
+                          { color: isDark ? '#C9C3DE' : '#6B7280' },
+                          isSelected && { color: isDark ? '#FFFFFF' : '#4B0082' }
                         ]}
                       >
                         {opt.label}
@@ -218,10 +232,11 @@ export default function OnboardingScreen() {
                       <View
                         style={[
                           styles.radioIndicator,
-                          isSelected && styles.radioIndicatorSelected,
+                          { borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(75, 0, 130, 0.3)' },
+                          isSelected && { borderColor: isDark ? '#B57BFF' : '#4B0082' }
                         ]}
                       >
-                        {isSelected && <View style={styles.radioDot} />}
+                        {isSelected && <View style={[styles.radioDot, { backgroundColor: isDark ? '#B57BFF' : '#4B0082' }]} />}
                       </View>
                     </Pressable>
 
@@ -237,17 +252,24 @@ export default function OnboardingScreen() {
                               onPress={() => setGenderDetail(detail.value)}
                               style={[
                                 styles.detailCard,
-                                isDetailSelected && styles.detailCardSelected
+                                {
+                                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF',
+                                  borderColor: isDetailSelected
+                                    ? (isDark ? 'rgba(168, 85, 247, 0.3)' : '#4B0082')
+                                    : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB'),
+                                },
+                                isDetailSelected && { backgroundColor: isDark ? 'rgba(168, 85, 247, 0.1)' : '#F3ECFF' }
                               ]}
                             >
                               <View style={styles.detailInfo}>
                                 <Text style={[
                                   styles.detailLabel,
-                                  isDetailSelected && styles.detailLabelSelected
+                                  { color: isDark ? '#FFFFFF' : '#1B1528' },
+                                  isDetailSelected && { color: isDark ? '#FFFFFF' : '#4B0082' }
                                 ]}>
                                   {detail.label}
                                 </Text>
-                                <Text style={styles.detailDescription}>
+                                <Text style={[styles.detailDescription, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
                                   {detail.description}
                                 </Text>
                               </View>
@@ -275,34 +297,34 @@ export default function OnboardingScreen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={16} />
 
       {/* Back button */}
       <Pressable
         onPress={handleBack}
-        style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
+        style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
         hitSlop={10}
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <ScrollView
         style={styles.scrollStyle}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 20) + 25 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 20) + 60 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
           {/* Steps Horizontal Bar Indicator — 4 total (name / gender / address / birth details) */}
           <View style={styles.progressRow}>
-            <View style={[styles.progressSegment, step >= 1 && styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, step >= 2 && styles.progressSegmentActive]} />
-            <View style={styles.progressSegment} />
-            <View style={styles.progressSegment} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, step >= 1 && styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, step >= 2 && styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }]} />
           </View>
 
           {/* Step Body */}
@@ -362,7 +384,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   progressSegmentActive: {
     backgroundColor: '#B57BFF',

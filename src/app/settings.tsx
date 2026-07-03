@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/lib/theme-context';
 
 import Glitters from '@/components/glitters';
 import {
@@ -34,6 +35,7 @@ const SERIF = 'Baskerville-Old-Face';
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme, themeMode, setThemeMode } = useAppTheme();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
@@ -86,42 +88,53 @@ export default function SettingsScreen() {
     }
   };
 
+  const bgSource = theme === 'dark'
+    ? require('@/assets/images/create-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   return (
     <ImageBackground
-      source={require('@/assets/images/create-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <Glitters count={10} />
 
       {/* Back button */}
       <Pressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: insets.top + 8 }]}
+        style={[
+          styles.backBtn,
+          {
+            top: insets.top + 8,
+            backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.1)',
+          }
+        ]}
         hitSlop={10}
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <View style={[styles.container, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={[styles.title, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Settings</Text>
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
 
           {/* ── Privacy & Location ── */}
           <Text style={styles.sectionLabel}>PRIVACY & LOCATION</Text>
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
 
             {/* Location sharing row */}
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <Text style={styles.rowIcon}>📍</Text>
                 <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>Share My Location</Text>
-                  <Text style={styles.rowSub}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Share My Location</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
                     Show a fuzzed distance to nearby users.{'\n'}
                     Your exact position is never revealed.
                   </Text>
@@ -135,9 +148,9 @@ export default function SettingsScreen() {
                   id="toggle-location-sharing"
                   value={locationEnabled}
                   onValueChange={handleLocationToggle}
-                  trackColor={{ false: 'rgba(255,255,255,0.12)', true: '#7C3AED' }}
-                  thumbColor={locationEnabled ? '#D4B8FF' : '#6B6785'}
-                  ios_backgroundColor="rgba(255,255,255,0.12)"
+                  trackColor={{ false: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', true: '#7C3AED' }}
+                  thumbColor={locationEnabled ? '#D4B8FF' : (theme === 'dark' ? '#6B6785' : '#A39FBD')}
+                  ios_backgroundColor={theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'}
                   accessibilityLabel="Toggle location sharing"
                 />
               )}
@@ -154,8 +167,8 @@ export default function SettingsScreen() {
               <View style={styles.rowLeft}>
                 <Text style={styles.rowIcon}>🔒</Text>
                 <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>Privacy Policy</Text>
-                  <Text style={styles.rowSub}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Privacy Policy</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
                     How we collect, use, and protect your data.
                   </Text>
                 </View>
@@ -164,9 +177,50 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
+          {/* ── Appearance ── */}
+          <Text style={styles.sectionLabel}>APPEARANCE</Text>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>🎨</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Theme Mode</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
+                    Choose between system default, light, or dark.
+                  </Text>
+                </View>
+              </View>
+              
+              {/* Theme switch selector */}
+              <View style={[styles.themeSelectorContainer, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+                {(['system', 'light', 'dark'] as const).map((mode) => {
+                  const isActive = themeMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      onPress={() => setThemeMode(mode)}
+                      style={[
+                        styles.themeSelectorButton,
+                        isActive && styles.themeSelectorButtonActive
+                      ]}
+                    >
+                      <Text style={[
+                        styles.themeSelectorText,
+                        { color: theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' },
+                        isActive && styles.themeSelectorTextActive
+                      ]}>
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
           {/* Info note */}
-          <View style={styles.infoNote}>
-            <Text style={styles.infoNoteText}>
+          <View style={[styles.infoNote, { backgroundColor: theme === 'dark' ? 'rgba(20, 12, 40, 0.55)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(168, 85, 247, 0.18)' : 'rgba(168, 85, 247, 0.3)' }]}>
+            <Text style={[styles.infoNoteText, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
               Disabling location sharing removes your location from our servers immediately.
               You will still appear in the discovery feed, but without a distance label.
             </Text>
@@ -271,5 +325,27 @@ const styles = StyleSheet.create({
     color: '#7C7796',
     fontSize: 12,
     lineHeight: 18,
+  },
+  themeSelectorContainer: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+  },
+  themeSelectorButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+  },
+  themeSelectorButtonActive: {
+    backgroundColor: '#7C3AED',
+  },
+  themeSelectorText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  themeSelectorTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

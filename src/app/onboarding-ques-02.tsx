@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -38,6 +39,11 @@ const LOOKING_FOR_OPTIONS: LookingForOption[] = [
 ];
 
 export default function OnboardingQues2Screen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -91,11 +97,11 @@ export default function OnboardingQues2Screen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       <ScrollView
@@ -111,16 +117,24 @@ export default function OnboardingQues2Screen() {
           {/* Progress bar — Page 2 of 10 indicator */}
           <View style={styles.progressSection}>
             <View style={styles.progressRow}>
-              <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-              <View style={styles.progressSegmentEmpty} />
+              {Array.from({ length: 10 }).map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.progressSegment,
+                    { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' },
+                    idx < 2 && styles.progressSegmentActive,
+                  ]}
+                />
+              ))}
             </View>
-            <Text style={styles.progressText}>Page 2 of 10</Text>
+            <Text style={[styles.progressText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Page 2 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>What are you looking for?</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>What are you looking for?</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               All good if it changes. There's something for everyone.
             </Text>
           </View>
@@ -136,14 +150,21 @@ export default function OnboardingQues2Screen() {
                   onPress={() => setSelectedId(opt.id)}
                   style={[
                     styles.gridCard,
-                    isSelected && styles.gridCardSelected,
+                    {
+                      backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                      borderColor: isSelected
+                        ? (isDark ? '#A855F7' : '#4B0082')
+                        : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
+                    },
+                    isSelected && { backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF' }
                   ]}
                 >
                   <Text style={styles.emojiText}>{opt.emoji}</Text>
                   <Text
                     style={[
                       styles.cardLabel,
-                      isSelected && styles.cardLabelSelected,
+                      { color: isDark ? '#C9C3DE' : '#6B7280' },
+                      isSelected && { color: isDark ? '#FFFFFF' : '#4B0082' }
                     ]}
                   >
                     {opt.label}
@@ -159,9 +180,16 @@ export default function OnboardingQues2Screen() {
             <Pressable
               id="btn-back-page2"
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
+              style={({ pressed }) => [
+                styles.backNavBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#E5E7EB',
+                },
+                pressed && styles.backNavBtnPressed
+              ]}
             >
-              <Text style={styles.backNavArrow}>←</Text>
+              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>←</Text>
             </Pressable>
 
             {/* Action Continue Button */}
@@ -202,22 +230,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    overflow: 'hidden',
+    gap: 6,
     marginBottom: 8,
   },
   progressSegment: {
+    flex: 1,
     height: '100%',
     borderRadius: 2,
   },
   progressSegmentActive: {
-    width: '20%', // 2 of 10 pages active
     backgroundColor: '#B57BFF',
   },
-  progressSegmentEmpty: {
-    flex: 1,
-  },
+  
   progressText: {
     color: '#9A93B5',
     fontSize: 13,

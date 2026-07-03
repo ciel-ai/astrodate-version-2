@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -30,6 +31,12 @@ const MONTHS = [
 ];
 
 export default function BirthDetailsScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -225,11 +232,11 @@ export default function BirthDetailsScreen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       {/* Back button */}
@@ -238,14 +245,14 @@ export default function BirthDetailsScreen() {
         style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
         hitSlop={10}
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
       </Pressable>
 
       <ScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 25 },
+          { paddingTop: Math.max(insets.top, 20) + 60 },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -253,16 +260,16 @@ export default function BirthDetailsScreen() {
         <View style={styles.container}>
           {/* Steps Horizontal Bar Indicator — step 4 of 4 */}
           <View style={styles.progressRow}>
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
-            <View style={[styles.progressSegment, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
+            <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Your Birth Details</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Your Birth Details</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
               Help us create your personalized astro profile
             </Text>
           </View>
@@ -272,14 +279,14 @@ export default function BirthDetailsScreen() {
             
             {/* DATE OF BIRTH */}
             <View style={styles.fieldSection}>
-              <Text style={styles.fieldLabel}>Date of Birth</Text>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Date of Birth</Text>
               
               <Pressable 
                 id="btn-select-dob"
-                style={styles.inputContainer} 
+                style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB' }]} 
                 onPress={openDatePicker}
               >
-                <Text style={[styles.inputText, !day && styles.placeholderText]}>
+                <Text style={[styles.inputText, { color: isDark ? '#FFFFFF' : '#1B1528' }, !day && { color: isDark ? '#7C7796' : '#9CA3AF' }]}>
                   {dateDisplay}
                 </Text>
                 <Text style={styles.inputIconEmoji}>📅</Text>
@@ -287,7 +294,7 @@ export default function BirthDetailsScreen() {
 
               <View style={styles.hintContainer}>
                 <Text style={styles.hintIcon}>ℹ️</Text>
-                <Text style={styles.hintText}>
+                <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
                   Please enter your correct date of birth, it ensures precise astrological calculations and compatibility matching.
                 </Text>
               </View>
@@ -295,14 +302,14 @@ export default function BirthDetailsScreen() {
 
             {/* TIME OF BIRTH */}
             <View style={styles.fieldSection}>
-              <Text style={styles.fieldLabel}>Time of Birth</Text>
+              <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Time of Birth</Text>
               
               <Pressable 
                 id="btn-select-tob"
-                style={styles.inputContainer} 
+                style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB' }]} 
                 onPress={openTimePicker}
               >
-                <Text style={[styles.inputText, !hour && styles.placeholderText]}>
+                <Text style={[styles.inputText, { color: isDark ? '#FFFFFF' : '#1B1528' }, !hour && { color: isDark ? '#7C7796' : '#9CA3AF' }]}>
                   {timeDisplay}
                 </Text>
                 <Text style={styles.inputIconEmoji}>🕒</Text>
@@ -310,7 +317,7 @@ export default function BirthDetailsScreen() {
 
               <View style={styles.hintContainer}>
                 <Text style={styles.hintIcon}>ℹ️</Text>
-                <Text style={styles.hintText}>
+                <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
                   Your exact birth time helps us generate accurate astrological insights
                 </Text>
               </View>
@@ -319,29 +326,35 @@ export default function BirthDetailsScreen() {
             {/* PLACE OF BIRTH */}
             <View style={styles.fieldSection}>
               <View style={styles.labelRow}>
-                <Text style={styles.fieldLabel}>Place of Birth</Text>
+                <Text style={[styles.fieldLabel, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Place of Birth</Text>
                 
                 <Pressable 
                   id="btn-birth-use-loc"
-                  style={styles.useLocBtn} 
+                  style={[
+                    styles.useLocBtn,
+                    {
+                      backgroundColor: isDark ? 'rgba(168, 85, 247, 0.12)' : 'rgba(75, 0, 130, 0.06)',
+                      borderColor: isDark ? 'rgba(168, 85, 247, 0.25)' : 'rgba(75, 0, 130, 0.15)',
+                    }
+                  ]} 
                   onPress={handleUseCurrentLocation}
                   disabled={locLoading}
                 >
                   {locLoading ? (
-                    <ActivityIndicator size="small" color="#A855F7" />
+                    <ActivityIndicator size="small" color={isDark ? "#A855F7" : "#4B0082"} />
                   ) : (
-                    <Text style={styles.useLocText}>🎯 Use Current Location</Text>
+                    <Text style={[styles.useLocText, { color: isDark ? '#D4B8FF' : '#4B0082' }]}>🎯 Use Current Location</Text>
                   )}
                 </Pressable>
               </View>
 
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB' }]}>
                 <TextInput
                   value={placeOfBirth}
                   onChangeText={setPlaceOfBirth}
                   placeholder="Enter city / birth town"
-                  placeholderTextColor="#7C7796"
-                  style={styles.textInput}
+                  placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
+                  style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                   accessibilityLabel="Place of Birth"
                 />
               </View>
@@ -373,28 +386,50 @@ export default function BirthDetailsScreen() {
         onRequestClose={() => setDateModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Date of Birth</Text>
+          <View style={[
+            styles.modalContent,
+            {
+              backgroundColor: isDark ? '#0F0924' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB',
+            }
+          ]}>
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Select Date of Birth</Text>
 
             <View style={styles.pickerRow}>
               {/* Day Input */}
               <View style={styles.pickerField}>
-                <Text style={styles.pickerLabel}>Day</Text>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Day</Text>
                 <TextInput
                   value={tempDay}
                   onChangeText={setTempDay}
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="DD"
-                  placeholderTextColor="#5A5478"
-                  style={styles.modalInput}
+                  placeholderTextColor={isDark ? "#5A5478" : "#9CA3AF"}
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                      color: isDark ? '#FFFFFF' : '#1B1528',
+                    }
+                  ]}
                 />
               </View>
 
               {/* Month Dropdown / Selection */}
               <View style={[styles.pickerField, { flex: 2 }]}>
-                <Text style={styles.pickerLabel}>Month</Text>
-                <ScrollView style={styles.monthScroll} nestedScrollEnabled={true}>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Month</Text>
+                <ScrollView 
+                  style={[
+                    styles.monthScroll,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                    }
+                  ]} 
+                  nestedScrollEnabled={true}
+                >
                   {MONTHS.map((mName, idx) => {
                     const active = tempMonth === idx + 1;
                     return (
@@ -403,7 +438,13 @@ export default function BirthDetailsScreen() {
                         onPress={() => setTempMonth(idx + 1)}
                         style={[styles.monthItem, active && styles.monthItemActive]}
                       >
-                        <Text style={[styles.monthItemText, active && styles.monthItemTextActive]}>
+                        <Text 
+                          style={[
+                            styles.monthItemText,
+                            { color: isDark ? '#9A93B5' : '#6B7280' },
+                            active && { color: isDark ? '#D4B8FF' : '#4B0082', fontWeight: '700' }
+                          ]}
+                        >
                           {mName}
                         </Text>
                       </Pressable>
@@ -414,22 +455,37 @@ export default function BirthDetailsScreen() {
 
               {/* Year Input */}
               <View style={styles.pickerField}>
-                <Text style={styles.pickerLabel}>Year</Text>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Year</Text>
                 <TextInput
                   value={tempYear}
                   onChangeText={setTempYear}
                   keyboardType="number-pad"
                   maxLength={4}
                   placeholder="YYYY"
-                  placeholderTextColor="#5A5478"
-                  style={styles.modalInput}
+                  placeholderTextColor={isDark ? "#5A5478" : "#9CA3AF"}
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                      color: isDark ? '#FFFFFF' : '#1B1528',
+                    }
+                  ]}
                 />
               </View>
             </View>
 
             <View style={styles.modalButtons}>
-              <Pressable style={styles.modalCancel} onPress={() => setDateModalVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+              <Pressable 
+                style={[
+                  styles.modalCancel,
+                  {
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                  }
+                ]} 
+                onPress={() => setDateModalVisible(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.modalConfirm} onPress={confirmDate}>
                 <Text style={styles.modalConfirmText}>Confirm</Text>
@@ -447,63 +503,99 @@ export default function BirthDetailsScreen() {
         onRequestClose={() => setTimeModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Time of Birth</Text>
+          <View style={[
+            styles.modalContent,
+            {
+              backgroundColor: isDark ? '#0F0924' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB',
+            }
+          ]}>
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Select Time of Birth</Text>
 
             <View style={styles.pickerRow}>
               {/* Hour Input */}
               <View style={styles.pickerField}>
-                <Text style={styles.pickerLabel}>Hour</Text>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Hour</Text>
                 <TextInput
                   value={tempHour}
                   onChangeText={setTempHour}
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="12"
-                  placeholderTextColor="#5A5478"
-                  style={styles.modalInput}
+                  placeholderTextColor={isDark ? "#5A5478" : "#9CA3AF"}
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                      color: isDark ? '#FFFFFF' : '#1B1528',
+                    }
+                  ]}
                 />
               </View>
 
-              <Text style={styles.timeColon}>:</Text>
+              <Text style={[styles.timeColon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>:</Text>
 
               {/* Minute Input */}
               <View style={styles.pickerField}>
-                <Text style={styles.pickerLabel}>Minute</Text>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Minute</Text>
                 <TextInput
                   value={tempMinute}
                   onChangeText={setTempMinute}
                   keyboardType="number-pad"
                   maxLength={2}
                   placeholder="00"
-                  placeholderTextColor="#5A5478"
-                  style={styles.modalInput}
+                  placeholderTextColor={isDark ? "#5A5478" : "#9CA3AF"}
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                      color: isDark ? '#FFFFFF' : '#1B1528',
+                    }
+                  ]}
                 />
               </View>
 
               {/* AM/PM Switch */}
               <View style={styles.pickerField}>
-                <Text style={styles.pickerLabel}>Period</Text>
-                <View style={styles.ampmWrap}>
+                <Text style={[styles.pickerLabel, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Period</Text>
+                <View 
+                  style={[
+                    styles.ampmWrap,
+                    {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F9F9FB',
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                    }
+                  ]}
+                >
                   <Pressable
                     onPress={() => setTempIsAm(true)}
                     style={[styles.ampmBtn, tempIsAm && styles.ampmBtnActive]}
                   >
-                    <Text style={[styles.ampmText, tempIsAm && styles.ampmTextActive]}>AM</Text>
+                    <Text style={[styles.ampmText, tempIsAm && styles.ampmTextActive, { color: isDark ? '#9A93B5' : '#6B7280' }, tempIsAm && { color: '#FFFFFF' }]}>AM</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setTempIsAm(false)}
                     style={[styles.ampmBtn, !tempIsAm && styles.ampmBtnActive]}
                   >
-                    <Text style={[styles.ampmText, !tempIsAm && styles.ampmTextActive]}>PM</Text>
+                    <Text style={[styles.ampmText, !tempIsAm && styles.ampmTextActive, { color: isDark ? '#9A93B5' : '#6B7280' }, !tempIsAm && { color: '#FFFFFF' }]}>PM</Text>
                   </Pressable>
                 </View>
               </View>
             </View>
 
             <View style={styles.modalButtons}>
-              <Pressable style={styles.modalCancel} onPress={() => setTimeModalVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+              <Pressable 
+                style={[
+                  styles.modalCancel,
+                  {
+                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E5E7EB',
+                  }
+                ]} 
+                onPress={() => setTimeModalVisible(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.modalConfirm} onPress={confirmTime}>
                 <Text style={styles.modalConfirmText}>Confirm</Text>
@@ -550,7 +642,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   progressSegmentActive: {
     backgroundColor: '#B57BFF',
