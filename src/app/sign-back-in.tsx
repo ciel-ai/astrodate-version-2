@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +22,12 @@ import Glitters from '@/components/glitters';
 const SERIF = 'Baskerville-Old-Face';
 
 export default function SignBackInScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -32,7 +39,7 @@ export default function SignBackInScreen() {
   const [loadingType, setLoadingType] = useState<'google' | 'apple' | null>(null);
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
+    return <View style={{ flex: 1, backgroundColor: isDark ? '#09031C' : '#F0E6FF' }} />;
   }
 
   const handleAuth = (type: 'google' | 'apple') => {
@@ -40,19 +47,19 @@ export default function SignBackInScreen() {
     // Simulate linking auth and redirect
     setTimeout(() => {
       setLoadingType(null);
-      router.push('/finish-onboarding');
+      router.push('/cosmic-identity');
     }, 1500);
   };
 
   const handleSkip = () => {
-    router.push('/finish-onboarding');
+    router.push('/cosmic-identity');
   };
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >

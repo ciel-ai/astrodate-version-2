@@ -16,13 +16,62 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const SERIF = 'Baskerville-Old-Face';
+
+// expo-image-picker's native module (ExponentImagePicker) can be absent from an
+// out-of-date dev client. Load it lazily so this screen still renders and photo
+// picking fails with a friendly message instead of crashing the whole bundle.
+// The permanent fix is to rebuild the dev client: `npx expo run:android`.
+function getImagePicker(): typeof import('expo-image-picker') | null {
+  try {
+    return require('expo-image-picker');
+  } catch {
+    return null;
+  }
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const lookup = new Uint8Array(256);
+  for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+  }
+
+  let bufferLength = base64.length * 0.75;
+  if (base64[base64.length - 1] === '=') {
+    bufferLength--;
+    if (base64[base64.length - 2] === '=') {
+      bufferLength--;
+    }
+  }
+
+  const arrayBuffer = new ArrayBuffer(bufferLength);
+  const bytes = new Uint8Array(arrayBuffer);
+
+  let p = 0;
+  for (let i = 0; i < base64.length; i += 4) {
+    const encoded1 = lookup[base64.charCodeAt(i)];
+    const encoded2 = lookup[base64.charCodeAt(i + 1)];
+    const encoded3 = lookup[base64.charCodeAt(i + 2)];
+    const encoded4 = lookup[base64.charCodeAt(i + 3)];
+
+    const bytes1 = (encoded1 << 2) | (encoded2 >> 4);
+    const bytes2 = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    const bytes3 = ((encoded3 & 3) << 6) | (encoded4 & 63);
+
+    bytes[p++] = bytes1;
+    if (p < bufferLength) bytes[p++] = bytes2;
+    if (p < bufferLength) bytes[p++] = bytes3;
+  }
+
+  return arrayBuffer;
+}
+
 
 interface PhotoItem {
   id: string;
@@ -59,16 +108,50 @@ export default function UploadPhotosScreen() {
   const loadUserPhotos = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('[loadUserPhotos] No authenticated user found.');
+        return;
+      }
 
+      console.log('[loadUserPhotos] Fetching photos for user:', user.id);
       const { data, error } = await supabase
         .from('user_photos')
         .select('*')
         .eq('user_id', user.id)
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
-      if (data) setPhotos(data);
+      if (error) {
+        console.error('[loadUserPhotos] Database fetch error:', error);
+        throw error;
+      }
+      console.log('[loadUserPhotos] Retrieved photos from database:', data);
+
+      if (data && data.length > 0) {
+        // Since the storage bucket is private, generate signed URLs to authorize image loading
+        const paths = data.map(p => p.storage_path);
+        console.log('[loadUserPhotos] Generating signed URLs for paths:', paths);
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('user-photos')
+          .createSignedUrls(paths, 86400); // 24 hours expiry
+
+        if (signedError) {
+          console.error('[loadUserPhotos] Error generating signed URLs:', signedError);
+          throw signedError;
+        }
+
+        const photosWithSignedUrls = data.map(photo => {
+          const signedItem = signedData?.find(s => s.path === photo.storage_path);
+          return {
+            ...photo,
+            photo_url: signedItem?.signedUrl || photo.photo_url,
+          };
+        });
+
+        console.log('[loadUserPhotos] Finished mapping photos with signed URLs:', photosWithSignedUrls);
+        setPhotos(photosWithSignedUrls);
+      } else {
+        setPhotos([]);
+      }
     } catch (e: any) {
       console.warn('Failed to load user photos:', e.message);
     } finally {
@@ -78,6 +161,15 @@ export default function UploadPhotosScreen() {
 
   const handlePickImage = async (index: number) => {
     try {
+      const ImagePicker = getImagePicker();
+      if (!ImagePicker) {
+        Alert.alert(
+          'Photo picker unavailable',
+          'This dev build is missing the image-picker module. Rebuild the app (npx expo run:android) to enable photo uploads.'
+        );
+        return;
+      }
+
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         Alert.alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
@@ -88,52 +180,74 @@ export default function UploadPhotosScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
+        base64: true,
       });
 
       if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        console.log('[handlePickImage] Image picking cancelled.');
         return;
       }
 
       setUploadingIdx(index);
       const selectedUri = pickerResult.assets[0].uri;
+      const base64Data = pickerResult.assets[0].base64;
+
+      if (!base64Data) throw new Error('Could not read image file data');
+
+      console.log('[handlePickImage] Image picked. Converting base64 to ArrayBuffer...');
+      const arrayBuffer = base64ToArrayBuffer(base64Data);
 
       // 1. Upload to Supabase Storage
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user found');
 
-      const response = await fetch(selectedUri);
-      const blob = await response.blob();
       const fileExt = selectedUri.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}_${index}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
+      console.log('[handlePickImage] Uploading to storage path:', filePath);
       const { error: uploadError } = await supabase.storage
         .from('user-photos')
-        .upload(filePath, blob, {
+        .upload(filePath, arrayBuffer, {
           contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[handlePickImage] Storage upload error:', uploadError);
+        throw uploadError;
+      }
+      console.log('[handlePickImage] Storage upload successful. Getting public URL...');
 
       // 2. Get Public URL
       const { data: { publicUrl } } = supabase.storage
         .from('user-photos')
         .getPublicUrl(filePath);
 
-      // 3. Insert metadata record in database
-      const { error: dbError } = await supabase.from('user_photos').insert({
-        user_id: user.id,
-        photo_url: publicUrl,
-        storage_path: filePath,
-        display_order: index,
-        is_primary: index === 0,
-      });
+      console.log('[handlePickImage] Public URL obtained:', publicUrl);
 
-      if (dbError) throw dbError;
+      // 3. Insert metadata record in database
+      console.log('[handlePickImage] Inserting metadata into database...');
+      const { data: insertData, error: dbError } = await supabase
+        .from('user_photos')
+        .insert({
+          user_id: user.id,
+          photo_url: publicUrl,
+          storage_path: filePath,
+          display_order: index,
+          is_primary: index === 0,
+        })
+        .select();
+
+      if (dbError) {
+        console.error('[handlePickImage] Database insert error:', dbError);
+        throw dbError;
+      }
+      console.log('[handlePickImage] Database insertion successful:', insertData);
 
       // 4. Reload local photos state
       await loadUserPhotos();
     } catch (err: any) {
+      console.error('[handlePickImage] Error:', err);
       Alert.alert('Upload Failed', err.message || 'An error occurred during image upload.');
     } finally {
       setUploadingIdx(null);

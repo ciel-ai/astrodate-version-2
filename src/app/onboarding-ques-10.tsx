@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
   Alert,
@@ -99,6 +100,11 @@ const QUESTIONS: Question[] = [
 ];
 
 export default function OnboardingQues10Screen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -161,11 +167,11 @@ export default function OnboardingQues10Screen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
-      style={styles.bg}
+      source={bgSource}
+      style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#F0E6FF' }]}
       resizeMode="cover"
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
       <ScrollView
@@ -184,13 +190,13 @@ export default function OnboardingQues10Screen() {
               <View style={[styles.progressSegment, styles.progressSegmentActive]} />
               <View style={styles.progressSegmentEmpty} />
             </View>
-            <Text style={styles.progressText}>Page 10 of 10</Text>
+            <Text style={[styles.progressText, { color: isDark ? '#9A93B5' : '#6B5A8A' }]}>Page 10 of 10</Text>
           </View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.heading}>Let&apos;s understand your relationship style</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>Let&apos;s understand your relationship style</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#5A4A7A' }]}>
               Help us match you with compatible partners.
             </Text>
           </View>
@@ -203,7 +209,7 @@ export default function OnboardingQues10Screen() {
                   {/* Label Row */}
                   <View style={styles.questionLabelRow}>
                     <Text style={styles.questionIcon}>{q.icon}</Text>
-                    <Text style={styles.questionText}>{q.label}</Text>
+                    <Text style={[styles.questionText, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>{q.label}</Text>
                   </View>
 
                   {/* Options List */}
@@ -216,13 +222,25 @@ export default function OnboardingQues10Screen() {
                           onPress={() => handleSelect(q.id, opt.dbValue)}
                           style={[
                             styles.optionPill,
-                            isSelected && styles.optionPillSelected,
+                            {
+                              backgroundColor: isSelected
+                                ? 'rgba(168, 85, 247, 0.15)'
+                                : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)',
+                              borderColor: isSelected
+                                ? '#A855F7'
+                                : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(120,80,180,0.2)',
+                            },
                           ]}
                         >
                           <Text
                             style={[
                               styles.optionLabel,
-                              isSelected && styles.optionLabelSelected,
+                              {
+                                color: isSelected
+                                  ? isDark ? '#FFFFFF' : '#5B21B6'
+                                  : isDark ? '#C9C3DE' : '#3D2A6E',
+                                fontWeight: isSelected ? '600' : '500',
+                              },
                             ]}
                           >
                             {opt.label}
@@ -243,9 +261,16 @@ export default function OnboardingQues10Screen() {
             <Pressable
               id="btn-back-page10"
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backNavBtn, pressed && styles.backNavBtnPressed]}
+              style={({ pressed }) => [
+                styles.backNavBtn,
+                {
+                  borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(120,80,180,0.3)',
+                  backgroundColor: isDark ? 'rgba(20,12,40,0.55)' : 'rgba(255,255,255,0.6)',
+                },
+                pressed && styles.backNavBtnPressed,
+              ]}
             >
-              <Text style={styles.backNavArrow}>←</Text>
+              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#3D2A6E' }]}>←</Text>
             </Pressable>
 
             {/* Action Continue Button with Heart Icon */}
@@ -274,7 +299,7 @@ export default function OnboardingQues10Screen() {
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, width: '100%', height: '100%', backgroundColor: '#09031C' },
+  bg: { flex: 1, width: '100%', height: '100%' },
   scrollStyle: { flex: 1 },
   scrollContent: { paddingBottom: 48 },
   container: { flex: 1, paddingHorizontal: 24 },

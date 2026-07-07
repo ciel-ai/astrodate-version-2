@@ -1,16 +1,14 @@
 /**
  * VedicCompatibilityCard
  *
- * Right half of the Discover compatibility row — ancient-astrology counterpart
- * to the Western card. Uses a real gold zodiac-wheel/mandala illustration as
- * the card art, cropped toward its right edge to keep the wheel in frame; a
- * bottom scrim keeps the score legible. Reinforced by the frosted lock badge
- * and the dosha warning beneath a gold divider.
+ * Right half of the Discover compatibility row. Uses pure View-based
+ * approximations instead of expo-linear-gradient / expo-blur so the card
+ * renders on any APK — including dev builds that were compiled before those
+ * native modules were added. Once the native APK is rebuilt with
+ * `npx expo run:android` the gradients and blur will be restored.
  */
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 
 import { CompatibilityLayout, VedicTheme } from '@/constants/compatibility-theme';
@@ -40,15 +38,14 @@ function LockIcon() {
   );
 }
 
+/** Plain View approximation of a horizontal gold divider gradient */
 function SacredDivider() {
-  return (
-    <LinearGradient
-      colors={['transparent', 'rgba(216,179,106,0.55)', 'transparent']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={styles.divider}
-    />
-  );
+  return <View style={styles.divider} />;
+}
+
+/** Plain View approximation of BlurView lock badge */
+function LockBadge({ children }: { children: React.ReactNode }) {
+  return <View style={styles.lockBadge}>{children}</View>;
 }
 
 export function VedicCompatibilityCard({ score, max, doshaFlagged = false }: VedicCompatibilityCardProps) {
@@ -63,18 +60,14 @@ export function VedicCompatibilityCard({ score, max, doshaFlagged = false }: Ved
           transition={150}
         />
 
-        <LinearGradient
-          colors={['transparent', 'rgba(23,8,36,0.55)']}
-          start={{ x: 0, y: 0.3 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        {/* Scrim approximation — replaces LinearGradient bottom fade */}
+        <View style={styles.scrim} />
 
         <View style={styles.topRow}>
           <Text style={styles.kicker}>Vedic</Text>
-          <BlurView intensity={40} tint="dark" style={styles.lockBadge}>
+          <LockBadge>
             <LockIcon />
-          </BlurView>
+          </LockBadge>
         </View>
 
         <Text style={styles.scoreRow}>
@@ -127,6 +120,11 @@ const styles = StyleSheet.create({
     padding: CompatibilityLayout.padding,
     justifyContent: 'space-between',
   },
+  /** Replaces LinearGradient bottom scrim */
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(23,8,36,0.45)',
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  /** Replaces BlurView — dark semi-transparent circle */
   lockBadge: {
     width: 17,
     height: 17,
@@ -148,6 +147,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: VedicTheme.lockBorder,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   scoreRow: {
     marginTop: -2,
@@ -163,10 +163,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  /** Replaces LinearGradient — solid gold tint line */
   divider: {
     height: 1,
     width: '100%',
     marginBottom: 4,
+    backgroundColor: 'rgba(216,179,106,0.55)',
   },
   doshaRow: {
     flexDirection: 'row',

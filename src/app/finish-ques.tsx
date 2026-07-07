@@ -11,12 +11,19 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import Glitters from '@/components/glitters';
 
 const SERIF = 'Baskerville-Old-Face';
 
 export default function FinishQuesScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -26,7 +33,7 @@ export default function FinishQuesScreen() {
   });
 
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
+    return <View style={{ flex: 1, backgroundColor: isDark ? '#09031C' : '#F0E6FF' }} />;
   }
 
   const handleFinish = () => {
@@ -35,7 +42,7 @@ export default function FinishQuesScreen() {
 
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
+      source={bgSource}
       style={styles.bg}
       resizeMode="cover"
     >

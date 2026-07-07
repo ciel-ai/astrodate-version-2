@@ -5,10 +5,13 @@
  * sun-sign compatibility. Uses a real cosmic photo (crescent planet, star
  * field, orbital light-trails) as the card art, cropped toward its right
  * edge so the planet stays in frame; a bottom scrim keeps the score legible.
+ *
+ * NOTE: expo-linear-gradient requires native binaries not present in the
+ * current dev APK build. Using a plain View scrim until the native APK is
+ * rebuilt with `npx expo run:android`.
  */
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { CompatibilityLayout, WesternTheme } from '@/constants/compatibility-theme';
 
@@ -29,12 +32,8 @@ export function WesternCompatibilityCard({ score, caption = 'Sun compatibility' 
           transition={150}
         />
 
-        <LinearGradient
-          colors={['transparent', 'rgba(9,13,30,0.55)']}
-          start={{ x: 0, y: 0.3 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        {/* Scrim — plain View replaces LinearGradient until native APK rebuild */}
+        <View style={styles.scrim} />
 
         <Text style={styles.kicker}>Western</Text>
 
@@ -71,6 +70,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: CompatibilityLayout.padding,
     justifyContent: 'space-between',
+  },
+  /** Replaces LinearGradient bottom scrim */
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(9,13,30,0.45)',
   },
   kicker: {
     color: WesternTheme.kicker,

@@ -43,8 +43,8 @@ function RootLayout() {
           <Stack.Screen name="profile-preview" options={{ headerShown: false }} />
           {/* Sign back in third-party account link option screen */}
           <Stack.Screen name="sign-back-in" options={{ headerShown: false }} />
-          {/* Final empty onboarding step with a single continue button */}
-          <Stack.Screen name="finish-onboarding" options={{ headerShown: false }} />
+          {/* Cosmic identity: Vedic / Western / Nakshatra reveal */}
+          <Stack.Screen name="cosmic-identity" options={{ headerShown: false }} />
           {/* Onboarding Questionnaire Pages */}
           <Stack.Screen name="onboarding-ques-01" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding-ques-02" options={{ headerShown: false }} />

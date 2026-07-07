@@ -1,6 +1,6 @@
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase';
-import { invokeSupabaseFunctionWithTimeout, withTimeout } from './network';
 import type { VedicMatchReport } from '@/lib/astro-types';
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase';
+import { invokeSupabaseFunctionWithTimeout, withTimeout } from './network';
 
 
 export type AstroRequest = {
@@ -185,4 +185,5 @@ export async function getVedicMatchReport(
   }
 }
 
-export type { VedicMatchReport, VedicKootaDetail } from '@/lib/astro-types';
+export type { VedicKootaDetail, VedicMatchReport } from '@/lib/astro-types';
+

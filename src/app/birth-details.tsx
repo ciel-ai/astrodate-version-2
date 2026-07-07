@@ -22,6 +22,10 @@ import * as Location from 'expo-location';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { getAstroDetails, parseTzString } from '@/lib/astro';
+import { searchBirthPlace, getTimezoneOffset } from '@/lib/astro-geo';
+
+type PlaceResult = { place_name: string; latitude: number; longitude: number; timezone_id: string };
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -57,6 +61,14 @@ export default function BirthDetailsScreen() {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+  const [timezoneId, setTimezoneId] = useState<string | null>(null);
+
+  // Place-of-birth autocomplete (AstrologyAPI geo_details via astro-geo edge fn)
+  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchingPlace, setSearchingPlace] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeq = useRef(0);
 
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
@@ -139,19 +151,62 @@ export default function BirthDetailsScreen() {
     setTimeModalVisible(false);
   };
 
+  // ── Place-of-birth autocomplete via astro-geo (geo_details) ──
+  const handlePlaceChange = (text: string) => {
+    setPlaceOfBirth(text);
+    // Typing invalidates any previously-resolved coordinates until re-picked.
+    setLat(null);
+    setLng(null);
+    setTimezoneId(null);
+
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const q = text.trim();
+    if (q.length < 3) {
+      setPlaceSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const seq = ++searchSeq.current;
+    setSearchingPlace(true);
+    setShowSuggestions(true);
+    searchTimer.current = setTimeout(async () => {
+      const results = await searchBirthPlace(q);
+      if (seq !== searchSeq.current) return; // a newer keystroke superseded this one
+      setSearchingPlace(false);
+      setPlaceSuggestions(results ?? []);
+      setShowSuggestions(true);
+    }, 400);
+  };
+
+  const handleSelectPlace = (item: PlaceResult) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchSeq.current++; // cancel any in-flight search
+    setPlaceOfBirth(item.place_name);
+    setLat(item.latitude);
+    setLng(item.longitude);
+    setTimezoneId(item.timezone_id);
+    setPlaceSuggestions([]);
+    setShowSuggestions(false);
+    setSearchingPlace(false);
+  };
+
   // Geolocate
   const handleUseCurrentLocation = async () => {
     setLocLoading(true);
+    setShowSuggestions(false);
+    setPlaceSuggestions([]);
+    searchSeq.current++;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Please grant location permissions to use current location.');
         return;
       }
-      
+
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setLat(loc.coords.latitude);
       setLng(loc.coords.longitude);
+      setTimezoneId(null); // resolved precisely at submit via getTimezoneOffset
 
       // Simple reverse geocoding
       const geo = await Location.reverseGeocodeAsync({
@@ -200,11 +255,78 @@ export default function BirthDetailsScreen() {
       let hours24 = parseInt(hour, 10);
       if (!isAm && hours24 !== 12) hours24 += 12;
       if (isAm && hours24 === 12) hours24 = 0;
-      
+
+      const dayNum = parseInt(day, 10);
+      const minNum = parseInt(minute, 10);
       const formattedTime = `${String(hours24).padStart(2, '0')}:${minute.padStart(2, '0')}:00`;
       const formattedDate = `${year}-${String(month).padStart(2, '0')}-${day}`;
+      const birthDate = new Date(parseInt(year, 10), month - 1, dayNum);
 
-      const timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone || 'GMT';
+      // ── 1. Resolve accurate birth coordinates via the geo endpoint ──
+      // If the user picked a suggestion or used GPS we already have lat/lng.
+      // Otherwise geocode the typed place name so astro calc never runs blind.
+      let resolvedLat = lat;
+      let resolvedLng = lng;
+      let resolvedTzId = timezoneId;
+      const placeQuery = placeOfBirth.trim();
+
+      // (a) AstrologyAPI geonames search (also gives us the timezone id).
+      if (resolvedLat == null || resolvedLng == null) {
+        const results = await searchBirthPlace(placeQuery);
+        if (results && results.length > 0) {
+          resolvedLat = results[0].latitude;
+          resolvedLng = results[0].longitude;
+          resolvedTzId = results[0].timezone_id;
+        }
+      }
+
+      // (b) Device geocoder fallback — handles colloquial/short names that
+      // geonames misses (e.g. "Trichy" → Tiruchirappalli).
+      if (resolvedLat == null || resolvedLng == null) {
+        try {
+          const geo = await Location.geocodeAsync(placeQuery);
+          if (geo && geo.length > 0) {
+            resolvedLat = geo[0].latitude;
+            resolvedLng = geo[0].longitude;
+          }
+        } catch (geoErr) {
+          console.warn('Device geocode fallback failed:', geoErr);
+        }
+      }
+
+      if (resolvedLat == null || resolvedLng == null) {
+        Alert.alert(
+          'Place Not Found',
+          'We could not locate that place. Try the full city name (e.g. "Tiruchirappalli" instead of "Trichy"), pick a suggestion from the list, or use your current location.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      // ── 2. Resolve the DST-correct timezone offset for the birth place & date ──
+      // The device timezone is wrong for a birth elsewhere; the geo timezone API
+      // returns the historically-correct offset (incl. DST) for the birth moment.
+      let tzOffset = await getTimezoneOffset(resolvedLat, resolvedLng, birthDate);
+      const deviceTzName = Intl.DateTimeFormat().resolvedOptions().timeZone || 'GMT';
+      if (tzOffset == null) tzOffset = parseTzString(deviceTzName);
+
+      // ── 3. Fetch computed zodiac details from the astro edge function ──
+      let computed = null;
+      try {
+        computed = await getAstroDetails({
+          day: dayNum,
+          month: month,
+          year: parseInt(year, 10),
+          hour: hours24,
+          min: minNum,
+          lat: resolvedLat,
+          lon: resolvedLng,
+          tzone: tzOffset,
+          mode: 'basic'
+        });
+      } catch (err) {
+        console.warn('Astrology details fetch failed (will save raw fields):', err);
+      }
 
       const { error } = await supabase.from('astro_details').upsert(
         {
@@ -212,9 +334,21 @@ export default function BirthDetailsScreen() {
           birth_date: formattedDate,
           birth_time: formattedTime,
           birth_location: placeOfBirth.trim(),
-          birth_latitude: lat,
-          birth_longitude: lng,
-          birth_timezone: timezoneName,
+          birth_latitude: resolvedLat,
+          birth_longitude: resolvedLng,
+          birth_timezone: resolvedTzId || deviceTzName,
+
+          // Computed fields from AstrologyAPI
+          western_sign: computed?.western_sign || null,
+          venus_sign: computed?.venus_sign || null,
+          mars_sign: computed?.mars_sign || null,
+          mercury_sign: computed?.mercury_sign || null,
+          rising_sign: computed?.rising_sign || null,
+          dominant_element: computed?.dominant_element || null,
+          indian_sign: computed?.indian_sign || null,
+          nakshatra_name: computed?.nakshatra_name || null,
+          chart_json: computed?.chart_json || null,
+
           updated_at: new Date().toISOString()
         },
         { onConflict: 'user_id' }
@@ -351,13 +485,55 @@ export default function BirthDetailsScreen() {
               <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E5E7EB' }]}>
                 <TextInput
                   value={placeOfBirth}
-                  onChangeText={setPlaceOfBirth}
+                  onChangeText={handlePlaceChange}
                   placeholder="Enter city / birth town"
                   placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
                   style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
                   accessibilityLabel="Place of Birth"
+                  autoCorrect={false}
                 />
+                {searchingPlace ? (
+                  <ActivityIndicator size="small" color={isDark ? '#A855F7' : '#4B0082'} />
+                ) : lat != null && lng != null ? (
+                  <Text style={styles.placeResolvedIcon}>✓</Text>
+                ) : null}
               </View>
+
+              {/* Autocomplete suggestions (from AstrologyAPI geo_details) */}
+              {showSuggestions && placeSuggestions.length > 0 && (
+                <View
+                  style={[
+                    styles.suggestionsBox,
+                    {
+                      backgroundColor: isDark ? '#150C2E' : '#FFFFFF',
+                      borderColor: isDark ? 'rgba(255,255,255,0.10)' : '#E5E7EB',
+                    },
+                  ]}
+                >
+                  {placeSuggestions.map((item, idx) => (
+                    <Pressable
+                      key={`${item.place_name}-${item.latitude}-${item.longitude}-${idx}`}
+                      onPress={() => handleSelectPlace(item)}
+                      style={({ pressed }) => [
+                        styles.suggestionRow,
+                        idx < placeSuggestions.length - 1 && {
+                          borderBottomWidth: 1,
+                          borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : '#F0F0F4',
+                        },
+                        pressed && { backgroundColor: isDark ? 'rgba(168,85,247,0.12)' : 'rgba(75,0,130,0.06)' },
+                      ]}
+                    >
+                      <Text style={styles.suggestionPin}>📍</Text>
+                      <Text
+                        style={[styles.suggestionText, { color: isDark ? '#EDE9FF' : '#1B1528' }]}
+                        numberOfLines={1}
+                      >
+                        {item.place_name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Action Submit Button */}
@@ -711,6 +887,39 @@ const styles = StyleSheet.create({
   inputIconEmoji: {
     fontSize: 18,
     color: '#B57BFF',
+  },
+  placeResolvedIcon: {
+    fontSize: 16,
+    color: '#3DDC97',
+    fontWeight: '800',
+  },
+
+  // ── Place autocomplete suggestions ──
+  suggestionsBox: {
+    marginTop: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 6 },
+      web: { boxShadow: '0 6px 20px rgba(0,0,0,0.25)' } as any,
+    }),
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  suggestionPin: {
+    fontSize: 14,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
   },
 
   // ── Hints ──

@@ -58,6 +58,11 @@ Deno.serve(async (req) => {
       const { day, month, year, hour, min, lat, lon, tzone } = payload;
       const body = JSON.stringify({ day, month, year, hour, min, lat, lon, tzone });
 
+      // `planets/tropical`         → Western sun sign + inner planets (tropical zodiac)
+      // `daily_nakshatra_prediction` → sidereal birth Moon sign (Rashi) + birth Nakshatra.
+      //   Nakshatra MUST be sidereal, so it comes from this endpoint (never from the
+      //   tropical planets). Both are computed from the exact birth day/time/place/tzone,
+      //   so accuracy depends entirely on the caller passing a DST-correct `tzone`.
       const [planetsRes, nakshatraRes] = await Promise.all([
         fetch(`${BASE_URL}/planets/tropical`, { method: 'POST', headers: commonHeaders, body }),
         fetch(`${BASE_URL}/daily_nakshatra_prediction`, { method: 'POST', headers: commonHeaders, body })
@@ -95,8 +100,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      const indian_sign = nakshatraData.birth_moon_sign;
-      const nakshatra_name = nakshatraData.birth_moon_nakshatra;
+      const titleCase = (s: unknown) =>
+        typeof s === 'string' && s.length
+          ? s.trim().replace(/\b\w/g, (c) => c.toUpperCase())
+          : undefined;
+
+      // Sidereal birth Moon data. Field names per AstrologyAPI docs.
+      const indian_sign = titleCase(nakshatraData.birth_moon_sign);
+      const nakshatra_name = titleCase(nakshatraData.birth_moon_nakshatra);
 
       // Compute dominant element
       const elements = { Fire: 0, Earth: 0, Air: 0, Water: 0 };
