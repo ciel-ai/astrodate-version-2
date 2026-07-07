@@ -143,7 +143,7 @@ export default function InsightsScreen() {
           )}
 
           <Pressable
-            onPress={() => router.push('/saved-insights')}
+            onPress={() => router.push('/saved-insights' as any)}
             style={({ pressed }) => [
               styles.savedBtn,
               { backgroundColor: palette.chipBg, borderColor: palette.cardBorder },

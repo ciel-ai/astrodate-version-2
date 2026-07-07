@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   /** Replaces LinearGradient bottom scrim */
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(9,13,30,0.45)',
   },
   kicker: {

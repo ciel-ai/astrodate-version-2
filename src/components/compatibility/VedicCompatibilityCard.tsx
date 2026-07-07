@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   /** Replaces LinearGradient bottom scrim */
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(23,8,36,0.45)',
   },
   topRow: {
