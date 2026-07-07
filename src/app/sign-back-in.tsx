@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -30,7 +28,6 @@ export default function SignBackInScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
@@ -54,8 +51,6 @@ export default function SignBackInScreen() {
   const handleSkip = () => {
     router.push('/cosmic-identity');
   };
-
-  const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
 
   return (
     <ImageBackground

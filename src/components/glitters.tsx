@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 
 const PALETTE = ['#FFFFFF', '#E6D8FF', '#D38BFF', '#C77DFF'];
@@ -16,24 +16,22 @@ interface GlittersProps {
  * fade and pulse in and out. Purely decorative, non-interactive.
  */
 export default function Glitters({ count = 28 }: GlittersProps) {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: count }).map((_, i) => ({
-        id: i,
-        left: `${rand(3, 97)}%`,
-        top: `${rand(3, 97)}%`,
-        color: pick(PALETTE),
-        sparkle: Math.random() < 0.35,
-        size: rand(2, 4.6),
-        glyphSize: rand(10, 20),
-        duration: rand(1200, 2800),
-        delay: rand(0, 2400),
-        maxOpacity: rand(0.6, 1),
-      })),
-    [count],
+  const [particles] = useState(() =>
+    Array.from({ length: count }).map((_, i) => ({
+      id: i,
+      left: `${rand(3, 97)}%`,
+      top: `${rand(3, 97)}%`,
+      color: pick(PALETTE),
+      sparkle: Math.random() < 0.35,
+      size: rand(2, 4.6),
+      glyphSize: rand(10, 20),
+      duration: rand(1200, 2800),
+      delay: rand(0, 2400),
+      maxOpacity: rand(0.6, 1),
+    })),
   );
 
-  const anims = useRef(particles.map(() => new Animated.Value(0))).current;
+  const [anims] = useState(() => particles.map(() => new Animated.Value(0)));
 
   useEffect(() => {
     const loops = particles.map((p, i) =>

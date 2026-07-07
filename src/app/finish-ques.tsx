@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -26,7 +25,6 @@ export default function FinishQuesScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: screenW } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),

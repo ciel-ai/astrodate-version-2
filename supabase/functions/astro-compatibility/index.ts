@@ -3,9 +3,10 @@
  * the 'get_western_sign_score' Postgres RPC, which was intentionally excluded
  * from this project's schema squash (it's a private helper of the legacy
  * compute_astro_score function, deferred to the 45/45/10 scoring rewrite).
- * Until that RPC is recreated, this fallback returns a 502 — but the PRIMARY
- * path (the live zodiac_compatibility API call) does not depend on it and
- * works as-is.
+ * Until that RPC is recreated, this fallback returns a 502. The PRIMARY path
+ * (the live zodiac_compatibility API call) does not depend on it, but was
+ * confirmed live to require POST (with an empty JSON body), not GET — GET
+ * 404s with "check your api name/url or HTTP method type". Fixed 2026-07-07.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -131,14 +132,10 @@ Deno.serve(async (req) => {
       const sign2 = (partnerSign || '').toLowerCase().trim();
 
       try {
-        const getHeaders = {
-          'Authorization': authHeader,
-          'Accept-Language': 'en',
-        };
-
         const res = await fetch(`${BASE_URL}/zodiac_compatibility/${sign1}/${sign2}`, {
-          method: 'GET',
-          headers: getHeaders,
+          method: 'POST',
+          headers: commonHeaders,
+          body: JSON.stringify({}),
         });
 
         if (res.ok) {

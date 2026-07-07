@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, {
   Circle,
@@ -66,7 +66,7 @@ interface ZodiacWheelProps {
 }
 
 export default function ZodiacWheel({ size = 310 }: ZodiacWheelProps) {
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const [rotateAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.loop(

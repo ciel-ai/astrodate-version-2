@@ -60,6 +60,8 @@ function RootLayout() {
           <Stack.Screen name="finish-ques" options={{ headerShown: false }} />
           {/* Photo upload screen */}
           <Stack.Screen name="upload-photos" options={{ headerShown: false }} />
+          {/* Saved (bookmarked) Daily Insights entries */}
+          <Stack.Screen name="saved-insights" options={{ headerShown: false }} />
         </Stack>
       </NavThemeProvider>
     </AuthProvider>

@@ -184,6 +184,47 @@ export async function getVedicMatchReport(
     return null;
   }
 }
+export type DailyPrediction = {
+  health: string;
+  emotions: string;
+  profession: string;
+  luck: string;
+  personal_life: string;
+  travel: string;
+};
+
+export type DailyInsight = {
+  nakshatra: string;
+  moon_sign: string | null;
+  moon_nakshatra: string | null;
+  prediction_date: string;
+  prediction: DailyPrediction | null;
+  cached: boolean;
+  moon_phase: string;
+  day_ruler: string;
+  lucky_color: string;
+  lucky_number: number;
+  cosmic_weather_score: number | null;
+  best_time: { start: string; end: string; ruling_planet: string } | null;
+  best_time_status: 'ready' | 'no_location' | 'polar';
+};
+
+/**
+ * Today's nakshatra-based daily forecast. Backed by daily-insights, which
+ * caches the underlying Astrology API call server-side by (nakshatra, date)
+ * — never call the Astrology API directly from the client for this feature.
+ */
+export async function getDailyInsight(userId: string): Promise<DailyInsight | null> {
+  try {
+    const { data, error } = await invokeSupabaseFunctionWithTimeout(
+      () => supabase.functions.invoke('daily-insights', { body: { user_id: userId } }),
+      20000
+    );
+    if (error) return null;
+    return data as DailyInsight;
+  } catch {
+    return null;
+  }
+}
 
 export type { VedicKootaDetail, VedicMatchReport } from '@/lib/astro-types';
-

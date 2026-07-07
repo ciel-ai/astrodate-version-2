@@ -1,6 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
+
+import { getSecureItem, setSecureItem, deleteSecureItem } from './secure-storage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -20,7 +21,7 @@ const serverSafeStorage = {
   getItem: async (key: string) => {
     if (isServer) return null;
     try {
-      return await AsyncStorage.getItem(key);
+      return await getSecureItem(key);
     } catch {
       return null;
     }
@@ -28,13 +29,13 @@ const serverSafeStorage = {
   setItem: async (key: string, value: string) => {
     if (isServer) return;
     try {
-      await AsyncStorage.setItem(key, value);
+      await setSecureItem(key, value);
     } catch {}
   },
   removeItem: async (key: string) => {
     if (isServer) return;
     try {
-      await AsyncStorage.removeItem(key);
+      await deleteSecureItem(key);
     } catch {}
   },
 };

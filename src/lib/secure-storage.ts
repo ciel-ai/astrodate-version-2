@@ -7,6 +7,9 @@ const isWeb = Platform.OS === 'web';
 function getSecureStore() {
   if (isWeb) return null;
   try {
+    // Dynamic require: expo-secure-store is an optional native dependency,
+    // so this must not be a static import or the bundler would require it to be installed.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('expo-secure-store');
   } catch (e) {
     console.warn('[secure-storage] expo-secure-store not available in this environment, using AsyncStorage fallback:', e);

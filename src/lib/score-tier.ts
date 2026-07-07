@@ -5,7 +5,7 @@ export interface ScoreTier {
 
 // Suggested cutoffs for the blended score (45% Western + 45% Vedic + 10%
 // personality) — tune once real score distributions come in.
-const TIERS: Array<{ min: number; label: string; color: string }> = [
+const TIERS: { min: number; label: string; color: string }[] = [
   { min: 86, label: 'EXCELLENT', color: '#14B8A6' },
   { min: 66, label: 'GOOD', color: '#22C55E' },
   { min: 41, label: 'OKAY', color: '#F59E0B' },

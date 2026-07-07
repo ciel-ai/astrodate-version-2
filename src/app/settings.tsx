@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   ImageBackground,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
