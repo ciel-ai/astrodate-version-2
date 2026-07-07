@@ -62,6 +62,8 @@ function RootLayout() {
           <Stack.Screen name="upload-photos" options={{ headerShown: false }} />
           {/* Saved (bookmarked) Daily Insights entries */}
           <Stack.Screen name="saved-insights" options={{ headerShown: false }} />
+          {/* Paywall — contextual upgrade prompt (locked likes reveal, sort, etc.) */}
+          <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
       </NavThemeProvider>
     </AuthProvider>
