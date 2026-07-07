@@ -9,7 +9,7 @@ export async function searchBirthPlace(place: string): Promise<{ place_name: str
     );
     if (error) return null;
     return data?.results || null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -27,7 +27,7 @@ export async function getTimezoneOffset(latitude: number, longitude: number, dat
     );
     if (error) return null;
     return data?.tzone ?? null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

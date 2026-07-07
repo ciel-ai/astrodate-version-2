@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -29,7 +28,6 @@ export default function ProfilePreviewScreen() {
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
@@ -53,7 +51,7 @@ export default function ProfilePreviewScreen() {
       hours = hours % 12;
       hours = hours ? hours : 12; // the hour '0' should be '12'
       return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
-    } catch (e) {
+    } catch {
       return timeStr;
     }
   };
@@ -131,9 +129,6 @@ export default function ProfilePreviewScreen() {
   const handleContinue = () => {
     router.push('/sign-back-in');
   };
-
-  const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
-  const deviceH = isDesktopWeb ? 844 : screenH;
 
   return (
     <ImageBackground

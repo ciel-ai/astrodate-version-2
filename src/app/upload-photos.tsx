@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -35,7 +34,6 @@ interface PhotoItem {
 export default function UploadPhotosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: screenW, height: screenH } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -51,10 +49,6 @@ export default function UploadPhotosScreen() {
   const bgSource = isDark
     ? require('@/assets/images/onboard-bg.png')
     : require('@/assets/images/onboard-light-bg.png');
-
-  useEffect(() => {
-    loadUserPhotos();
-  }, []);
 
   const loadUserPhotos = async () => {
     try {
@@ -75,6 +69,13 @@ export default function UploadPhotosScreen() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Data fetch on mount; the compiler's set-state-in-effect heuristic misreads this
+    // (React-doc-sanctioned pattern: https://react.dev/learn/you-might-not-need-an-effect#fetching-data).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadUserPhotos();
+  }, []);
 
   const handlePickImage = async (index: number) => {
     try {
@@ -104,6 +105,8 @@ export default function UploadPhotosScreen() {
       const response = await fetch(selectedUri);
       const blob = await response.blob();
       const fileExt = selectedUri.split('.').pop() || 'jpg';
+      // Date.now() here runs inside an onPress handler, not during render.
+      // eslint-disable-next-line react-hooks/purity
       const fileName = `${Date.now()}_${index}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 

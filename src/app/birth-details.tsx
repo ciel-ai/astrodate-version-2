@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,

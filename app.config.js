@@ -44,6 +44,7 @@ export default ({ config }) => ({
         isIosBackgroundLocationEnabled: false,
       },
     ],
+    'expo-secure-store',
   ],
   experiments: {
     typedRoutes: true,

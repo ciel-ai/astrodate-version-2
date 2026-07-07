@@ -135,7 +135,7 @@ export default function OnboardingQues2Screen() {
           <View style={styles.header}>
             <Text style={[styles.heading, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>What are you looking for?</Text>
             <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
-              All good if it changes. There's something for everyone.
+              All good if it changes. There&apos;s something for everyone.
             </Text>
           </View>
 
