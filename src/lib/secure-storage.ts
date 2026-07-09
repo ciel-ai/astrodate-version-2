@@ -1,11 +1,39 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 
 // SecureStore is native-only; fall back to AsyncStorage on web/Expo Go.
 const isWeb = Platform.OS === 'web';
 
+/**
+ * Check if the native module for SecureStore is linked and registered in the binary.
+ */
+function hasNativeSecureStore(): boolean {
+  if (isWeb) return false;
+
+  // Check the global Expo Modules registry
+  const expoModules = (globalThis as any).expo?.modules || (globalThis as any).ExpoModules;
+  if (expoModules && (expoModules.ExpoSecureStore || expoModules.SecureStore)) {
+    return true;
+  }
+
+  // Fall back to checking standard React Native NativeModules
+  if (NativeModules && (NativeModules.ExpoSecureStore || NativeModules.SecureStore)) {
+    return true;
+  }
+
+  return false;
+}
+
 function getSecureStore() {
   if (isWeb) return null;
+
+  // Safely check if the native module is registered in this binary before attempting to require it,
+  // preventing native-level JSI crashes that bypass JavaScript try/catch blocks.
+  if (!hasNativeSecureStore()) {
+    console.warn('[secure-storage] ExpoSecureStore native module is not registered in this binary, using AsyncStorage fallback.');
+    return null;
+  }
+
   try {
     // Dynamic require: expo-secure-store is an optional native dependency,
     // so this must not be a static import or the bundler would require it to be installed.

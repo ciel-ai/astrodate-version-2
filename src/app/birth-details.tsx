@@ -356,7 +356,7 @@ export default function BirthDetailsScreen() {
 
       if (error) throw error;
 
-      router.push('/profile-preview');
+      router.push('/cosmic-identity');
     } catch (e: any) {
       Alert.alert('Setup Failed', e.message || 'An unexpected error occurred while generating your astro details.');
     } finally {

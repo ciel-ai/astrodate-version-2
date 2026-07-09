@@ -44,12 +44,12 @@ export default function SignBackInScreen() {
     // Simulate linking auth and redirect
     setTimeout(() => {
       setLoadingType(null);
-      router.push('/cosmic-identity');
+      router.replace('/onboarding-ques-01');
     }, 1500);
   };
 
   const handleSkip = () => {
-    router.push('/cosmic-identity');
+    router.replace('/onboarding-ques-01');
   };
 
   return (

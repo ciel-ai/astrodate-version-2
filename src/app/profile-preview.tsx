@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useFonts } from 'expo-font';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ImageBackground,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
@@ -39,6 +40,14 @@ export default function ProfilePreviewScreen() {
   const [gender, setGender] = useState('Gender Details');
   const [birthTime, setBirthTime] = useState('Time of Birth');
   const [loading, setLoading] = useState(true);
+  const [vedicSign, setVedicSign] = useState('--');
+  const [westernSign, setWesternSign] = useState('--');
+  const [nakshatraSign, setNakshatraSign] = useState('--');
+
+  const formatSign = (val: string) => {
+    if (!val) return '--';
+    return val.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
 
   const formatTime = (timeStr: string) => {
     if (!timeStr) return 'Time of Birth';
@@ -85,7 +94,7 @@ export default function ProfilePreviewScreen() {
 
         const { data: astro } = await supabase
           .from('astro_details')
-          .select('birth_date, birth_time')
+          .select('birth_date, birth_time, western_sign, indian_sign, nakshatra_name')
           .eq('user_id', user.id)
           .single();
 
@@ -101,6 +110,9 @@ export default function ProfilePreviewScreen() {
             setAge(calculatedAge);
           }
           if (astro.birth_time) setBirthTime(formatTime(astro.birth_time));
+          if (astro.indian_sign) setVedicSign(formatSign(astro.indian_sign));
+          if (astro.western_sign) setWesternSign(formatSign(astro.western_sign));
+          if (astro.nakshatra_name) setNakshatraSign(formatSign(astro.nakshatra_name));
         }
       } catch (err) {
         console.warn('Failed to load profile preview details:', err);
@@ -119,22 +131,25 @@ export default function ProfilePreviewScreen() {
 
   // Theme tokens
   const T = {
-    cardBg:   isDark ? 'rgba(14, 8, 35, 0.82)' : 'rgba(255,255,255,0.88)',
-    cardBdr:  isDark ? 'rgba(168,85,247,0.22)' : 'rgba(168,85,247,0.18)',
-    rowBg:    isDark ? 'rgba(255,255,255,0.05)' : 'rgba(120,60,210,0.06)',
-    rowBdr:   isDark ? 'rgba(255,255,255,0.07)' : 'rgba(168,85,247,0.14)',
-    label:    isDark ? '#9A8FBF' : '#7B6A9B',
-    value:    isDark ? '#EDE9FF' : '#1A0A2E',
-    heading:  isDark ? '#FFFFFF' : '#1A0A2E',
-    dot:      isDark ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)',
+    cardBg: isDark ? 'rgba(14, 8, 35, 0.82)' : 'rgba(255,255,255,0.88)',
+    cardBdr: isDark ? 'rgba(168,85,247,0.22)' : 'rgba(168,85,247,0.18)',
+    rowBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(120,60,210,0.06)',
+    rowBdr: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(168,85,247,0.14)',
+    label: isDark ? '#9A8FBF' : '#7B6A9B',
+    value: isDark ? '#EDE9FF' : '#1A0A2E',
+    heading: isDark ? '#FFFFFF' : '#1A0A2E',
+    dot: isDark ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)',
   };
 
   const rows = [
-    { icon: '👤', label: 'Name',        value: name },
-    { icon: '🎂', label: 'Age',         value: String(age) },
-    { icon: '📍', label: 'Location',    value: location },
-    { icon: '✨', label: 'Identity',    value: gender },
-    { icon: '🕒', label: 'Birth time',  value: birthTime },
+    { icon: '👤', label: 'Name', value: name },
+    { icon: '🎂', label: 'Age', value: String(age) },
+    { icon: '📍', label: 'Location', value: location },
+    { icon: '✨', label: 'Identity', value: gender },
+    { icon: '🕒', label: 'Birth time', value: birthTime },
+    { icon: '💠', label: 'Vedic Sign', value: `${vedicSign} (Vedic)` },
+    { icon: '🌙', label: 'Western Sign', value: `${westernSign} (Western)` },
+    { icon: '☀️', label: 'Nakshatra', value: `${nakshatraSign} (Nakshatra)` },
   ];
   return (
     <ImageBackground
@@ -145,11 +160,18 @@ export default function ProfilePreviewScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
+      {/* Decorative Cosmic Glow Blobs */}
+      <View style={styles.glowBlob1} />
+      <View style={styles.glowBlob2} />
+
       <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) + 32, paddingBottom: insets.bottom + 32 }]}>
 
         {/* Title */}
         <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: T.label }]}>YOUR PROFILE PREVIEW</Text>
+          <View style={styles.eyebrowContainer}>
+            <View style={[styles.eyebrowDot, { backgroundColor: isDark ? '#A855F7' : '#7B6A9B' }]} />
+            <Text style={[styles.eyebrow, { color: T.label }]}>YOUR PROFILE PREVIEW</Text>
+          </View>
           <Text style={[styles.titleText, { color: T.heading }]}>
             Here's how some{'\n'}of what you{'\n'}share will{' '}
             <Text style={styles.highlightText}>appear.</Text>
@@ -163,36 +185,45 @@ export default function ProfilePreviewScreen() {
         ) : (
           /* ── Premium Preview Card ── */
           <View style={[styles.previewCard, { backgroundColor: T.cardBg, borderColor: T.cardBdr }]}>
+            {/* Top glass bevel shine */}
+            <View style={styles.cardHeaderAccent} />
+
             {/* Decorative star accent */}
             <Text style={styles.cardStarAccent}>✦</Text>
 
             {/* Card title */}
             <Text style={[styles.cardTitle, { color: T.label }]}>SHARED PUBLICLY</Text>
 
-            {rows.map((row, i) => (
-              <View
-                key={row.label}
-                style={[
-                  styles.row,
-                  { backgroundColor: T.rowBg, borderColor: T.rowBdr },
-                  i === rows.length - 1 && { marginBottom: 0 },
-                ]}
-              >
-                {/* Left accent dot */}
-                <View style={[styles.dot, { backgroundColor: T.dot }]} />
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              style={styles.cardScrollView}
+              contentContainerStyle={styles.cardScrollContent}
+            >
+              {rows.map((row, i) => (
+                <View
+                  key={row.label}
+                  style={[
+                    styles.row,
+                    { backgroundColor: T.rowBg, borderColor: T.rowBdr },
+                    i === rows.length - 1 && { marginBottom: 0 },
+                  ]}
+                >
+                  {/* Left accent dot */}
+                  <View style={[styles.dot, { backgroundColor: T.dot }]} />
 
-                {/* Icon */}
-                <Text style={styles.rowIcon}>{row.icon}</Text>
+                  {/* Icon */}
+                  <Text style={styles.rowIcon}>{row.icon}</Text>
 
-                {/* Content */}
-                <View style={styles.rowContent}>
-                  <Text style={[styles.rowLabel, { color: T.label }]}>{row.label}</Text>
-                  <Text style={[styles.rowValue, { color: T.value }]} numberOfLines={1}>
-                    {row.value}
-                  </Text>
+                  {/* Content */}
+                  <View style={styles.rowContent}>
+                    <Text style={[styles.rowLabel, { color: T.label }]}>{row.label}</Text>
+                    <Text style={[styles.rowValue, { color: T.value }]} numberOfLines={1}>
+                      {row.value}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -220,8 +251,41 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
+  // ── Glow Blobs ──
+  glowBlob1: {
+    position: 'absolute',
+    top: '20%',
+    left: '-10%',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#7C3AED',
+    opacity: 0.08,
+  },
+  glowBlob2: {
+    position: 'absolute',
+    bottom: '15%',
+    right: '-10%',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: '#C026D3',
+    opacity: 0.07,
+  },
+
   // ── Header ──
-  header: { width: '100%', alignItems: 'flex-start', gap: 10 },
+  header: { width: '100%', alignItems: 'flex-start', gap: 6 },
+  eyebrowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  eyebrowDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
   eyebrow: {
     fontSize: 11,
     fontWeight: '700',
@@ -230,8 +294,8 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontFamily: SERIF,
-    fontSize: 30,
-    lineHeight: 40,
+    fontSize: 26,
+    lineHeight: 34,
     textAlign: 'left',
     fontWeight: 'normal',
   },
@@ -249,11 +313,20 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 10,
     marginVertical: 16,
+    overflow: 'hidden',
     ...Platform.select({
-      ios:  { shadowColor: '#A855F7', shadowOpacity: 0.20, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
+      ios: { shadowColor: '#A855F7', shadowOpacity: 0.20, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
       android: { elevation: 10 },
-      web:  { boxShadow: '0 10px 40px rgba(168,85,247,0.20)' } as any,
+      web: { boxShadow: '0 10px 40px rgba(168,85,247,0.20)' } as any,
     }),
+  },
+  cardHeaderAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   cardStarAccent: {
     position: 'absolute',
@@ -270,6 +343,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginLeft: 4,
   },
+  cardScrollView: {
+    height: 300,
+    width: '100%',
+    marginTop: 8,
+  },
+  cardScrollContent: {
+    gap: 10,
+    paddingBottom: 4,
+  },
 
   // ── Info Rows ──
   row: {
@@ -285,6 +367,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+    ...Platform.select({
+      ios: { shadowColor: '#B57BFF', shadowOpacity: 0.8, shadowRadius: 3 },
+      android: { elevation: 2 },
+      web: { boxShadow: '0 0 6px #B57BFF' } as any,
+    }),
   },
   rowIcon: { fontSize: 20 },
   rowContent: { flex: 1, gap: 2 },
@@ -311,9 +398,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     experimental_backgroundImage: 'linear-gradient(90deg, #7C3AED, #C026D3)',
     ...Platform.select({
-      ios:  { shadowColor: '#C026D3', shadowOpacity: 0.55, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
+      ios: { shadowColor: '#C026D3', shadowOpacity: 0.55, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
       android: { elevation: 10 },
-      web:  { boxShadow: '0 8px 28px 0 rgba(192,38,211,0.55)' } as any,
+      web: { boxShadow: '0 8px 28px 0 rgba(192,38,211,0.55)' } as any,
     }),
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },

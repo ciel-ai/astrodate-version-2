@@ -2,12 +2,14 @@ import { getNakshatraImage, getSignImage } from '@/constants/zodiac-images';
 import { getAstroDetails, parseTzString } from '@/lib/astro';
 import { getTimezoneOffset, searchBirthPlace } from '@/lib/astro-geo';
 import { supabase } from '@/lib/supabase';
+import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, ImageBackground, Platform, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 /**
  * Lightweight glyph icons — the rest of the app renders icons as emoji/text
@@ -15,6 +17,77 @@ import { SafeAreaView } from 'react-native-safe-area-context';
  */
 function Sparkle({ size = 14, color = '#A855F7', style }: { size?: number; color?: string; style?: TextStyle | TextStyle[] }) {
   return <Text style={[{ fontSize: size, color, lineHeight: size + 2 }, style as any]}>✦</Text>;
+}
+
+/**
+ * Trait icon drawing mini SVG shapes depending on the trait name
+ */
+function TraitIcon({ trait, color = '#A855F7' }: { trait: string; color?: string }) {
+  const t = trait.toLowerCase().trim();
+  if (/(ambitio|leader|peak|mount|pioneer|seeker|adventur|dynami|competit|authoritat)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+      </Svg>
+    );
+  }
+  if (/(disciplin|focus|analyt|persist|determ|perfect|detail|attent|investigat|direct|rhythmic)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Circle cx="12" cy="12" r="10" />
+        <Circle cx="12" cy="12" r="6" />
+        <Circle cx="12" cy="12" r="2" />
+      </Svg>
+    );
+  }
+  if (/(practic|reliab|protect|stabl|regal|noble|anchor|guard|ethic|virtu|duti|loyal|depend|responsib|respect|balanc|charit)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </Svg>
+    );
+  }
+  if (/(care|love|devot|empath|compass|nurtur|warm|friend|gentl|kind|diplomat|graci|sociab|emotion|humanit)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </Svg>
+    );
+  }
+  if (/(bold|brave|courag|fire|energet|passion|fast|intens|sharp|will|resili|confid)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </Svg>
+    );
+  }
+  if (/(intuit|myst|insight|wise|percept|spirit|vision|depth|philosoph)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <Circle cx="12" cy="12" r="3" />
+      </Svg>
+    );
+  }
+  if (/(creat|artist|adapt|express|orig|charm|heal|innov|dream|transform|renew|joy|attract|uniqu|prosper)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      </Svg>
+    );
+  }
+  if (/(intellect|curio|learn|schol|thought|read|know|mind|articul)/.test(t)) {
+    return (
+      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </Svg>
+  );
 }
 
 /**
@@ -44,7 +117,11 @@ function GradientView({
     </View>
   );
 }
-const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+const SERIF = Platform.select({
+  ios: 'Baskerville-Old-Face',
+  android: 'Baskerville-Old-Face',
+  default: 'Georgia',
+});
 
 // Western Zodiac Signs
 const WESTERN_SIGNS = [
@@ -389,8 +466,8 @@ const NAKSHATRA_ALIASES: Record<string, string> = {
   sravana: 'Shravana', shravan: 'Shravana',
   dhanistha: 'Dhanishta', dhanista: 'Dhanishta',
   sathabhisha: 'Shatabhisha', shatabhishak: 'Shatabhisha', satabhisha: 'Shatabhisha', shatataraka: 'Shatabhisha',
-  poorvabhadrapada: 'Purva Bhadrapada', purvabhadra: 'Purva Bhadrapada', poorvabhadra: 'Purva Bhadrapada',
-  uttarabhadrapada: 'Uttara Bhadrapada', uttarabhadra: 'Uttara Bhadrapada',
+  poorvabhadrapada: 'Purva Bhadrapada', purvabhadrapada: 'Purva Bhadrapada', purvabhadra: 'Purva Bhadrapada', poorvabhadra: 'Purva Bhadrapada', purvabhadrapad: 'Purva Bhadrapada', poorvabhadrapad: 'Purva Bhadrapada',
+  uttarabhadrapada: 'Uttara Bhadrapada', uttarabhadra: 'Uttara Bhadrapada', uttarabhadrapad: 'Uttara Bhadrapada',
   revathi: 'Revati',
 };
 
@@ -531,9 +608,14 @@ const COLORS = {
 export default function ZodiacPreviewScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [selectedZodiacType, setSelectedZodiacType] = useState<'vedic' | 'western' | 'nakshatra'>('vedic');
+
+  const [fontsLoaded] = useFonts({
+    'Baskerville-Old-Face': require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
+  });
 
   // Birth details + computed astro data, loaded from the DB (and computed live
   // from the zodiac API when the cached Vedic fields are missing).
@@ -557,6 +639,14 @@ export default function ZodiacPreviewScreen() {
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setIsSaving(false);
+      setHasSaved(false);
+    });
+    return unsubscribe;
   }, [navigation]);
 
   // ── Load birth details + astro data ──────────────────────────────────────
@@ -627,17 +717,32 @@ export default function ZodiacPreviewScreen() {
         // Seed with any cached computed fields already on the row.
         let computed: any = row
           ? {
-              western_sign: row.western_sign,
-              indian_sign: row.indian_sign,
-              nakshatra_name: row.nakshatra_name,
-              venus_sign: row.venus_sign,
-              mars_sign: row.mars_sign,
-              mercury_sign: row.mercury_sign,
-              rising_sign: row.rising_sign,
-              dominant_element: row.dominant_element,
-              chart_json: row.chart_json,
-            }
+            western_sign: row.western_sign,
+            indian_sign: row.indian_sign,
+            nakshatra_name: row.nakshatra_name,
+            venus_sign: row.venus_sign,
+            mars_sign: row.mars_sign,
+            mercury_sign: row.mercury_sign,
+            rising_sign: row.rising_sign,
+            dominant_element: row.dominant_element,
+            chart_json: row.chart_json,
+          }
           : {};
+
+        const hasCachedComputed = !!(
+          computed.western_sign &&
+          computed.indian_sign &&
+          computed.nakshatra_name
+        );
+
+        if (hasCachedComputed) {
+          if (!cancelled) {
+            setLat(resolvedLat);
+            setLng(resolvedLng);
+            setAstroData(computed);
+          }
+          return;
+        }
 
         // Resolve coordinates via the geo endpoint if we don't have them,
         // with a device-geocoder fallback for colloquial/short place names.
@@ -907,6 +1012,17 @@ export default function ZodiacPreviewScreen() {
 
 
   const handleContinue = async () => {
+    // Cycle through tabs: Vedic → Western → Nakshatra → navigate
+    if (selectedZodiacType === 'vedic') {
+      setSelectedZodiacType('western');
+      return;
+    }
+    if (selectedZodiacType === 'western') {
+      setSelectedZodiacType('nakshatra');
+      return;
+    }
+
+    // On Nakshatra tab — save and navigate to next screen
     if (hasSaved) return;
     setIsSaving(true);
     try {
@@ -953,7 +1069,7 @@ export default function ZodiacPreviewScreen() {
       if (data?.user_id) {
         enqueueSynastryPrewarm(data.user_id);
       }
-      router.replace('/onboarding-ques-01');
+      router.push('/profile-preview');
     } catch (error) {
       console.error('❌ Error saving astro details:', error);
       Alert.alert('Error', 'Failed to save your details. Please try again.');
@@ -1002,17 +1118,22 @@ export default function ZodiacPreviewScreen() {
       <Sparkle size={15} color="rgba(168, 85, 247, 0.1)" style={[styles.bgSparkle, { bottom: 100, right: 35 }]} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.content}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Sparkle size={18} color="#A855F7" style={{ marginRight: 8 }} />
               <Text style={styles.headerTitle}>
                 Your Cosmic <Text style={styles.headerTitleAccent}>Identity</Text>
               </Text>
-              <Sparkle size={18} color="#A855F7" style={{ marginLeft: 8 }} />
             </View>
-            <Text style={styles.headerSubtitle}>Discover your signs</Text>
+            <View style={styles.headerSubtitleRow}>
+              <Text style={styles.headerSubtitle}>Discover your signs</Text>
+            </View>
           </View>
 
           {/* Zodiac Type Toggle */}
@@ -1099,15 +1220,22 @@ export default function ZodiacPreviewScreen() {
           {/* Glowing Minimalist Zodiac Astrolabe Dial */}
           <View style={styles.planetCardContainer}>
             <GradientView
-              colors={['rgba(26, 11, 46, 0.75)', 'rgba(45, 27, 78, 0.75)', 'rgba(74, 44, 90, 0.75)']}
+              colors={['rgba(15, 8, 35, 0.88)', 'rgba(28, 14, 52, 0.88)', 'rgba(20, 10, 42, 0.88)']}
               angle={180}
               style={styles.planetCard}
             >
+              {/* Premium Cosmic Glow Backdrop */}
+              <Image
+                source={require('@/assets/images/logo-glow.png')}
+                style={styles.cardGlowBg}
+                contentFit="cover"
+              />
+
               {/* Star sparkles inside the card */}
-              <Sparkle size={14} color="#A855F7" style={styles.starTopLeft} />
-              <Sparkle size={12} color="rgba(168, 85, 247, 0.6)" style={styles.starTopRight} />
-              <Sparkle size={10} color="#D946EF" style={styles.starBottomLeft} />
-              <Sparkle size={13} color="rgba(217, 70, 239, 0.5)" style={styles.starBottomRight} />
+              <Sparkle size={14} color="#FFE485" style={styles.starTopLeft} />
+              <Sparkle size={12} color="#FFE485" style={styles.starTopRight} />
+              <Sparkle size={12} color="#C084FC" style={styles.starBottomLeft} />
+              <Sparkle size={14} color="#C084FC" style={styles.starBottomRight} />
 
               {/* Center Graphic: Image artwork if available, otherwise fallback to astrolabe vector dial */}
               {cardImageSource ? (
@@ -1202,9 +1330,17 @@ export default function ZodiacPreviewScreen() {
                 {/* Traits Pill Row - Single Outlined Row */}
                 {activeSign?.traits && activeSign.traits.length > 0 ? (
                   <View style={styles.traitsBorderContainer}>
-                    <Text style={styles.traitsText}>
-                      {activeSign.traits.join('  •  ')}
-                    </Text>
+                    {activeSign.traits.map((trait, idx) => (
+                      <React.Fragment key={trait}>
+                        <View style={styles.traitItem}>
+                          <TraitIcon trait={trait} color="#B37CFF" />
+                          <Text style={styles.traitText}>{trait}</Text>
+                        </View>
+                        {idx < activeSign.traits.length - 1 && (
+                          <Text style={styles.traitDivider}>•</Text>
+                        )}
+                      </React.Fragment>
+                    ))}
                   </View>
                 ) : null}
               </Animated.View>
@@ -1220,28 +1356,28 @@ export default function ZodiacPreviewScreen() {
             </GradientView>
           </View>
 
-          {/* Centered Next Button at the Bottom */}
-          <View style={styles.bottomNavContainer}>
-            <TouchableOpacity
-              style={[styles.gradientNextButton, isSaving && styles.gradientNextButtonDisabled]}
-              onPress={handleContinue}
-              activeOpacity={0.8}
-              disabled={isSaving}
-            >
-              <GradientView
-                colors={['#8B5CF6', '#EC4899']}
-                angle={135}
-                style={styles.gradientNextButtonFill}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.nextButtonChevron}>→</Text>
-                )}
-              </GradientView>
-            </TouchableOpacity>
-          </View>
+        </ScrollView>
 
+        {/* Fixed Continue Button - Absolutely positioned so it NEVER moves */}
+        <View style={[styles.bottomNavContainer, { bottom: insets.bottom + 8 }]}>
+          <TouchableOpacity
+            style={[styles.continueButton, isSaving && styles.continueButtonDisabled]}
+            onPress={handleContinue}
+            activeOpacity={0.8}
+            disabled={isSaving}
+          >
+            <GradientView
+              colors={['#8B5CF6', '#EC4899']}
+              angle={135}
+              style={styles.continueButtonFill}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.continueButtonText}>Continue  →</Text>
+              )}
+            </GradientView>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </ImageBackground>
@@ -1260,17 +1396,18 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 16,
-    justifyContent: 'space-between',
+    paddingBottom: 120,
+    justifyContent: 'flex-start',
   },
   header: {
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: 24,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   headerTitleRow: {
     flexDirection: 'row',
@@ -1282,22 +1419,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textPrimary,
     letterSpacing: -0.5,
-    textAlign: 'center',
   },
   headerTitleAccent: {
     color: '#B37CFF',
+  },
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 14,
     color: COLORS.textSecondary,
     fontWeight: '400',
-    textAlign: 'center',
-    marginTop: 2,
   },
   toggleContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 12,
+    marginVertical: 10,
   },
   toggleBackground: {
     flexDirection: 'row',
@@ -1307,7 +1447,7 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     borderWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.25)',
-    backgroundColor: '#15082E',
+    backgroundColor: 'rgba(21, 8, 46, 0.75)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -1343,7 +1483,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
   toggleGlyphActive: {
-    color: '#4C1D95',
+    color: '#8B5CF6',
   },
   toggleOptionText: {
     fontSize: 13,
@@ -1352,7 +1492,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   toggleOptionTextActive: {
-    color: '#4C1D95',
+    color: '#8B5CF6',
     fontWeight: '700',
   },
   toggleTextDisabled: {
@@ -1362,19 +1502,34 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 8,
+    marginVertical: 6,
   },
   planetCard: {
     width: '100%',
-    height: 490,
     borderRadius: 32,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1.5,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
-    paddingTop: 16,
-    paddingBottom: 24,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    paddingTop: 20,
+    paddingBottom: 48,
     alignItems: 'center',
+    backgroundColor: '#120A2B',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  cardGlowBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    opacity: 0.55,
   },
   starTopLeft: {
     position: 'absolute',
@@ -1390,19 +1545,19 @@ const styles = StyleSheet.create({
   },
   starBottomLeft: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 16,
     left: 20,
     zIndex: 2,
   },
   starBottomRight: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 16,
     right: 20,
     zIndex: 2,
   },
   dialContainer: {
-    width: 260,
-    height: 260,
+    width: 240,
+    height: 240,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1411,9 +1566,9 @@ const styles = StyleSheet.create({
   },
   dialCircle: {
     position: 'absolute',
-    width: 192,
-    height: 192,
-    borderRadius: 96,
+    width: 172,
+    height: 172,
+    borderRadius: 86,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
   },
@@ -1423,7 +1578,7 @@ const styles = StyleSheet.create({
     height: 32,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     top: 36,
-    left: 130,
+    left: 120,
   },
   dialSymbolWrapper: {
     position: 'absolute',
@@ -1452,9 +1607,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   pinkSphereContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     position: 'absolute',
     shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 6 },
@@ -1463,9 +1618,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   pinkSphereFill: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -1473,16 +1628,16 @@ const styles = StyleSheet.create({
   },
   sphereGloss: {
     position: 'absolute',
-    width: 90,
-    height: 40,
-    borderRadius: 45,
+    width: 70,
+    height: 30,
+    borderRadius: 35,
     backgroundColor: 'rgba(255, 255, 255, 0.18)',
     top: 6,
     left: 15,
     transform: [{ rotate: '-15deg' }],
   },
   sphereSymbolText: {
-    fontSize: 54,
+    fontSize: 44,
     color: '#FFFFFF',
     fontWeight: 'bold',
     textAlign: 'center',
@@ -1493,10 +1648,10 @@ const styles = StyleSheet.create({
   zodiacNameContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 10,
   },
   zodiacName: {
-    fontSize: 34,
+    fontSize: 32,
     fontFamily: SERIF,
     fontWeight: '800',
     color: '#FFFFFF',
@@ -1504,90 +1659,106 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   zodiacTagline: {
-    fontSize: 15,
-    color: '#B088FF',
-    marginTop: 4,
+    fontSize: 14,
+    color: '#B37CFF',
+    marginTop: 2,
     letterSpacing: 1.5,
     textAlign: 'center',
     fontWeight: '600',
   },
   traitsBorderContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginTop: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginTop: 12,
     marginBottom: 8,
     alignSelf: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
-  traitsText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+  traitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  traitText: {
+    fontSize: 12,
+    color: '#FFFFFF',
     fontWeight: '500',
-    textAlign: 'center',
+    marginLeft: 6,
+  },
+  traitDivider: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginHorizontal: 8,
   },
   cardImageContainer: {
-    width: 220,
-    height: 220,
+    width: 180,
+    height: 180,
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 16,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    borderRadius: 90,
+    padding: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   cardImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 110,
+    borderRadius: 90,
   },
   personalityDescriptionContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    marginTop: 8,
+    marginTop: 10,
   },
   personalityDescription: {
     fontSize: 13.5,
     fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.75)',
     textAlign: 'center',
-    lineHeight: 21,
-    letterSpacing: 0.2,
+    lineHeight: 20,
+    letterSpacing: 0.3,
   },
   bottomNavContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 12,
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    alignItems: 'stretch',
   },
-  gradientNextButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+  continueButton: {
+    height: 54,
+    borderRadius: 27,
     overflow: 'hidden',
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  gradientNextButtonFill: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gradientNextButtonDisabled: {
+  continueButtonDisabled: {
     opacity: 0.6,
   },
-  nextButtonChevron: {
+  continueButtonFill: {
+    flex: 1,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueButtonText: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   errorContainer: {
     flex: 1,
