@@ -26,12 +26,12 @@ export const SIGN_IMAGES: Record<string, ImageSourcePropType> = {
   gemini: require('@/assets/images/zodiac/gemini.png'),
   cancer: require('@/assets/images/zodiac/cancer.png'),
   leo: require('@/assets/images/zodiac/leo.png'),
-  virgo: require('@/assets/images/zodiac/virgo.png'),
-  libra: require('@/assets/images/zodiac/libra.png'),
+  // virgo: require('@/assets/images/zodiac/virgo.png'),
+  // libra: require('@/assets/images/zodiac/libra.png'),
   scorpio: require('@/assets/images/zodiac/scorpio.png'),
   sagittarius: require('@/assets/images/zodiac/sagittarius.png'),
   capricorn: require('@/assets/images/zodiac/capricorn.png'),
-  aquarius: require('@/assets/images/zodiac/aquarius.png'),
+  // aquarius: require('@/assets/images/zodiac/aquarius.png'),
   pisces: require('@/assets/images/zodiac/pisces.png'),
 };
 

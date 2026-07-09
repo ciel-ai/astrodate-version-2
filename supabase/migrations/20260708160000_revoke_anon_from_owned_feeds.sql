@@ -1,0 +1,22 @@
+-- ============================================================================
+-- get_fallback_feed(uuid) and get_todays_match_nudge(uuid, int) both had
+-- anon=X/postgres (confirmed via \df+ against a local instance) -- callable
+-- by anyone holding the public anon API key, no login required. Their
+-- in-function ownership guards ("RAISE EXCEPTION ... another user") only
+-- fire when auth.uid() IS NOT NULL and mismatched; an anon caller has
+-- auth.uid() IS NULL, which passes both guards straight through and returns
+-- that user's real candidate pool / matches to anyone who asks.
+--
+-- Fix: revoke anon entirely (Discover and its nudge are authenticated-only
+-- features -- there is no legitimate anonymous caller), leaving the existing
+-- auth.uid()-mismatch guard as defense-in-depth against one authenticated
+-- user querying another's feed.
+--
+-- Both functions also carried a bare PUBLIC grant ("=X/postgres" in \df+,
+-- predating this migration) -- has_function_privilege() honors that
+-- regardless of anon's own direct grant, so revoking only from anon left
+-- anon still effectively able to call both through PUBLIC. Revoking PUBLIC
+-- too; authenticated keeps its explicit grant from function creation.
+-- ============================================================================
+REVOKE EXECUTE ON FUNCTION public.get_fallback_feed(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.get_todays_match_nudge(uuid, integer) FROM PUBLIC, anon;
