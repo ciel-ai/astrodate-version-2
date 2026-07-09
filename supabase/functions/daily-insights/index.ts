@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
   if (currentPoint?.lat != null && currentPoint?.lon != null) {
     const hours = computePlanetaryHours(today, currentPoint.lat, currentPoint.lon);
     if (hours) {
-      const best = pickBestTime(hours, currentPoint.lon);
+      const best = pickBestTime(hours, currentPoint.lon, nakshatra, todayStr);
       if (best) {
         best_time = {
           start: best.start.toISOString(),

@@ -20,7 +20,7 @@ export function OracleSealedCard({
 
       <Text style={[styles.title, { color: palette.textPrimary }]}>Your Daily Insight Awaits</Text>
       <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
-        The stars have something to say. Draw today's card to reveal it.
+        The stars have something to say. Draw today&apos;s card to reveal it.
       </Text>
 
       <Pressable
@@ -38,7 +38,7 @@ export function OracleSealedCard({
         {drawing ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <Text style={styles.ctaText}>Draw Today's Insight</Text>
+          <Text style={styles.ctaText}>Draw Today&apos;s Insight</Text>
         )}
       </Pressable>
     </View>

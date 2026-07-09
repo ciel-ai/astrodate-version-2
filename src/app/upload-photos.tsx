@@ -28,6 +28,7 @@ const SERIF = 'Baskerville-Old-Face';
 // The permanent fix is to rebuild the dev client: `npx expo run:android`.
 function getImagePicker(): typeof import('expo-image-picker') | null {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('expo-image-picker');
   } catch {
     return null;

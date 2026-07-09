@@ -214,17 +214,19 @@ export type DailyInsight = {
  * caches the underlying Astrology API call server-side by (nakshatra, date)
  * — never call the Astrology API directly from the client for this feature.
  */
-export async function getDailyInsight(userId: string): Promise<DailyInsight | null> {
-  try {
-    const { data, error } = await invokeSupabaseFunctionWithTimeout(
-      () => supabase.functions.invoke('daily-insights', { body: { user_id: userId } }),
-      20000
-    );
-    if (error) return null;
-    return data as DailyInsight;
-  } catch {
-    return null;
+export async function getDailyInsight(userId: string): Promise<DailyInsight> {
+  const { data, error } = await invokeSupabaseFunctionWithTimeout(
+    () => supabase.functions.invoke('daily-insights', { body: { user_id: userId } }),
+    45000
+  );
+  if (error) {
+    console.error('[getDailyInsight] Supabase function returned error:', error);
+    throw error;
   }
+  if (!data) {
+    throw new Error('No data returned from daily insights');
+  }
+  return data as DailyInsight;
 }
 
 export type { VedicKootaDetail, VedicMatchReport } from '@/lib/astro-types';

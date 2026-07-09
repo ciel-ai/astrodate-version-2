@@ -173,7 +173,7 @@ export default function ProfilePreviewScreen() {
             <Text style={[styles.eyebrow, { color: T.label }]}>YOUR PROFILE PREVIEW</Text>
           </View>
           <Text style={[styles.titleText, { color: T.heading }]}>
-            Here's how some{'\n'}of what you{'\n'}share will{' '}
+            Here&apos;s how some{'\n'}of what you{'\n'}share will{' '}
             <Text style={styles.highlightText}>appear.</Text>
           </Text>
         </View>

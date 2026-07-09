@@ -1,4 +1,4 @@
-const DEFAULT_NETWORK_TIMEOUT_MS = 15000;
+const DEFAULT_NETWORK_TIMEOUT_MS = 30000;
 
 export const withTimeout = async <T>(
     promise: Promise<T>,

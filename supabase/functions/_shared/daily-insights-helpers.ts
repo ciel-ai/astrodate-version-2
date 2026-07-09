@@ -127,7 +127,11 @@ const CAUTION_WORDS = [
 ];
 
 function countOccurrences(text: string, words: string[]): number {
-  return words.reduce((sum, w) => sum + (text.split(w).length - 1), 0);
+  return words.reduce((sum, w) => {
+    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+    return sum + (text.match(regex)?.length ?? 0);
+  }, 0);
 }
 
 /**
@@ -280,10 +284,13 @@ function approxLocalHourOfDay(d: Date, lon: number): number {
  */
 export function pickBestTime(
   hours: PlanetaryHour[],
-  lon: number
+  lon: number,
+  nakshatra: string,
+  dateStr: string
 ): PlanetaryHour | null {
   const candidates = hours.filter((h) => h.planet === "Venus" || h.planet === "Mercury");
   if (candidates.length === 0) return null;
-  const evening = candidates.find((h) => approxLocalHourOfDay(h.start, lon) >= 16);
-  return evening ?? candidates[0];
+  const hash = fnv1aHash(`${nakshatra}|${dateStr}`);
+  const index = hash % candidates.length;
+  return candidates[index];
 }

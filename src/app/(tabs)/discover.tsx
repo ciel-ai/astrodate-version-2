@@ -41,6 +41,7 @@ export default function DiscoverScreen() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDeck();
   }, [loadDeck]);
 
@@ -80,7 +81,7 @@ export default function DiscoverScreen() {
   if (loadError) {
     body = (
       <View style={styles.stateBox}>
-        <Text style={styles.stateTitle}>Couldn't load your deck</Text>
+        <Text style={styles.stateTitle}>Couldn&apos;t load your deck</Text>
         <Pressable onPress={loadDeck}>
           <Text style={styles.retryLink}>Try again</Text>
         </Pressable>
@@ -95,7 +96,7 @@ export default function DiscoverScreen() {
   } else if (limitReached) {
     body = (
       <View style={styles.stateBox}>
-        <Text style={styles.stateTitle}>You're out of swipes for today</Text>
+        <Text style={styles.stateTitle}>You&apos;re out of swipes for today</Text>
         <Text style={styles.stateBody}>Come back tomorrow, or upgrade for more daily swipes.</Text>
         <Pressable onPress={() => openPaywall('swipe_limit')}>
           <Text style={styles.retryLink}>See plans</Text>

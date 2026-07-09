@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -188,15 +188,6 @@ const getSignInfo = (westernName?: string | null) => {
 };
 
 /** A monochrome glyph that loosely fits a trait word (for the trait pills). */
-const traitGlyph = (t: string): string => {
-  const s = t.toLowerCase();
-  if (/(compassion|caring|loving|empath|devot|kind|gentle|nurtur|warm|friendly)/.test(s)) return '♥';
-  if (/(intuit|psychic|insight|percept|wise|deep|mystic|spiritual)/.test(s)) return '≈';
-  if (/(dream|artist|creativ|imagin|vision|magic|expressive)/.test(s)) return '✦';
-  if (/(bold|brave|courage|energetic|passion|fear|dynamic|confident|leader)/.test(s)) return '✧';
-  if (/(disciplin|ambiti|practical|reliab|stable|loyal|patient|persist|diligent)/.test(s)) return '◆';
-  return '✦';
-};
 
 const getWesternSign = (date: Date): typeof WESTERN_SIGNS[0] => {
   const month = date.getMonth() + 1;
@@ -588,14 +579,6 @@ const getVedicSymbol = (signName: string | null | undefined): string => {
   return '♈';
 };
 
-const getElementGradient = (element?: string | null): readonly [string, string] => {
-  const el = element?.toLowerCase().trim();
-  if (el === 'fire') return ['#FF416C', '#FF4B2B'];
-  if (el === 'earth') return ['#11998e', '#38ef7d'];
-  if (el === 'air') return ['#00c6ff', '#0072ff'];
-  if (el === 'water') return ['#f857a6', '#ff5858'];
-  return ['#A855F7', '#EC4899']; // default purple-pink gradient
-};
 
 const COLORS = {
   background: '#0B0613',
@@ -613,7 +596,7 @@ export default function ZodiacPreviewScreen() {
   const [hasSaved, setHasSaved] = useState(false);
   const [selectedZodiacType, setSelectedZodiacType] = useState<'vedic' | 'western' | 'nakshatra'>('vedic');
 
-  const [fontsLoaded] = useFonts({
+  useFonts({
     'Baskerville-Old-Face': require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
@@ -628,14 +611,15 @@ export default function ZodiacPreviewScreen() {
   const [birthTz, setBirthTz] = useState<string | undefined>(undefined);
   const [astroData, setAstroData] = useState<any>(null);
 
-  // Animation values for transitions
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const nameFadeAnim = useRef(new Animated.Value(1)).current;
-  const descFadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Animation values for transitions (useState keeps the same Animated.Value
+  // instance across re-renders without triggering the react-hooks/refs lint rule)
+  const [fadeAnim] = useState(() => new Animated.Value(1));
+  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const [rotateAnim] = useState(() => new Animated.Value(0));
+  const [nameFadeAnim] = useState(() => new Animated.Value(1));
+  const [descFadeAnim] = useState(() => new Animated.Value(1));
+  const [slideAnim] = useState(() => new Animated.Value(0));
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -936,12 +920,10 @@ export default function ZodiacPreviewScreen() {
     astroData?.nakshatra_symbol ||
     '✨';
 
-  const nakshatra = astroNakshatraName
-    ? {
-      name: astroNakshatraName,
-      symbol: astroNakshatraSymbol,
-    }
-    : null;
+  const nakshatra = useMemo(() => astroNakshatraName
+    ? { name: astroNakshatraName, symbol: astroNakshatraSymbol }
+    : null,
+  [astroNakshatraName, astroNakshatraSymbol]);
 
   const activeSign = useMemo(() => {
     if (selectedZodiacType === 'vedic') {

@@ -39,7 +39,8 @@ export function LikesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      refresh();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void refresh();
     } else {
       setData(null);
     }
