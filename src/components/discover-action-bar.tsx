@@ -1,10 +1,17 @@
 /**
  * DiscoverActionBar
  *
- * Bottom swipe-action bar for the discover deck. Rewind and boost are
- * premium-gated (padlock badge, still unwired -- no rewind/boost RPC exists
- * yet); pass and like call record_swipe and are disabled while a swipe is
- * in flight so a double-tap can't fire two RPCs for one card.
+ * Bottom swipe-action bar for the discover deck: rewind, pass, super-like,
+ * like. All four call real RPCs (record_swipe / rewind_last_swipe) and are
+ * disabled while a request is in flight so a double-tap can't fire two for
+ * one card. Rewind shows its padlock (and routes to the paywall instead of
+ * the RPC) whenever `rewindLocked` is true -- Free tier per Section 3, or
+ * Astro+/AstroX once today's rewind quota is spent.
+ *
+ * No Boost button -- deliberately out of scope (visibility-ranking feature
+ * that would affect other users' decks, not just this one's own screen; see
+ * 20260709140000_discover_rewind.sql's header comment for why that's a
+ * materially bigger, separate piece of work).
  *
  * Buttons render as real iOS 26 Liquid Glass (GlassView inside a
  * GlassContainer, which lets nearby glass buttons morph together); on
@@ -58,14 +65,35 @@ function ActionButton({
 interface DiscoverActionBarProps {
   onPass?: () => void;
   onLike?: () => void;
+  onSuperLike?: () => void;
+  onRewind?: () => void;
+  rewindLocked?: boolean;
+  /** True while any request is in flight -- disables all four buttons. */
   disabled?: boolean;
+  /** True when there's no current card to act on (deck exhausted, or the
+   *  last swipe attempt was rejected for being over quota) -- disables only
+   *  pass/like/super-like. Rewind stays independently reachable: it undoes
+   *  the database's last swipe regardless of whether a card is on screen,
+   *  so a mistaken swipe that emptied the deck (or hit the swipe limit)
+   *  must still be fixable from here. */
+  swipeDisabled?: boolean;
 }
 
-export function DiscoverActionBar({ onPass, onLike, disabled }: DiscoverActionBarProps) {
+export function DiscoverActionBar({
+  onPass,
+  onLike,
+  onSuperLike,
+  onRewind,
+  rewindLocked = true,
+  disabled,
+  swipeDisabled,
+}: DiscoverActionBarProps) {
+  const swipeBtnDisabled = disabled || swipeDisabled;
+
   return (
-    <GlassContainer spacing={20} style={styles.bar}>
-      <ActionButton size={48} locked>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    <GlassContainer spacing={16} style={styles.bar}>
+      <ActionButton size={44} locked={rewindLocked} onPress={disabled ? undefined : onRewind}>
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
           <Path
             d="M9 5 4 12l5 7M4 12h11a5 5 0 0 1 0 10h-1"
             stroke="#C9A6E8"
@@ -76,29 +104,29 @@ export function DiscoverActionBar({ onPass, onLike, disabled }: DiscoverActionBa
         </Svg>
       </ActionButton>
 
-      <ActionButton size={56} onPress={disabled ? undefined : onPass}>
-        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <ActionButton size={52} onPress={swipeBtnDisabled ? undefined : onPass}>
+        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
           <Path d="M5 5 19 19M19 5 5 19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
         </Svg>
       </ActionButton>
 
-      <ActionButton size={64} primary onPress={disabled ? undefined : onLike}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+      <ActionButton size={44} onPress={swipeBtnDisabled ? undefined : onSuperLike}>
+        <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
           <Path
-            d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
-            fill="#FFFFFF"
+            d="M12 2.5 14.9 9l7.1.6-5.4 4.7 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9L2 9.6 9.1 9z"
+            fill="#3FC5F0"
+            stroke="#3FC5F0"
+            strokeWidth={1.2}
+            strokeLinejoin="round"
           />
         </Svg>
       </ActionButton>
 
-      <ActionButton size={48} locked>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <ActionButton size={64} primary onPress={swipeBtnDisabled ? undefined : onLike}>
+        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
           <Path
-            d="M13 2 4 14h6l-1 8 9-12h-6z"
-            stroke="#C9A6E8"
-            strokeWidth={1.6}
-            strokeLinejoin="round"
-            fill="rgba(201,166,232,0.15)"
+            d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
+            fill="#FFFFFF"
           />
         </Svg>
       </ActionButton>
