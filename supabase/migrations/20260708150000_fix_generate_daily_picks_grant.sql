@@ -1,0 +1,11 @@
+-- ============================================================================
+-- 20260708140000's "REVOKE ALL ... FROM PUBLIC" on generate_daily_picks_now()
+-- was a no-op: Supabase grants EXECUTE on every new public-schema function
+-- directly to anon, authenticated AND service_role via its own
+-- ALTER DEFAULT PRIVILEGES, not through PUBLIC. Confirmed via \df+ against a
+-- local instance -- anon=X, authenticated=X, service_role=X were all present
+-- as direct per-role grants after the "lockdown" migration ran, meaning the
+-- function was (and, worse, still is via anon too) callable by literally any
+-- API client. Revoking from anon/authenticated explicitly this time.
+-- ============================================================================
+REVOKE EXECUTE ON FUNCTION public.generate_daily_picks_now() FROM anon, authenticated;

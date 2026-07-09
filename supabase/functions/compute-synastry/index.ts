@@ -230,19 +230,27 @@ Deno.serve(async (req) => {
 
   const matchData = await matchRes.json();
 
-  // Extract Ashtakoota score — handle both response shapes the API may return
-  const kootas = matchData?.ashtakoota_points ?? matchData;
-  const totalScore: number =
-    typeof kootas?.received_points === "number"
-      ? kootas.received_points
-      : typeof matchData?.total_points === "number"
-      ? matchData.total_points
-      : 0;
+  // Extract Ashtakoota score. The API nests the koota breakdown under
+  // matchData.ashtakoota.{varna,vashya,...,total,conclusion} -- matches what
+  // astro-compatibility/index.ts's adaptDetailedReport already expects for
+  // the same endpoint. (Previously this looked for a nonexistent
+  // matchData.ashtakoota_points key and a top-level received_points, which
+  // never matched the real shape and silently produced a score of 0 for
+  // every pair -- caught by comparing a live 0.00 result against the raw
+  // stored response, which showed a real received_points of 29.5 one level
+  // deeper than this code was looking.)
+  const kootas = (matchData?.ashtakoota ?? {}) as Record<string, unknown>;
+  const total = kootas?.total as Record<string, unknown> | undefined;
+  const totalScore: number = typeof total?.received_points === "number" ? total.received_points : 0;
 
   const summary = buildSummary(totalScore, matchData);
   const badges = buildBadges(totalScore, kootas);
 
-  // Upsert only the Ashtakoota columns — leave planet scores intact (set by SQL RPC)
+  // Manglik dosha — surfaced separately from the ashtakoota score itself
+  // (build plan Section 6: "Manglik / Nadi / Bhakoot dosha flags")
+  const manglik = matchData?.manglik as Record<string, unknown> | undefined;
+
+  // Upsert only the Ashtakoota/Manglik columns — leave planet scores intact (set by SQL RPC)
   const { error: upsertError } = await db
     .from("synastry_cache_details")
     .upsert(
@@ -253,6 +261,9 @@ Deno.serve(async (req) => {
         ashtakoota_detail: kootas,
         compatibility_summary: summary,
         badges: JSON.stringify(badges),
+        manglik_status: Boolean(manglik?.status ?? false),
+        manglik_male_percentage: Number(manglik?.male_percentage ?? 0),
+        manglik_female_percentage: Number(manglik?.female_percentage ?? 0),
         computed_at: new Date().toISOString(),
         is_stale: false,
       },

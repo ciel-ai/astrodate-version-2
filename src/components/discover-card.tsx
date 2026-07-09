@@ -1,104 +1,26 @@
 /**
  * DiscoverCard
  *
- * Dummy/static preview of the redesigned discover profile card: hero photo
- * with a tiered score ring + name overlay, free (Western) vs paid (Vedic)
- * compatibility stats, a Hinge-style basics/attributes card, and a scroll of
- * alternating 1:1 photos and prompts (each likeable on its own) — every
- * prompt is preceded by a photo, never the other way round.
+ * Real discover profile card fed by get_discover_deck: hero avatar with a
+ * tiered score ring + name overlay, free (Western) vs paid (Vedic)
+ * compatibility stats. Photo/prompt/attribute sections from the original
+ * design mock are omitted for now -- get_discover_deck doesn't surface
+ * photos, prompts, or interest/lifestyle attributes yet (those live in
+ * user_photos / section1_qns and aren't joined into the deck query), and
+ * showing fabricated placeholder content under a real person's name would be
+ * exactly the "misdirection" this feature was built to avoid.
  *
  * Floating panels use expo-glass-effect's GlassView for real iOS 26 Liquid
  * Glass; it renders as a plain View elsewhere, so the rgba/border styling
  * below doubles as the fallback look on Android and older iOS.
- *
- * Placeholder data only — swap DUMMY_PROFILE for the real feed profile once
- * the layout is signed off.
  */
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { GlassView } from 'expo-glass-effect';
 
 import { getScoreTier } from '@/lib/score-tier';
 import { CompatibilitySection } from '@/components/compatibility/CompatibilitySection';
-
-interface PromptBlock {
-  type: 'prompt';
-  id: string;
-  title: string;
-  text: string;
-}
-interface PhotoBlock {
-  type: 'photo';
-  id: string;
-  label: string;
-}
-type ContentBlock = PromptBlock | PhotoBlock;
-
-interface AttributeRow {
-  icon: string;
-  label: string;
-}
-
-interface DummyProfile {
-  name: string;
-  age: number;
-  verified: boolean;
-  zodiac: string;
-  distanceLabel: string;
-  score: number;
-  western: number;
-  vedic: { value: number; max: number; doshaFlagged: boolean };
-  basics: { age: number; gender: string; orientation: string };
-  attributes: AttributeRow[];
-  content: ContentBlock[];
-}
-
-const DUMMY_PROFILE: DummyProfile = {
-  name: 'Ananya',
-  age: 27,
-  verified: true,
-  zodiac: 'Sagittarius',
-  distanceLabel: '4 km away',
-  score: 87,
-  western: 82,
-  vedic: { value: 30, max: 36, doshaFlagged: true },
-  basics: { age: 27, gender: 'Woman', orientation: 'Straight' },
-  attributes: [
-    { icon: '💼', label: 'Product designer' },
-    { icon: '📖', label: 'Hindu' },
-    { icon: '🏠', label: 'Bengaluru' },
-    { icon: '🌍', label: 'South Asian' },
-    { icon: '🔎', label: 'Long-term relationship' },
-    { icon: '👥', label: 'Monogamy' },
-  ],
-  // Hero photo counts as photo 1 of 6; photos 2-6 are below.
-  content: [
-    { type: 'photo', id: 'ph2', label: 'AN' },
-    {
-      type: 'prompt',
-      id: 'p1',
-      title: 'Two truths and a lie',
-      text: 'I have climbed a Himalayan peak, I speak fluent Sanskrit, and I cannot cook Maggi to save my life.',
-    },
-    { type: 'photo', id: 'ph3', label: 'AN' },
-    { type: 'photo', id: 'ph4', label: 'AN' },
-    {
-      type: 'prompt',
-      id: 'p2',
-      title: 'I geek out on',
-      text: 'Astrology charts, indie playlists, and finding the best filter coffee in every city I visit.',
-    },
-    { type: 'photo', id: 'ph5', label: 'AN' },
-    {
-      type: 'prompt',
-      id: 'p3',
-      title: "I'm looking for",
-      text: "Someone who's my calm in chaos, believes in old-school values, and wants to build a life full of meaning (and travel).",
-    },
-    { type: 'photo', id: 'ph6', label: 'AN' },
-  ],
-};
+import type { DiscoverCardData } from '@/lib/discover';
 
 function ScoreRing({ score }: { score: number }) {
   const size = 58;
@@ -140,57 +62,48 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-function HeartButton({ active, onPress }: { active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={active ? 'Unlike this prompt' : 'Like this prompt'}>
-      {({ pressed }) => (
-        <GlassView
-          glassEffectStyle="clear"
-          isInteractive
-          style={[styles.heartBtn, pressed && styles.heartBtnPressed]}
-        >
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
-              stroke={active ? '#FF5CA8' : '#C9A6E8'}
-              strokeWidth={1.8}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              fill={active ? '#FF5CA8' : 'none'}
-            />
-          </Svg>
-        </GlassView>
-      )}
-    </Pressable>
-  );
+interface DiscoverCardProps {
+  card: DiscoverCardData;
 }
 
-export function DiscoverCard() {
-  const profile = DUMMY_PROFILE;
-  const [likedPrompts, setLikedPrompts] = useState<Record<string, boolean>>({});
+export function DiscoverCard({ card }: DiscoverCardProps) {
+  const name = card.full_name ?? 'Someone new';
+  const initials = name.slice(0, 2).toUpperCase();
+  const zodiac = card.western_sign ?? null;
 
-  const toggleLike = (id: string) =>
-    setLikedPrompts((prev) => ({ ...prev, [id]: !prev[id] }));
+  // western_score/indian_score come back as points already scaled into the
+  // 45/45/10 total (get_match_score) -- recover the percentage/raw-Guna
+  // scale these display components expect. null means "not yet computed for
+  // this pair", not "0% compatible", so each shows its own honest caption
+  // rather than a real-looking zero.
+  const westernPercent = card.western_score != null ? Math.round((card.western_score / 45) * 100) : null;
+  const vedicRaw = card.indian_score != null ? Math.round((card.indian_score / 45) * 36) : null;
 
   return (
     <View style={styles.card}>
-      {/* Hero photo */}
+      {/* Hero avatar */}
       <View style={styles.hero}>
-        <Text style={styles.heroInitials}>{profile.name.slice(0, 2).toUpperCase()}</Text>
+        <Text style={styles.heroInitials}>{initials}</Text>
+
+        {card.is_top_match_of_day && (
+          <View style={styles.topMatchBadge}>
+            <Text style={styles.topMatchText}>✦ Top Match of the Day</Text>
+          </View>
+        )}
 
         <View style={styles.scoreOverlay}>
-          <ScoreRing score={profile.score} />
+          <ScoreRing score={Math.round(card.score)} />
         </View>
 
         <View style={styles.nameOverlay}>
           <View style={styles.nameRow}>
             <Text style={styles.name}>
-              {profile.name}, {profile.age}
+              {name}
+              {card.age != null ? `, ${card.age}` : ''}
             </Text>
-            {profile.verified && <Text style={styles.verifiedBadge}>✓</Text>}
           </View>
           <Text style={styles.subInfo}>
-            {profile.zodiac} · {profile.distanceLabel}
+            {[zodiac, card.distance_label].filter(Boolean).join(' · ')}
           </Text>
         </View>
       </View>
@@ -198,54 +111,32 @@ export function DiscoverCard() {
       {/* Compatibility — free (Western) vs paid (Vedic) */}
       <View style={styles.statsSection}>
         <CompatibilitySection
-          western={{ score: profile.western, caption: 'Sun compatibility' }}
-          vedic={{ score: profile.vedic.value, max: profile.vedic.max, doshaFlagged: profile.vedic.doshaFlagged }}
+          western={{
+            score: westernPercent ?? 0,
+            caption: westernPercent != null ? 'Sun compatibility' : 'Not yet scored',
+          }}
+          vedic={{ score: vedicRaw ?? 0, max: 36, doshaFlagged: false }}
         />
       </View>
 
-      {/* Basics + attributes — Hinge-style info card */}
+      {/* Basics — Hinge-style info card */}
       <GlassView glassEffectStyle="regular" style={styles.basicsCard}>
         <View style={styles.basicsRow}>
-          <View style={styles.basicsChip}>
-            <Text style={styles.basicsIcon}>🎂</Text>
-            <Text style={styles.basicsText}>{profile.basics.age}</Text>
-          </View>
-          <View style={styles.basicsDivider} />
-          <View style={styles.basicsChip}>
-            <Text style={styles.basicsIcon}>🧑</Text>
-            <Text style={styles.basicsText}>{profile.basics.gender}</Text>
-          </View>
-          <View style={styles.basicsDivider} />
-          <View style={styles.basicsChip}>
-            <Text style={styles.basicsIcon}>🧭</Text>
-            <Text style={styles.basicsText}>{profile.basics.orientation}</Text>
-          </View>
-        </View>
-
-        {profile.attributes.map((attr) => (
-          <View key={attr.label} style={styles.attributeRow}>
-            <Text style={styles.attributeIcon}>{attr.icon}</Text>
-            <Text style={styles.attributeText}>{attr.label}</Text>
-          </View>
-        ))}
-      </GlassView>
-
-      {/* Hinge-style interwoven photos + prompts — every prompt is preceded by a photo */}
-      {profile.content.map((block) =>
-        block.type === 'prompt' ? (
-          <GlassView key={block.id} glassEffectStyle="regular" style={styles.promptCard}>
-            <View style={styles.promptText}>
-              <Text style={styles.promptTitle}>✦ {block.title}</Text>
-              <Text style={styles.promptBody}>{block.text}</Text>
+          {card.age != null && (
+            <View style={styles.basicsChip}>
+              <Text style={styles.basicsIcon}>🎂</Text>
+              <Text style={styles.basicsText}>{card.age}</Text>
             </View>
-            <HeartButton active={!!likedPrompts[block.id]} onPress={() => toggleLike(block.id)} />
-          </GlassView>
-        ) : (
-          <View key={block.id} style={styles.squarePhoto}>
-            <Text style={styles.squarePhotoInitials}>{block.label}</Text>
-          </View>
-        )
-      )}
+          )}
+          {card.age != null && card.gender && <View style={styles.basicsDivider} />}
+          {card.gender && (
+            <View style={styles.basicsChip}>
+              <Text style={styles.basicsIcon}>🧑</Text>
+              <Text style={styles.basicsText}>{card.gender}</Text>
+            </View>
+          )}
+        </View>
+      </GlassView>
     </View>
   );
 }
@@ -292,24 +183,23 @@ const styles = StyleSheet.create({
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
-  verifiedBadge: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    backgroundColor: '#3B82F6',
-    width: 18,
-    height: 18,
-    lineHeight: 18,
-    textAlign: 'center',
-    borderRadius: 9,
-    overflow: 'hidden',
-  },
   subInfo: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '500', marginTop: 2 },
+
+  topMatchBadge: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    backgroundColor: 'rgba(246, 185, 59, 0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  topMatchText: { color: '#1A1023', fontSize: 11, fontWeight: '800' },
 
   // ── Compatibility ──
   statsSection: { marginTop: 12 },
 
-  // ── Basics + attributes ──
+  // ── Basics ──
   basicsCard: {
     marginTop: 12,
     borderRadius: 18,
@@ -327,58 +217,4 @@ const styles = StyleSheet.create({
   basicsIcon: { fontSize: 16 },
   basicsText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   basicsDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.1)' },
-  attributeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  attributeIcon: { fontSize: 16, width: 20, textAlign: 'center' },
-  attributeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
-
-  // ── Prompt cards ──
-  promptCard: {
-    marginTop: 12,
-    borderRadius: 18,
-    backgroundColor: 'rgba(20, 12, 40, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#6A3FE0', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-      android: { elevation: 3 },
-      web: { boxShadow: '0 4px 14px rgba(106,63,224,0.15)' } as any,
-    }),
-  },
-  promptText: { flex: 1, gap: 6 },
-  promptTitle: { color: '#B57BFF', fontSize: 12, fontWeight: '700' },
-  promptBody: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', lineHeight: 22 },
-  heartBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 92, 168, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heartBtnPressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
-
-  // ── Square photos ──
-  squarePhoto: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 18,
-    marginTop: 12,
-    backgroundColor: 'rgba(30, 15, 60, 0.70)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  squarePhotoInitials: { color: 'rgba(255,255,255,0.2)', fontSize: 48, fontWeight: '700', letterSpacing: 2 },
 });

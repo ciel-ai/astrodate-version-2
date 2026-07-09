@@ -2,8 +2,9 @@
  * DiscoverActionBar
  *
  * Bottom swipe-action bar for the discover deck. Rewind and boost are
- * premium-gated (padlock badge); pass and like are free. Dummy — buttons
- * aren't wired to swipe/undo logic yet.
+ * premium-gated (padlock badge, still unwired -- no rewind/boost RPC exists
+ * yet); pass and like call record_swipe and are disabled while a swipe is
+ * in flight so a double-tap can't fire two RPCs for one card.
  *
  * Buttons render as real iOS 26 Liquid Glass (GlassView inside a
  * GlassContainer, which lets nearby glass buttons morph together); on
@@ -54,7 +55,13 @@ function ActionButton({
   );
 }
 
-export function DiscoverActionBar() {
+interface DiscoverActionBarProps {
+  onPass?: () => void;
+  onLike?: () => void;
+  disabled?: boolean;
+}
+
+export function DiscoverActionBar({ onPass, onLike, disabled }: DiscoverActionBarProps) {
   return (
     <GlassContainer spacing={20} style={styles.bar}>
       <ActionButton size={48} locked>
@@ -69,13 +76,13 @@ export function DiscoverActionBar() {
         </Svg>
       </ActionButton>
 
-      <ActionButton size={56}>
+      <ActionButton size={56} onPress={disabled ? undefined : onPass}>
         <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
           <Path d="M5 5 19 19M19 5 5 19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
         </Svg>
       </ActionButton>
 
-      <ActionButton size={64} primary>
+      <ActionButton size={64} primary onPress={disabled ? undefined : onLike}>
         <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
           <Path
             d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
