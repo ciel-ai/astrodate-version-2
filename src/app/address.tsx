@@ -143,7 +143,7 @@ export default function AddressScreen() {
         style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
         hitSlop={10}
       >
-        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
       <ScrollView
@@ -306,7 +306,10 @@ export default function AddressScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Save Address  →</Text>
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionText}>Save Address</Text>
+                  <Text style={styles.actionArrow}>→</Text>
+                </View>
               )}
             </Pressable>
           </View>
@@ -335,7 +338,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { color: '#FFFFFF', fontSize: 26, lineHeight: 28, marginTop: -2 },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
 
   // ── Progress bar ──
   progressRow: {
@@ -443,5 +453,17 @@ const styles = StyleSheet.create({
     }),
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -4,
+  },
 });

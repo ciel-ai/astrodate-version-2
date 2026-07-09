@@ -309,7 +309,7 @@ export default function UploadPhotosScreen() {
   const neededMore = 3 - photoCount;
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#F5F3FF' }]} resizeMode="cover">
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
@@ -423,26 +423,31 @@ export default function UploadPhotosScreen() {
           <Pressable
             id="btn-upload-continue"
             onPress={handleContinue}
-            style={[
+            style={({ pressed }) => [
               styles.actionButton,
               !isContinueEnabled && {
                 backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#D1D5DB',
+                experimental_backgroundImage: 'none',
                 opacity: 0.8,
               },
+              pressed && styles.actionPressed,
             ]}
             disabled={!isContinueEnabled || loading}
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text
-                style={[
-                  styles.actionText,
-                  !isContinueEnabled && { color: isDark ? '#5A5478' : '#9CA3AF' },
-                ]}
-              >
-                {isContinueEnabled ? 'Continue' : `Add ${neededMore} More`}
-              </Text>
+              <View style={styles.actionButtonContent}>
+                <Text
+                  style={[
+                    styles.actionText,
+                    !isContinueEnabled && { color: isDark ? '#5A5478' : '#9CA3AF' },
+                  ]}
+                >
+                  {isContinueEnabled ? 'Continue' : `Add ${neededMore} More`}
+                </Text>
+                {isContinueEnabled && <Text style={styles.actionArrow}>→</Text>}
+              </View>
             )}
           </Pressable>
         </View>
@@ -613,15 +618,25 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    experimental_backgroundImage: 'linear-gradient(90deg, #7C3AED, #C026D3)',
     ...Platform.select({
-      ios: { shadowColor: '#7C3AED', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
-      android: { elevation: 6 },
+      ios: { shadowColor: '#C026D3', shadowOpacity: 0.55, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
+      android: { elevation: 10 },
+      web: { boxShadow: '0 8px 28px 0 rgba(192,38,211,0.55)' } as any,
     }),
+  } as any,
+  actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  actionText: {
+  actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    marginTop: -4,
   },
 });

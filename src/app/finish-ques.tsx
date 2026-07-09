@@ -207,7 +207,7 @@ export default function FinishQuesScreen() {
   };
 
   return (
-    <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgSource} style={[styles.bg, { backgroundColor: isDark ? '#09031C' : '#F5F3FF' }]} resizeMode="cover">
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={16} />
 
@@ -254,7 +254,10 @@ export default function FinishQuesScreen() {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.actionText}>Continue  →</Text>
+            <View style={styles.actionButtonContent}>
+              <Text style={styles.actionText}>Continue</Text>
+              <Text style={styles.actionArrow}>→</Text>
+            </View>
           )}
         </Pressable>
       </View>
@@ -454,5 +457,17 @@ const styles = StyleSheet.create({
     }),
   },
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -4,
+  },
 });

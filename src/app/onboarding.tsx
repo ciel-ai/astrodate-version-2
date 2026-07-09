@@ -117,10 +117,6 @@ export default function OnboardingScreen() {
         Alert.alert('Gender Required', 'Please select a gender option to continue.');
         return;
       }
-      if (!genderDetail) {
-        Alert.alert('Details Required', 'Please select a gender detail description below.');
-        return;
-      }
 
       setLoading(true);
       try {
@@ -131,7 +127,7 @@ export default function OnboardingScreen() {
           data: {
             display_name: name.trim(),
             gender: gender,
-            gender_detail: genderDetail,
+            gender_detail: genderDetail || null,
             onboarding_completed: true,
           },
         });
@@ -145,7 +141,7 @@ export default function OnboardingScreen() {
               id: user.id,
               display_name: name.trim(),
               gender: gender,
-              gender_detail: genderDetail,
+              gender_detail: genderDetail || null,
               updated_at: new Date().toISOString(),
             });
           } catch (dbErr) {
@@ -243,7 +239,7 @@ export default function OnboardingScreen() {
                     {/* Gender details list sub-selector */}
                     {isSelected && (
                       <View style={styles.detailContainer}>
-                        <Text style={styles.detailTitle}>Select specific classification:</Text>
+                        <Text style={styles.detailTitle}>Select specific classification (optional):</Text>
                         {GENDER_DETAILS[opt.id].map((detail) => {
                           const isDetailSelected = genderDetail === detail.value;
                           return (
@@ -310,7 +306,7 @@ export default function OnboardingScreen() {
         style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
         hitSlop={10}
       >
-        <Text style={[styles.backIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>‹</Text>
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
       <ScrollView
@@ -340,7 +336,10 @@ export default function OnboardingScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Next  →</Text>
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionText}>Continue</Text>
+                  <Text style={styles.actionArrow}>→</Text>
+                </View>
               )}
             </Pressable>
           </View>
@@ -369,7 +368,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { color: '#FFFFFF', fontSize: 26, lineHeight: 28, marginTop: -2 },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
 
   // ── Step Indicators ──
   progressRow: {
@@ -573,5 +579,17 @@ const styles = StyleSheet.create({
     }),
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -4, // Offset the arrow slightly upwards to align perfectly with the baseline of 'Continue'
+  },
 });

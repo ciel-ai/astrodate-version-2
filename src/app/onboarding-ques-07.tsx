@@ -199,7 +199,7 @@ export default function OnboardingQues7Screen() {
               onPress={() => router.back()}
               style={({ pressed }) => [styles.backNavBtn, { backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#E5E7EB' }, pressed && styles.backNavBtnPressed]}
             >
-              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>←</Text>
+              <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
             </Pressable>
 
             {/* Action Continue Button */}
@@ -212,7 +212,10 @@ export default function OnboardingQues7Screen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Continue  →</Text>
+                <View style={styles.actionButtonContent}>
+                  <Text style={styles.actionText}>Continue</Text>
+                  <Text style={styles.actionArrow}>→</Text>
+                </View>
               )}
             </Pressable>
           </View>
@@ -341,10 +344,13 @@ const styles = StyleSheet.create({
   backNavBtnPressed: {
     opacity: 0.7,
   },
-  backNavArrow: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
+  backChevron: {
+    width: 12,
+    height: 12,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
   },
 
   // ── Action Button ──
@@ -363,5 +369,17 @@ const styles = StyleSheet.create({
     }),
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -4,
+  },
 });

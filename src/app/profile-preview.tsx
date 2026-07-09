@@ -233,7 +233,10 @@ export default function ProfilePreviewScreen() {
           onPress={handleContinue}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
         >
-          <Text style={styles.actionText}>Continue  →</Text>
+        <View style={styles.actionButtonContent}>
+          <Text style={styles.actionText}>Continue</Text>
+          <Text style={styles.actionArrow}>→</Text>
+        </View>
         </Pressable>
 
       </View>
@@ -404,5 +407,17 @@ const styles = StyleSheet.create({
     }),
   } as any,
   actionPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   actionText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  actionArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: -4,
+  },
 });
