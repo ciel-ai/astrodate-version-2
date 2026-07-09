@@ -21,6 +21,26 @@ const COPY: Record<string, { title: string; body: string }> = {
     title: 'See who likes you',
     body: 'Upgrade to reveal every profile that already liked you — no more guessing.',
   },
+  swipe_limit: {
+    title: "You're out of swipes for today",
+    body: 'Astro+ gives you 40 daily swipes, AstroX unlimited — come back tomorrow or upgrade now.',
+  },
+  swipe_limit_with_locked_matches: {
+    title: 'Your excellent matches are still waiting',
+    body: "You're out of swipes, but not out of great matches — upgrade to unlock them right now instead of waiting until tomorrow.",
+  },
+  more_high_matches: {
+    title: 'More excellent matches are ready for you',
+    body: 'Your free deck only shows one great match a day — Astro+ shows ~12, AstroX shows over half your whole deck.',
+  },
+  rewind_not_available: {
+    title: 'Undo your last swipe',
+    body: 'Astro+ gives you 1 rewind a day, AstroX unlimited — never lose a match to a slipped finger again.',
+  },
+  super_like_limit: {
+    title: 'Get more super likes',
+    body: 'Free gives you 1 a week, Astro+ gives you 3, AstroX gives you 5 — stand out to the matches you want most.',
+  },
 };
 
 export default function PaywallScreen() {

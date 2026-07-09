@@ -1,20 +1,22 @@
 /**
  * DiscoverCard
  *
- * Real discover profile card fed by get_discover_deck: hero avatar with a
+ * Real discover profile card fed by get_discover_deck: hero photo with a
  * tiered score ring + name overlay, free (Western) vs paid (Vedic)
- * compatibility stats. Photo/prompt/attribute sections from the original
- * design mock are omitted for now -- get_discover_deck doesn't surface
- * photos, prompts, or interest/lifestyle attributes yet (those live in
- * user_photos / section1_qns and aren't joined into the deck query), and
- * showing fabricated placeholder content under a real person's name would be
- * exactly the "misdirection" this feature was built to avoid.
+ * compatibility stats, and (since 20260709120000_discover_deck_photos_prompts)
+ * the person's Hinge-style prompts and about section. Interest/lifestyle
+ * attribute chips from the original design mock are still omitted -- those
+ * live in section1_qns and still aren't joined into the deck query.
+ *
+ * Falls back to initials when a candidate has no photos yet (never fabricates
+ * placeholder photo/prompt content under a real person's name).
  *
  * Floating panels use expo-glass-effect's GlassView for real iOS 26 Liquid
  * Glass; it renders as a plain View elsewhere, so the rgba/border styling
  * below doubles as the fallback look on Android and older iOS.
  */
 import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Circle } from 'react-native-svg';
 import { GlassView } from 'expo-glass-effect';
 
@@ -64,26 +66,41 @@ function ScoreRing({ score }: { score: number }) {
 
 interface DiscoverCardProps {
   card: DiscoverCardData;
+  /** Caller's own tier (get_discover_deck's top-level `tier`), not the
+   *  candidate's -- determines whether the breakdown section below is even
+   *  shown. Free only ever gets `score`/`band` (total) from the server now;
+   *  western_score/indian_score come back null for a free caller regardless
+   *  of whether the pair is actually scored, so this tier check is what
+   *  distinguishes "locked behind a paywall" from "genuinely not computed
+   *  yet" (which only applies to paid tiers, see the caption fallback below). */
+  tier: string;
 }
 
-export function DiscoverCard({ card }: DiscoverCardProps) {
+export function DiscoverCard({ card, tier }: DiscoverCardProps) {
   const name = card.full_name ?? 'Someone new';
   const initials = name.slice(0, 2).toUpperCase();
   const zodiac = card.western_sign ?? null;
+  const heroPhoto = card.photos?.[0]?.url ?? null;
+  const isFreeTier = tier === 'free';
 
   // western_score/indian_score come back as points already scaled into the
   // 45/45/10 total (get_match_score) -- recover the percentage/raw-Guna
   // scale these display components expect. null means "not yet computed for
-  // this pair", not "0% compatible", so each shows its own honest caption
-  // rather than a real-looking zero.
+  // this pair" for a paid caller, or "gated -- upgrade to see" for a free
+  // one (isFreeTier below picks between those two captions).
   const westernPercent = card.western_score != null ? Math.round((card.western_score / 45) * 100) : null;
   const vedicRaw = card.indian_score != null ? Math.round((card.indian_score / 45) * 36) : null;
+  const hasDosha = Boolean(card.manglik_status || card.nadi_dosha || card.bhakoot_dosha);
 
   return (
     <View style={styles.card}>
-      {/* Hero avatar */}
+      {/* Hero photo */}
       <View style={styles.hero}>
-        <Text style={styles.heroInitials}>{initials}</Text>
+        {heroPhoto ? (
+          <Image source={{ uri: heroPhoto }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        ) : (
+          <Text style={styles.heroInitials}>{initials}</Text>
+        )}
 
         {card.is_top_match_of_day && (
           <View style={styles.topMatchBadge}>
@@ -108,35 +125,88 @@ export function DiscoverCard({ card }: DiscoverCardProps) {
         </View>
       </View>
 
-      {/* Compatibility — free (Western) vs paid (Vedic) */}
-      <View style={styles.statsSection}>
-        <CompatibilitySection
-          western={{
-            score: westernPercent ?? 0,
-            caption: westernPercent != null ? 'Sun compatibility' : 'Not yet scored',
-          }}
-          vedic={{ score: vedicRaw ?? 0, max: 36, doshaFlagged: false }}
-        />
-      </View>
-
-      {/* Basics — Hinge-style info card */}
-      <GlassView glassEffectStyle="regular" style={styles.basicsCard}>
-        <View style={styles.basicsRow}>
-          {card.age != null && (
-            <View style={styles.basicsChip}>
-              <Text style={styles.basicsIcon}>🎂</Text>
-              <Text style={styles.basicsText}>{card.age}</Text>
-            </View>
-          )}
-          {card.age != null && card.gender && <View style={styles.basicsDivider} />}
-          {card.gender && (
-            <View style={styles.basicsChip}>
-              <Text style={styles.basicsIcon}>🧑</Text>
-              <Text style={styles.basicsText}>{card.gender}</Text>
-            </View>
-          )}
+      {/* Compatibility breakdown -- Section 3: Free sees total score only
+          (already shown in the ScoreRing above), Astro+/AstroX get the full
+          Western/Vedic split. */}
+      {isFreeTier ? (
+        <View style={styles.breakdownLockedRow}>
+          <Text style={styles.breakdownLockedText}>
+            🔒 Upgrade to see the full compatibility breakdown
+          </Text>
         </View>
-      </GlassView>
+      ) : (
+        <View style={styles.statsSection}>
+          <CompatibilitySection
+            western={{
+              score: westernPercent ?? 0,
+              caption: westernPercent != null ? 'Sun compatibility' : 'Not yet scored',
+            }}
+            vedic={{ score: vedicRaw ?? 0, max: 36, doshaFlagged: hasDosha }}
+          />
+        </View>
+      )}
+
+      {/* "Why you match" — AstroX-only synastry narrative (Section 3) */}
+      {card.why_you_match && (
+        <GlassView glassEffectStyle="regular" style={styles.whyMatchCard}>
+          <Text style={styles.sectionLabel}>✦ WHY YOU MATCH</Text>
+          <Text style={styles.aboutText}>{card.why_you_match}</Text>
+        </GlassView>
+      )}
+
+      {/* Basics — Hinge-style info card. Hidden entirely when there's
+          nothing to show (same rule the About/prompt sections already
+          follow) rather than rendering an empty glass box with no chips
+          inside it. */}
+      {(card.age != null || card.gender) && (
+        <GlassView glassEffectStyle="regular" style={styles.basicsCard}>
+          <View style={styles.basicsRow}>
+            {card.age != null && (
+              <View style={styles.basicsChip}>
+                <Text style={styles.basicsIcon}>🎂</Text>
+                <Text style={styles.basicsText}>{card.age}</Text>
+              </View>
+            )}
+            {card.age != null && card.gender && <View style={styles.basicsDivider} />}
+            {card.gender && (
+              <View style={styles.basicsChip}>
+                <Text style={styles.basicsIcon}>🧑</Text>
+                <Text style={styles.basicsText}>{card.gender}</Text>
+              </View>
+            )}
+          </View>
+        </GlassView>
+      )}
+
+      {/* About */}
+      {card.about && (
+        <GlassView glassEffectStyle="regular" style={styles.aboutCard}>
+          <Text style={styles.sectionLabel}>ABOUT</Text>
+          <Text style={styles.aboutText}>{card.about}</Text>
+        </GlassView>
+      )}
+
+      {/* Prompts — Hinge-style */}
+      {card.prompts.map((prompt, idx) => (
+        <GlassView key={`${prompt.question}-${idx}`} glassEffectStyle="regular" style={styles.promptCard}>
+          <Text style={styles.promptQuestion}>{prompt.question}</Text>
+          <Text style={styles.promptAnswer}>{prompt.answer}</Text>
+        </GlassView>
+      ))}
+
+      {/* Additional photos beyond the hero */}
+      {card.photos.length > 1 && (
+        <View style={styles.extraPhotosRow}>
+          {card.photos.slice(1).map((photo, idx) => (
+            <Image
+              key={photo.url + idx}
+              source={{ uri: photo.url }}
+              style={styles.extraPhoto}
+              contentFit="cover"
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -198,6 +268,16 @@ const styles = StyleSheet.create({
 
   // ── Compatibility ──
   statsSection: { marginTop: 12 },
+  breakdownLockedRow: {
+    marginTop: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(246, 185, 59, 0.3)',
+    backgroundColor: 'rgba(246, 185, 59, 0.06)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  breakdownLockedText: { color: 'rgba(246, 185, 59, 0.95)', fontSize: 13, fontWeight: '600' },
 
   // ── Basics ──
   basicsCard: {
@@ -217,4 +297,55 @@ const styles = StyleSheet.create({
   basicsIcon: { fontSize: 16 },
   basicsText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   basicsDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.1)' },
+
+  // ── About / Prompts ──
+  sectionLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  aboutCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(20, 12, 40, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+  },
+  aboutText: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontWeight: '500' },
+  whyMatchCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(246, 185, 59, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(246, 185, 59, 0.3)',
+    padding: 16,
+  },
+
+  promptCard: {
+    marginTop: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(20, 12, 40, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+  },
+  promptQuestion: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  promptAnswer: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 23 },
+
+  // ── Extra photos ──
+  extraPhotosRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  extraPhoto: {
+    width: '48%',
+    aspectRatio: 3 / 4,
+    borderRadius: 16,
+    backgroundColor: 'rgba(30, 15, 60, 0.70)',
+  },
 });
