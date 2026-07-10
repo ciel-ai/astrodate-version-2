@@ -141,7 +141,7 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
               score: westernPercent ?? 0,
               caption: westernPercent != null ? 'Sun compatibility' : 'Not yet scored',
             }}
-            vedic={{ score: vedicRaw ?? 0, max: 36, doshaFlagged: hasDosha }}
+            vedic={{ score: vedicRaw ?? 0, max: 36, doshaFlagged: hasDosha, pending: vedicRaw == null }}
           />
         </View>
       )}
@@ -186,29 +186,45 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
         </GlassView>
       )}
 
-      {/* Prompts — Hinge-style */}
-      {card.prompts.map((prompt, idx) => (
-        <GlassView key={`${prompt.question}-${idx}`} glassEffectStyle="regular" style={styles.promptCard}>
-          <Text style={styles.promptQuestion}>{prompt.question}</Text>
-          <Text style={styles.promptAnswer}>{prompt.answer}</Text>
-        </GlassView>
-      ))}
-
-      {/* Additional photos beyond the hero */}
-      {card.photos.length > 1 && (
-        <View style={styles.extraPhotosRow}>
-          {card.photos.slice(1).map((photo, idx) => (
-            <Image
-              key={photo.url + idx}
-              source={{ uri: photo.url }}
-              style={styles.extraPhoto}
-              contentFit="cover"
-            />
-          ))}
-        </View>
+      {/* Photos beyond the hero, interspersed with prompts -- Hinge-style
+          pacing (prompt, photo, prompt, photo...) rather than dumping every
+          prompt up front and every remaining photo in a grid at the very
+          bottom, where it's easy to scroll past and only ever really shows
+          the hero. Whichever list is longer (prompts can be up to 3;
+          photos up to 6, 3 mandatory) just continues on its own past where
+          the other runs out. */}
+      {interleavePromptsAndPhotos(card.prompts, card.photos.slice(1)).map((item) =>
+        item.kind === 'prompt' ? (
+          <GlassView key={`prompt-${item.index}`} glassEffectStyle="regular" style={styles.promptCard}>
+            <Text style={styles.promptQuestion}>{item.prompt.question}</Text>
+            <Text style={styles.promptAnswer}>{item.prompt.answer}</Text>
+          </GlassView>
+        ) : (
+          <View key={`photo-${item.index}`} style={styles.galleryPhotoWrap}>
+            <Image source={{ uri: item.photo.url }} style={styles.galleryPhoto} contentFit="cover" />
+          </View>
+        )
       )}
     </View>
   );
+}
+
+type FeedItem =
+  | { kind: 'prompt'; index: number; prompt: DiscoverCardData['prompts'][number] }
+  | { kind: 'photo'; index: number; photo: DiscoverCardData['photos'][number] };
+
+/** prompt, photo, prompt, photo... continuing with whichever list runs longer. */
+function interleavePromptsAndPhotos(
+  prompts: DiscoverCardData['prompts'],
+  photos: DiscoverCardData['photos']
+): FeedItem[] {
+  const items: FeedItem[] = [];
+  const maxLen = Math.max(prompts.length, photos.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (prompts[i]) items.push({ kind: 'prompt', index: i, prompt: prompts[i] });
+    if (photos[i]) items.push({ kind: 'photo', index: i, photo: photos[i] });
+  }
+  return items;
 }
 
 const styles = StyleSheet.create({
@@ -335,17 +351,17 @@ const styles = StyleSheet.create({
   promptQuestion: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600', marginBottom: 6 },
   promptAnswer: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', lineHeight: 23 },
 
-  // ── Extra photos ──
-  extraPhotosRow: {
+  // ── Gallery photos (interspersed with prompts) ──
+  galleryPhotoWrap: {
     marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  extraPhoto: {
-    width: '48%',
-    aspectRatio: 3 / 4,
-    borderRadius: 16,
+    width: '100%',
+    aspectRatio: 4 / 5,
+    borderRadius: 24,
+    overflow: 'hidden',
     backgroundColor: 'rgba(30, 15, 60, 0.70)',
+  },
+  galleryPhoto: {
+    width: '100%',
+    height: '100%',
   },
 });

@@ -1,0 +1,26 @@
+-- ============================================================================
+-- user-photos bucket was created private (20260630120000_baseline_tables.sql)
+-- but every write path stores a *public* object URL:
+--   upload-photos.tsx: supabase.storage.from('user-photos').getPublicUrl(filePath)
+--   get_discover_deck(): returns user_photos.photo_url directly, unsigned
+-- Fetching that stored URL against a private bucket 404s ("Bucket not
+-- found" -- Supabase's public-object endpoint refuses to serve a private
+-- bucket at all), so no uploaded photo has ever actually rendered anywhere
+-- except upload-photos.tsx's own screen, which works around it locally by
+-- re-deriving a signed URL from storage_path at render time instead of
+-- trusting the stored value. Confirmed live: a real uploaded photo's stored
+-- URL returned 404, and the bucket's own config showed "public": false.
+--
+-- Fix: make the bucket public, matching what every URL already assumes.
+-- Profile photos are meant to be seen by anyone the user is a Discover
+-- candidate for -- that's the entire point of uploading them -- so there's
+-- no confidentiality requirement being relaxed here, just fixing a mismatch
+-- between the bucket's ACL and what the app has always assumed about it.
+--
+-- The existing storage.objects RLS policies (owner-only SELECT/INSERT/
+-- UPDATE/DELETE for authenticated requests) are untouched and still apply
+-- to the authenticated/signed download paths -- they're simply not
+-- consulted for the public unauthenticated endpoint, which is the one
+-- every stored photo_url actually points at.
+-- ============================================================================
+UPDATE storage.buckets SET public = true WHERE id = 'user-photos';

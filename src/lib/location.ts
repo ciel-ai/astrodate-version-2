@@ -19,9 +19,18 @@ import { withTimeout } from './network';
 /** Read the current device position and persist it via the RPC. */
 async function captureAndSave(): Promise<boolean> {
   try {
-    const pos = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced, // ~100m — plenty for "X km away"
-    });
+    // No timeout option on getCurrentPositionAsync itself -- without a
+    // GPS fix (indoors, poor signal, location services off at the OS level)
+    // this can hang indefinitely, leaving the caller's loading state stuck
+    // forever with no error. withTimeout bounds it the same way the RPC
+    // call below already is.
+    const pos = await withTimeout(
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced, // ~100m — plenty for "X km away"
+      }),
+      15000,
+      'Location fix timed out'
+    );
 
     const { error } = await withTimeout(
       Promise.resolve(

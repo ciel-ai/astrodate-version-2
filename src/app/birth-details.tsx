@@ -125,6 +125,16 @@ export default function BirthDetailsScreen() {
       Alert.alert('Invalid Year', `Please enter a year between 1920 and ${new Date().getFullYear()}.`);
       return;
     }
+    // Day is only valid within the selected month (e.g. no Feb 30, no Apr 31).
+    // Caught here rather than left to the DB DATE column, since a rejected
+    // insert surfaces as a generic "Setup Failed" alert with no field guidance,
+    // and the JS Date used for the timezone lookup would otherwise silently
+    // roll an invalid date into the next month before that rejection happens.
+    const daysInMonth = new Date(yNum, tempMonth, 0).getDate();
+    if (dNum > daysInMonth) {
+      Alert.alert('Invalid Day', `${MONTHS[tempMonth - 1]} ${yNum} only has ${daysInMonth} days.`);
+      return;
+    }
 
     setDay(tempDay.padStart(2, '0'));
     setMonth(tempMonth);

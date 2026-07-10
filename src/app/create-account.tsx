@@ -87,6 +87,27 @@ export default function CreateAccountScreen() {
     const fullPhone = `${selectedCountry.dialCode}${phone.trim()}`;
 
     try {
+      // Check for an existing account before spending an OTP send on it --
+      // someone landing on Sign Up with a number that already has an account
+      // should be routed to Login instead, not charged another SMS.
+      const { data: existing, error: checkError } = await supabase.rpc('check_auth_user_exists', {
+        input_phone: fullPhone,
+      });
+
+      if (checkError) throw checkError;
+
+      if (existing && existing.length > 0) {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this phone number already exists. Please log in instead.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Log In', onPress: () => router.push('/login') },
+          ]
+        );
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
       });

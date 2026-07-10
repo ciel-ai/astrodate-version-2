@@ -71,6 +71,16 @@ export default function ProfilePreviewScreen() {
     return clean;
   };
 
+  // gender_detail (the sub-selector, e.g. "cis-man") is optional -- onboarding.tsx
+  // no longer requires picking one. gender (the broad category) is always set,
+  // so fall back to it rather than leaving Identity stuck on the placeholder
+  // for anyone who skipped the detail step.
+  const BASE_GENDER_LABEL: Record<string, string> = {
+    male: 'Man',
+    female: 'Woman',
+    nonBinary: 'Beyond Binary',
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -79,14 +89,18 @@ export default function ProfilePreviewScreen() {
 
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('full_name, location, gender_detail')
+          .select('full_name, location, gender, gender_detail')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (profile) {
           if (profile.full_name) setName(profile.full_name);
           if (profile.location) setLocation(profile.location);
-          if (profile.gender_detail) setGender(getGenderLabel(profile.gender_detail));
+          if (profile.gender_detail) {
+            setGender(getGenderLabel(profile.gender_detail));
+          } else if (profile.gender) {
+            setGender(BASE_GENDER_LABEL[profile.gender] ?? profile.gender);
+          }
         }
 
         const { data: astro } = await supabase

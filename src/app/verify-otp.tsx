@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { getOnboardingResumeRoute } from '@/lib/user-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const SERIF = 'Baskerville-Old-Face';
@@ -75,13 +76,24 @@ export default function VerifyOtpScreen() {
       if (error) {
         Alert.alert('Verification Failed', error.message);
       } else {
+        // The user is already verified/authenticated at this point -- if the
+        // resume lookup itself fails (e.g. a transient network error), fall
+        // back to '/onboarding' rather than leaving them stuck on this screen
+        // with no way forward (their only other option would be to log in
+        // again, spending another OTP).
+        let resumeRoute: Awaited<ReturnType<typeof getOnboardingResumeRoute>> = '/onboarding';
+        try {
+          resumeRoute = await getOnboardingResumeRoute();
+        } catch (resumeErr) {
+          console.warn('getOnboardingResumeRoute failed, falling back to /onboarding:', resumeErr);
+        }
         Alert.alert(
           'Verification Successful',
           'Your phone number has been verified successfully!',
           [
             {
               text: 'OK',
-              onPress: () => router.replace('/onboarding'),
+              onPress: () => router.replace(resumeRoute as any),
             }
           ]
         );

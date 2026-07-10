@@ -122,7 +122,10 @@ export default function UploadPhotosScreen() {
       console.log('[loadUserPhotos] Retrieved photos from database:', data);
 
       if (data && data.length > 0) {
-        // Since the storage bucket is private, generate signed URLs to authorize image loading
+        // The bucket is public (20260710120000_make_user_photos_bucket_public.sql)
+        // and every stored photo_url is already a public URL, so this signed-URL
+        // round trip is no longer required to make images load -- kept as-is since
+        // it's harmless and still correctly resolves to a working URL either way.
         const paths = data.map(p => p.storage_path);
         console.log('[loadUserPhotos] Generating signed URLs for paths:', paths);
         const { data: signedData, error: signedError } = await supabase.storage
@@ -230,6 +233,11 @@ export default function UploadPhotosScreen() {
       console.log('[handlePickImage] Public URL obtained:', publicUrl);
 
       // 3. Insert metadata record in database
+      // Primary is whichever photo lands first, not whichever fills slot 0 --
+      // otherwise a user who fills slots 1-3 before slot 0 ends up with zero
+      // primary photos, and slot 0 filled after another upload already
+      // finished would create a second one.
+      const isFirstPhoto = !photos.some((p) => p.is_primary);
       console.log('[handlePickImage] Inserting metadata into database...');
       const { data: insertData, error: dbError } = await supabase
         .from('user_photos')
@@ -238,12 +246,17 @@ export default function UploadPhotosScreen() {
           photo_url: publicUrl,
           storage_path: filePath,
           display_order: index,
-          is_primary: index === 0,
+          is_primary: isFirstPhoto,
         })
         .select();
 
       if (dbError) {
         console.error('[handlePickImage] Database insert error:', dbError);
+        // The storage object already succeeded -- remove it so it doesn't
+        // become a permanently orphaned file with no DB row pointing to it.
+        await supabase.storage.from('user-photos').remove([filePath]).catch((cleanupErr) => {
+          console.error('[handlePickImage] Failed to clean up orphaned storage object:', cleanupErr);
+        });
         throw dbError;
       }
       console.log('[handlePickImage] Database insertion successful:', insertData);

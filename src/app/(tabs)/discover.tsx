@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
@@ -65,6 +65,14 @@ export default function DiscoverScreen() {
   }, [loadDeck]);
 
   const currentCard = cards?.[index] ?? null;
+
+  // Without this, scrolling down into one candidate's photos/prompts before
+  // swiping leaves the next candidate's card rendered already scrolled to
+  // that same depth, instead of starting at the top.
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [index]);
 
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
@@ -244,6 +252,7 @@ export default function DiscoverScreen() {
       <StatusBar style="light" />
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110 },

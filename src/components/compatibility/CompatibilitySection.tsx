@@ -14,14 +14,14 @@ import { VedicCompatibilityCard } from './VedicCompatibilityCard';
 
 interface CompatibilitySectionProps {
   western: { score: number; caption?: string };
-  vedic: { score: number; max: number; doshaFlagged?: boolean };
+  vedic: { score: number; max: number; doshaFlagged?: boolean; pending?: boolean };
 }
 
 export function CompatibilitySection({ western, vedic }: CompatibilitySectionProps) {
   return (
     <View style={styles.row}>
       <WesternCompatibilityCard score={western.score} caption={western.caption} />
-      <VedicCompatibilityCard score={vedic.score} max={vedic.max} doshaFlagged={vedic.doshaFlagged} />
+      <VedicCompatibilityCard score={vedic.score} max={vedic.max} doshaFlagged={vedic.doshaFlagged} pending={vedic.pending} />
     </View>
   );
 }

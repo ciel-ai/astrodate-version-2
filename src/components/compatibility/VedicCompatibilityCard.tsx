@@ -17,6 +17,10 @@ interface VedicCompatibilityCardProps {
   score: number;
   max: number;
   doshaFlagged?: boolean;
+  /** True when indian_score is genuinely unscored (synastry not yet computed
+   * for this pair) rather than a real 0/max -- a real 0 is an extremely poor
+   * Guna Milan match, so the two must not look identical. */
+  pending?: boolean;
 }
 
 function LockIcon() {
@@ -48,7 +52,7 @@ function LockBadge({ children }: { children: React.ReactNode }) {
   return <View style={styles.lockBadge}>{children}</View>;
 }
 
-export function VedicCompatibilityCard({ score, max, doshaFlagged = false }: VedicCompatibilityCardProps) {
+export function VedicCompatibilityCard({ score, max, doshaFlagged = false, pending = false }: VedicCompatibilityCardProps) {
   return (
     <View style={styles.shadowWrap}>
       <View style={styles.card}>
@@ -71,11 +75,16 @@ export function VedicCompatibilityCard({ score, max, doshaFlagged = false }: Ved
         </View>
 
         <Text style={styles.scoreRow}>
-          <Text style={styles.scoreMain}>{score}</Text>
+          <Text style={styles.scoreMain}>{pending ? '--' : score}</Text>
           <Text style={styles.scoreMax}>/{max}</Text>
         </Text>
 
-        {doshaFlagged ? (
+        {pending ? (
+          <View>
+            <SacredDivider />
+            <Text style={styles.gunaText}>Not yet scored</Text>
+          </View>
+        ) : doshaFlagged ? (
           <View>
             <SacredDivider />
             <View style={styles.doshaRow}>
