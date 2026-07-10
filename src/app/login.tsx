@@ -81,8 +81,31 @@ export default function LoginScreen() {
     const fullPhone = `${selectedCountry.dialCode}${phone.trim()}`;
 
     try {
+      // Check for an account before spending an OTP send on it -- without
+      // this, signInWithOtp's default shouldCreateUser:true would silently
+      // create a brand-new account for an unrecognized number typed into
+      // Login, and charge an SMS for it.
+      const { data: existing, error: checkError } = await supabase.rpc('check_auth_user_exists', {
+        input_phone: fullPhone,
+      });
+
+      if (checkError) throw checkError;
+
+      if (!existing || existing.length === 0) {
+        Alert.alert(
+          'No Account Found',
+          "We couldn't find an account with this phone number. Please sign up instead.",
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign Up', onPress: () => router.push('/create-account') },
+          ]
+        );
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
+        options: { shouldCreateUser: false },
       });
 
       if (error) {

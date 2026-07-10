@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
@@ -104,6 +104,14 @@ export default function DiscoverScreen() {
 
   // If in mock dev mode, let the tier default to AstroX so we can preview the full screen
   const currentTier = useMockDinesh ? 'astro_x' : tier;
+
+  // Without this, scrolling down into one candidate's photos/prompts before
+  // swiping leaves the next candidate's card rendered already scrolled to
+  // that same depth, instead of starting at the top.
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [index]);
 
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
@@ -301,6 +309,7 @@ export default function DiscoverScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingTop: 8, paddingBottom: insets.bottom + 120 },

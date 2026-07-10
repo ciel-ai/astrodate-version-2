@@ -104,11 +104,21 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
-  // Verify caller is an authenticated user or the service role (prewarm)
+  // Verify caller is either the service role (prewarm cron path -- see
+  // process-synastry-prewarm, which forwards the raw service-role key as the
+  // bearer token when it has no user JWT to forward) or a real authenticated
+  // user who is one of the two people in the pair. Previously this only
+  // checked that *some* Authorization header was present, never that it was
+  // valid or belonged to either user -- any request with a garbage bearer
+  // token could trigger the paid external astrology API for arbitrary pairs
+  // and read/cache their private birth data.
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return json({ error: "Unauthorized" }, 401);
   }
+
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
+  const isServiceRole = bearerToken === serviceKey;
 
   // Use service-role client for all DB operations (reads private birth data)
   const db = createClient(supabaseUrl, serviceKey, {
@@ -125,6 +135,20 @@ Deno.serve(async (req) => {
   const { user_a_id, user_b_id } = body;
   if (!user_a_id || !user_b_id) {
     return json({ error: "user_a_id and user_b_id are required" }, 400);
+  }
+
+  if (!isServiceRole) {
+    const authClient = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+    if (authError || !authData.user) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+    if (authData.user.id !== user_a_id && authData.user.id !== user_b_id) {
+      return json({ error: "Forbidden" }, 403);
+    }
   }
 
   // Normalize pair order (consistent with all other synastry logic)

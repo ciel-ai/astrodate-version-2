@@ -213,9 +213,15 @@ const getSignInfo = (westernName?: string | null) => {
 
 /** A monochrome glyph that loosely fits a trait word (for the trait pills). */
 
+// Only ever called with `dob`, which is built from a date-only "YYYY-MM-DD"
+// string via `new Date(...)` -- JS parses that as UTC midnight, so local
+// getters roll back a calendar day on negative-UTC-offset devices. Use UTC
+// getters to keep this in sync with the stored birth_date, since the result
+// is written straight to astro_details.western_sign (see handleSave below)
+// and feeds directly into Western-45 match scoring.
 const getWesternSign = (date: Date): typeof WESTERN_SIGNS[0] => {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
 
   if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return WESTERN_SIGNS[0];
   if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return WESTERN_SIGNS[1];
@@ -791,9 +797,15 @@ export default function ZodiacPreviewScreen() {
           }
 
           const fresh = await getAstroDetails({
-            day: resolvedDob.getDate(),
-            month: resolvedDob.getMonth() + 1,
-            year: resolvedDob.getFullYear(),
+            // resolvedDob comes from `new Date(birthDateStr)` on a date-only
+            // "YYYY-MM-DD" string, which JS parses as UTC midnight -- local
+            // getters (getDate/getMonth/getFullYear) roll back to the
+            // previous calendar day on any negative-UTC-offset device. Use
+            // the UTC getters so the day sent to the astrology API always
+            // matches the stored birth_date, regardless of device timezone.
+            day: resolvedDob.getUTCDate(),
+            month: resolvedDob.getUTCMonth() + 1,
+            year: resolvedDob.getUTCFullYear(),
             hour: resolvedTob.getHours(),
             min: resolvedTob.getMinutes(),
             lat: resolvedLat,
