@@ -78,17 +78,14 @@ export default function ProfilePreviewScreen() {
         if (!user) return;
 
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, address_district, address_state, gender_detail')
-          .eq('id', user.id)
-          .single();
+          .from('user_profiles')
+          .select('full_name, location, gender_detail')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
         if (profile) {
-          if (profile.display_name) setName(profile.display_name);
-          const locString = [profile.address_district, profile.address_state]
-            .filter(Boolean)
-            .join(', ');
-          if (locString) setLocation(locString);
+          if (profile.full_name) setName(profile.full_name);
+          if (profile.location) setLocation(profile.location);
           if (profile.gender_detail) setGender(getGenderLabel(profile.gender_detail));
         }
 

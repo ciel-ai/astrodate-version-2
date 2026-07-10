@@ -37,6 +37,8 @@ function RootLayout() {
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           {/* Address collection */}
           <Stack.Screen name="address" options={{ headerShown: false }} />
+          {/* Enable device location for Discover radius filtering */}
+          <Stack.Screen name="enable-location" options={{ headerShown: false }} />
           {/* Birth details collection */}
           <Stack.Screen name="birth-details" options={{ headerShown: false }} />
           {/* Profile preview review screen */}

@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
+import { saveUserProfile } from '@/lib/user-profile';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -138,20 +139,20 @@ export default function OnboardingScreen() {
 
         if (metaErr) throw metaErr;
 
-        // 2. Safely upsert user details in the profiles table if present
-        if (user?.id) {
-          try {
-            await supabase.from('profiles').upsert({
-              id: user.id,
-              display_name: name.trim(),
-              gender: gender,
-              gender_detail: genderDetail,
-              updated_at: new Date().toISOString(),
-            });
-          } catch (dbErr) {
-            console.log('Skipped profiles database upsert:', dbErr);
-          }
-        }
+        // 2. Create/update the real user_profiles row -- this is the table
+        // Discover/matching actually read from. phone_number/email come from
+        // whichever signup path the user took (phone OTP sets auth.users.phone,
+        // email signup sets auth.users.email); this app is phone-first, so
+        // email is left blank rather than forcing a dedicated collection step.
+        const result = await saveUserProfile({
+          full_name: name.trim(),
+          gender,
+          gender_detail: genderDetail,
+          phone_number: user?.phone,
+          email: user?.email,
+        });
+
+        if (!result.success) throw new Error(result.error || 'Failed to save profile');
 
         // 3. Proceed to address collection
         router.push('/address');

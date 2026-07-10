@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
@@ -19,27 +19,9 @@ import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
-import { supabase } from '@/lib/supabase';
+import { saveUserProfile } from '@/lib/user-profile';
 
 const SERIF = 'Baskerville-Old-Face';
-
-interface AddressForm {
-  houseNo: string;
-  street: string;
-  district: string;
-  state: string;
-  country: string;
-  pinCode: string;
-}
-
-const EMPTY: AddressForm = {
-  houseNo: '',
-  street: '',
-  district: '',
-  state: '',
-  country: '',
-  pinCode: '',
-};
 
 export default function AddressScreen() {
   const colorScheme = useColorScheme();
@@ -56,73 +38,31 @@ export default function AddressScreen() {
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
-  const [form, setForm] = useState<AddressForm>(EMPTY);
+  const [city, setCity] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState<keyof AddressForm | null>(null);
-
-  // Refs for keyboard "next" navigation
-  const streetRef  = useRef<TextInput>(null);
-  const districtRef = useRef<TextInput>(null);
-  const stateRef   = useRef<TextInput>(null);
-  const countryRef = useRef<TextInput>(null);
-  const pinRef     = useRef<TextInput>(null);
+  const [focused, setFocused] = useState(false);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
   }
 
-  const set = (key: keyof AddressForm) => (val: string) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
-
-  const validate = (): string | null => {
-    if (!form.houseNo.trim())  return 'Please enter your house / flat number.';
-    if (!form.street.trim())   return 'Please enter your street name.';
-    if (!form.district.trim()) return 'Please enter your district.';
-    if (!form.state.trim())    return 'Please enter your state.';
-    if (!form.country.trim())  return 'Please enter your country.';
-    if (!form.pinCode.trim())  return 'Please enter your pin / postal code.';
-    return null;
-  };
-
   const handleSave = async () => {
-    const err = validate();
-    if (err) { Alert.alert('Required', err); return; }
+    if (!city.trim()) {
+      Alert.alert('Required', 'Please enter your city.');
+      return;
+    }
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) {
-        await supabase.from('profiles').upsert({
-          id: user.id,
-          address_house:    form.houseNo.trim(),
-          address_street:   form.street.trim(),
-          address_district: form.district.trim(),
-          address_state:    form.state.trim(),
-          address_country:  form.country.trim(),
-          address_pincode:  form.pinCode.trim(),
-          updated_at: new Date().toISOString(),
-        });
-      }
-      router.push('/birth-details');
+      const result = await saveUserProfile({ location: city.trim() });
+      if (!result.success) throw new Error(result.error || 'Could not save your city');
+      router.push('/enable-location' as any);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not save address. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  const inputStyle = (key: keyof AddressForm) => [
-    styles.inputContainer,
-    {
-      backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
-      borderColor: focused === key
-        ? (isDark ? '#A855F7' : '#4B0082')
-        : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
-    },
-    focused === key && {
-      backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF',
-    }
-  ];
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
   const deviceH = isDesktopWeb ? 844 : screenH;
@@ -174,112 +114,33 @@ export default function AddressScreen() {
 
           {/* Form */}
           <View style={[styles.form, { marginTop: FORM_GAP }]}>
-            
-            {/* House / Flat No */}
-            <View style={inputStyle('houseNo')}>
-              <Text style={styles.inputIcon}>🏠</Text>
+
+            {/* City */}
+            <View
+              style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF',
+                  borderColor: focused
+                    ? (isDark ? '#A855F7' : '#4B0082')
+                    : (isDark ? 'rgba(255, 255, 255, 0.12)' : '#E5E7EB'),
+                },
+                focused && { backgroundColor: isDark ? 'rgba(30, 15, 60, 0.65)' : '#F3ECFF' },
+              ]}
+            >
+              <Text style={styles.inputIcon}>📍</Text>
               <TextInput
-                value={form.houseNo}
-                onChangeText={set('houseNo')}
-                placeholder="House / Flat No."
+                value={city}
+                onChangeText={setCity}
+                placeholder="City, Country"
                 placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
                 style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                returnKeyType="next"
-                onSubmitEditing={() => streetRef.current?.focus()}
-                onFocus={() => setFocused('houseNo')}
-                onBlur={() => setFocused(null)}
-                accessibilityLabel="House or flat number"
-              />
-            </View>
-
-            {/* Street Name */}
-            <View style={inputStyle('street')}>
-              <Text style={styles.inputIcon}>🛣️</Text>
-              <TextInput
-                ref={streetRef}
-                value={form.street}
-                onChangeText={set('street')}
-                placeholder="Street Name"
-                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
-                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                returnKeyType="next"
-                onSubmitEditing={() => districtRef.current?.focus()}
-                onFocus={() => setFocused('street')}
-                onBlur={() => setFocused(null)}
-                accessibilityLabel="Street name"
-              />
-            </View>
-
-            {/* District */}
-            <View style={inputStyle('district')}>
-              <Text style={styles.inputIcon}>🏙️</Text>
-              <TextInput
-                ref={districtRef}
-                value={form.district}
-                onChangeText={set('district')}
-                placeholder="District"
-                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
-                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                returnKeyType="next"
-                onSubmitEditing={() => stateRef.current?.focus()}
-                onFocus={() => setFocused('district')}
-                onBlur={() => setFocused(null)}
-                accessibilityLabel="District"
-              />
-            </View>
-
-            {/* State & Country */}
-            <View style={styles.twoCol}>
-              <View style={[inputStyle('state'), { flex: 1 }]}>
-                <TextInput
-                  ref={stateRef}
-                  value={form.state}
-                  onChangeText={set('state')}
-                  placeholder="State"
-                  placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
-                  style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                  returnKeyType="next"
-                  onSubmitEditing={() => countryRef.current?.focus()}
-                  onFocus={() => setFocused('state')}
-                  onBlur={() => setFocused(null)}
-                  accessibilityLabel="State"
-                />
-              </View>
-
-              <View style={[inputStyle('country'), { flex: 1 }]}>
-                <TextInput
-                  ref={countryRef}
-                  value={form.country}
-                  onChangeText={set('country')}
-                  placeholder="Country"
-                  placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
-                  style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                  returnKeyType="next"
-                  onSubmitEditing={() => pinRef.current?.focus()}
-                  onFocus={() => setFocused('country')}
-                  onBlur={() => setFocused(null)}
-                  accessibilityLabel="Country"
-                />
-              </View>
-            </View>
-
-            {/* Pin Code */}
-            <View style={inputStyle('pinCode')}>
-              <Text style={styles.inputIcon}>📮</Text>
-              <TextInput
-                ref={pinRef}
-                value={form.pinCode}
-                onChangeText={set('pinCode')}
-                placeholder="Pin / Postal Code"
-                placeholderTextColor={isDark ? "#7C7796" : "#9CA3AF"}
-                style={[styles.textInput, { color: isDark ? '#FFFFFF' : '#1B1528' }]}
-                keyboardType="number-pad"
-                maxLength={10}
                 returnKeyType="done"
                 onSubmitEditing={handleSave}
-                onFocus={() => setFocused('pinCode')}
-                onBlur={() => setFocused(null)}
-                accessibilityLabel="Pin or postal code"
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                autoCapitalize="words"
+                accessibilityLabel="City"
               />
             </View>
 
@@ -292,7 +153,7 @@ export default function AddressScreen() {
               }
             ]}>
               <Text style={[styles.privacyText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
-                🔒  Your full address is private and never shown to other users. Only your city is used for match discovery.
+                🔒  Only your city is shown on your profile and used for match discovery.
               </Text>
             </View>
 
@@ -306,7 +167,7 @@ export default function AddressScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.actionText}>Save Address  →</Text>
+                <Text style={styles.actionText}>Continue  →</Text>
               )}
             </Pressable>
           </View>
@@ -389,10 +250,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputContainerFocused: {
-    borderColor: '#A855F7',
-    backgroundColor: 'rgba(30, 15, 60, 0.65)',
-  },
   inputIcon: {
     fontSize: 18,
     marginRight: 12,
@@ -403,13 +260,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     height: '100%',
-  },
-
-  // ── Two column row ──
-  twoCol: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
   },
 
   // ── Privacy Note ──
