@@ -268,7 +268,7 @@ export default function OnboardingQues10Screen() {
                 pressed && styles.backNavBtnPressed,
               ]}
             >
-              <Text style={[styles.backNavArrow, { color: isDark ? '#FFFFFF' : '#3D2A6E' }]}>←</Text>
+              <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#3D2A6E' }]} />
             </Pressable>
 
             {/* Action Continue Button with Heart Icon */}
@@ -438,10 +438,13 @@ const styles = StyleSheet.create({
   backNavBtnPressed: {
     opacity: 0.7,
   },
-  backNavArrow: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
+  backChevron: {
+    width: 12,
+    height: 12,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
   },
 
   // ── Action Button ──

@@ -57,7 +57,7 @@ export default function DiscoverScreen() {
     } else {
       setRewindLocked(true);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

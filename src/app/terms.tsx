@@ -49,7 +49,7 @@ export default function TermsScreen() {
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={styles.backIcon}>‹</Text>
+        <View style={styles.backChevron} />
       </Pressable>
 
       <View style={[styles.container, { paddingTop: insets.top + 50, paddingBottom: insets.bottom + 16 }]}>
@@ -234,7 +234,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { color: '#FFFFFF', fontSize: 26, lineHeight: 28, marginTop: -2 },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+    borderColor: '#FFFFFF',
+  },
 
   title: {
     fontFamily: SERIF,

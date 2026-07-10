@@ -58,7 +58,7 @@ export default function SavedInsightsScreen() {
         accessibilityRole="button"
         accessibilityLabel="Go back"
       >
-        <Text style={[styles.backIcon, { color: palette.textPrimary }]}>‹</Text>
+        <View style={[styles.backChevron, { borderColor: palette.textPrimary }]} />
       </Pressable>
 
       <View style={[styles.content, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}>
@@ -113,7 +113,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backIcon: { fontSize: 22, fontWeight: '700', marginTop: -2 },
+  backChevron: {
+    width: 8,
+    height: 8,
+    borderLeftWidth: 2.2,
+    borderBottomWidth: 2.2,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 3,
+  },
   content: { flex: 1, paddingHorizontal: 20 },
   title: { fontSize: 22, fontWeight: '800', marginBottom: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },

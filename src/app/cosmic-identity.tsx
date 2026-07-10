@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
  * Lightweight glyph icons — the rest of the app renders icons as emoji/text
@@ -155,20 +156,43 @@ const SIGN_RULERS: Record<string, { ruler: string; symbol: string }> = {
   Pisces: { ruler: 'Neptune', symbol: '♆' },
 };
 
+// Sanskrit API name → display Tamil-Vedic name mapping.
+const SANSKRIT_TO_TAMIL_VEDIC: Record<string, string> = {
+  mesha: 'mesam',
+  vrishabha: 'risabam', vrisabha: 'risabam',
+  mithuna: 'midhunam',
+  karka: 'kadagam', kataka: 'kadagam',
+  simha: 'simmam',
+  kanya: 'kanni',
+  tula: 'thulaam', thula: 'thulaam',
+  vrishchika: 'viruchigam', vrischika: 'viruchigam',
+  dhanu: 'dhanusu', dhanus: 'dhanusu',
+  makara: 'magaram',
+  kumbha: 'kumbam',
+  meena: 'meenam',
+};
+
 // Vedic (Rashi) → Western sign name, so Vedic can reuse Western dates/ruler/art.
 const VEDIC_TO_WESTERN_NAME: Record<string, string> = {
-  mesha: 'Aries', vrishabha: 'Taurus', vrisabha: 'Taurus', mithuna: 'Gemini',
-  karka: 'Cancer', kataka: 'Cancer', simha: 'Leo', kanya: 'Virgo',
-  tula: 'Libra', thula: 'Libra', vrishchika: 'Scorpio', vrischika: 'Scorpio',
-  dhanu: 'Sagittarius', dhanus: 'Sagittarius', makara: 'Capricorn',
-  kumbha: 'Aquarius', meena: 'Pisces',
+  mesam: 'Aries',
+  risabam: 'Taurus',
+  midhunam: 'Gemini',
+  kadagam: 'Cancer',
+  simmam: 'Leo',
+  kanni: 'Virgo',
+  thulaam: 'Libra',
+  viruchigam: 'Scorpio',
+  dhanusu: 'Sagittarius',
+  magaram: 'Capricorn',
+  kumbam: 'Aquarius',
+  meenam: 'Pisces',
 };
 
 // Western sign name → Vedic (Rashi) name mappings.
 const WESTERN_TO_VEDIC_NAME: Record<string, string> = {
-  aries: 'Mesha', taurus: 'Vrishabha', gemini: 'Mithuna', cancer: 'Karka',
-  leo: 'Simha', virgo: 'Kanya', libra: 'Tula', scorpio: 'Vrishchika',
-  sagittarius: 'Dhanu', capricorn: 'Makara', aquarius: 'Kumbha', pisces: 'Meena',
+  aries: 'Mesam', taurus: 'Risabam', gemini: 'Midhunam', cancer: 'Kadagam',
+  leo: 'Simmam', virgo: 'Kanni', libra: 'Thulaam', scorpio: 'Viruchigam',
+  sagittarius: 'Dhanusu', capricorn: 'Magaram', aquarius: 'Kumbam', pisces: 'Meenam',
 };
 
 // Zodiac order mapping to distribute symbols clockwise starting from active sign
@@ -216,11 +240,10 @@ const formatSignLabel = (sign?: string | null) => {
 const getVedicSignName = (signName: string | null | undefined): string | null => {
   if (!signName) return null;
   const name = signName.trim().toLowerCase();
-  if (name in VEDIC_TO_WESTERN_NAME) {
-    return formatSignLabel(name);
-  }
-  if (name in WESTERN_TO_VEDIC_NAME) {
-    return WESTERN_TO_VEDIC_NAME[name];
+  const normalizedKey = SANSKRIT_TO_TAMIL_VEDIC[name] || name;
+  const westernName = getWesternSignName(normalizedKey);
+  if (westernName) {
+    return WESTERN_TO_VEDIC_NAME[westernName.toLowerCase()] || formatSignLabel(signName);
   }
   return formatSignLabel(signName);
 };
@@ -228,11 +251,12 @@ const getVedicSignName = (signName: string | null | undefined): string | null =>
 const getWesternSignName = (signName: string | null | undefined): string | null => {
   if (!signName) return null;
   const name = signName.trim().toLowerCase();
-  if (name in WESTERN_TO_VEDIC_NAME) {
+  const normalizedKey = SANSKRIT_TO_TAMIL_VEDIC[name] || name;
+  if (normalizedKey in WESTERN_TO_VEDIC_NAME) {
     return formatSignLabel(signName);
   }
-  if (name in VEDIC_TO_WESTERN_NAME) {
-    return VEDIC_TO_WESTERN_NAME[name];
+  if (normalizedKey in VEDIC_TO_WESTERN_NAME) {
+    return VEDIC_TO_WESTERN_NAME[normalizedKey];
   }
   return formatSignLabel(signName);
 };
@@ -255,18 +279,18 @@ const WESTERN_TAGLINES: Record<string, string> = {
 
 // Vedic Zodiac Taglines
 const VEDIC_TAGLINES: Record<string, string> = {
-  'Mesha': 'The Pioneer',
-  'Vrishabha': 'The Anchor',
-  'Mithuna': 'The Alchemist',
-  'Karka': 'The Protector',
-  'Simha': 'The Sovereign',
-  'Kanya': 'The Perfectionist',
-  'Tula': 'The Harmonizer',
-  'Vrishchika': 'The Mystic',
-  'Dhanu': 'The Seeker',
-  'Makara': 'The Mastermind',
-  'Kumbha': 'The Visionary',
-  'Meena': 'The Dreamer',
+  'Mesam': 'The Pioneer',
+  'Risabam': 'The Anchor',
+  'Midhunam': 'The Alchemist',
+  'Kadagam': 'The Protector',
+  'Simmam': 'The Sovereign',
+  'Kanni': 'The Perfectionist',
+  'Thulaam': 'The Harmonizer',
+  'Viruchigam': 'The Mystic',
+  'Dhanusu': 'The Seeker',
+  'Magaram': 'The Mastermind',
+  'Kumbam': 'The Visionary',
+  'Meenam': 'The Dreamer',
 };
 
 // Nakshatra Taglines
@@ -318,18 +342,18 @@ const WESTERN_TRAITS: Record<string, string[]> = {
 
 // Vedic Zodiac Traits
 const VEDIC_TRAITS: Record<string, string[]> = {
-  'Mesha': ['Bold', 'Energetic', 'Leader'],
-  'Vrishabha': ['Stable', 'Reliable', 'Artistic'],
-  'Mithuna': ['Intellectual', 'Adaptable', 'Expressive'],
-  'Karka': ['Intuitive', 'Nurturing', 'Emotional'],
-  'Simha': ['Charismatic', 'Bold', 'Generous'],
-  'Kanya': ['Practical', 'Analytical', 'Diligent'],
-  'Tula': ['Diplomatic', 'Artistic', 'Balanced'],
-  'Vrishchika': ['Intense', 'Intuitive', 'Resilient'],
-  'Dhanu': ['Optimistic', 'Philosophical', 'Adventurous'],
-  'Makara': ['Disciplined', 'Ambitious', 'Practical'],
-  'Kumbha': ['Innovative', 'Independent', 'Humanitarian'],
-  'Meena': ['Empathetic', 'Intuitive', 'Creative'],
+  'Mesam': ['Bold', 'Energetic', 'Leader'],
+  'Risabam': ['Stable', 'Reliable', 'Artistic'],
+  'Midhunam': ['Intellectual', 'Adaptable', 'Expressive'],
+  'Kadagam': ['Intuitive', 'Nurturing', 'Emotional'],
+  'Simmam': ['Charismatic', 'Bold', 'Generous'],
+  'Kanni': ['Practical', 'Analytical', 'Diligent'],
+  'Thulaam': ['Diplomatic', 'Artistic', 'Balanced'],
+  'Viruchigam': ['Intense', 'Intuitive', 'Resilient'],
+  'Dhanusu': ['Optimistic', 'Philosophical', 'Adventurous'],
+  'Magaram': ['Disciplined', 'Ambitious', 'Practical'],
+  'Kumbam': ['Innovative', 'Independent', 'Humanitarian'],
+  'Meenam': ['Empathetic', 'Intuitive', 'Creative'],
 };
 
 // Nakshatra Traits
@@ -381,18 +405,18 @@ const WESTERN_DESCRIPTIONS: Record<string, string> = {
 
 // Vedic Zodiac Poetic Descriptions
 const VEDIC_DESCRIPTIONS: Record<string, string> = {
-  'Mesha': 'You initiate with fire, lead with passion and live fearlessly. Your pioneering spirit lights the path for others.',
-  'Vrishabha': 'You build on solid ground, appreciate deep beauty and remain patient. Your loyalty is an unshakeable sanctuary.',
-  'Mithuna': 'You weave words with magic, seek endless wonder and adapt like the wind. Your mind is a canvas of infinite ideas.',
-  'Karka': 'You feel with tide-like depth, nurture with tenderness and protect fiercely. Your heart is a safe harbor in any storm.',
-  'Simha': 'You shine like the summer sun, love with open arms and lead with dignity. Your presence warms and inspires everyone.',
-  'Kanya': 'You seek quiet perfection, heal with meticulous care and serve with grace. Your intellect brings order to chaos.',
-  'Tula': 'You seek ultimate harmony, charm with gentle grace and build bridges. Your soul dances in the search for balance.',
-  'Vrishchika': 'You walk through shadows, rise from ashes and feel with burning intensity. Your strength lies in your profound rebirth.',
-  'Dhanu': 'You shoot your arrow at the stars, travel with a free soul and seek truth. Your optimism is a guiding beacon.',
-  'Makara': 'You climb the highest peaks, build lasting legacies and stand resilient. Your patience turns dreams into reality.',
-  'Kumbha': 'You dream of a better tomorrow, think outside bounds and stand unique. Your vision is a catalyst for change.',
-  'Meena': 'You feel deeply, dream wildly and love unconditionally. Your intuition guides you like no other.',
+  'Mesam': 'You initiate with fire, lead with passion and live fearlessly. Your pioneering spirit lights the path for others.',
+  'Risabam': 'You build on solid ground, appreciate deep beauty and remain patient. Your loyalty is an unshakeable sanctuary.',
+  'Midhunam': 'You weave words with magic, seek endless wonder and adapt like the wind. Your mind is a canvas of infinite ideas.',
+  'Kadagam': 'You feel with tide-like depth, nurture with tenderness and protect fiercely. Your heart is a safe harbor in any storm.',
+  'Simmam': 'You shine like the summer sun, love with open arms and lead with dignity. Your presence warms and inspires everyone.',
+  'Kanni': 'You seek quiet perfection, heal with meticulous care and serve with grace. Your intellect brings order to chaos.',
+  'Thulaam': 'You seek ultimate harmony, charm with gentle grace and build bridges. Your soul dances in the search for balance.',
+  'Viruchigam': 'You walk through shadows, rise from ashes and feel with burning intensity. Your strength lies in your profound rebirth.',
+  'Dhanusu': 'You shoot your arrow at the stars, travel with a free soul and seek truth. Your optimism is a guiding beacon.',
+  'Magaram': 'You climb the highest peaks, build lasting legacies and stand resilient. Your patience turns dreams into reality.',
+  'Kumbam': 'You dream of a better tomorrow, think outside bounds and stand unique. Your vision is a catalyst for change.',
+  'Meenam': 'You feel deeply, dream wildly and love unconditionally. Your intuition guides you like no other.',
 };
 
 // Nakshatra Poetic Descriptions
@@ -441,6 +465,7 @@ const NAKSHATRA_CANON_MAP: Record<string, string> = NAKSHATRA_CANONICAL.reduce(
 );
 const NAKSHATRA_ALIASES: Record<string, string> = {
   aswini: 'Ashwini',
+  bharani: 'Bharani', bharni: 'Bharani',
   kritika: 'Krittika',
   mrigasira: 'Mrigashira', mrigashirsha: 'Mrigashira', mrighashira: 'Mrigashira',
   aardra: 'Ardra', arudra: 'Ardra',
@@ -592,6 +617,11 @@ export default function ZodiacPreviewScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bgSource = isDark
+    ? require('@/assets/images/onboard-bg.png')
+    : require('@/assets/images/onboard-light-bg.png');
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [selectedZodiacType, setSelectedZodiacType] = useState<'vedic' | 'western' | 'nakshatra'>('vedic');
@@ -1062,11 +1092,11 @@ export default function ZodiacPreviewScreen() {
 
   if (loadingAstro) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: isDark ? '#0B0613' : '#F5F3FF' }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.errorContainer}>
-            <ActivityIndicator size="large" color={COLORS.ink} />
-            <Text style={[styles.errorText, { marginTop: 16, fontSize: 15 }]}>Reading your stars…</Text>
+            <ActivityIndicator size="large" color={isDark ? '#FFFFFF' : '#7C3AED'} />
+            <Text style={[styles.errorText, { color: isDark ? '#FFFFFF' : '#1A0A2E', marginTop: 16, fontSize: 15 }]}>Reading your stars…</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -1075,10 +1105,10 @@ export default function ZodiacPreviewScreen() {
 
   if (!dob || !westernSign) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: isDark ? '#0B0613' : '#F5F3FF' }]}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Invalid birth details</Text>
+            <Text style={[styles.errorText, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>Invalid birth details</Text>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
@@ -1089,15 +1119,15 @@ export default function ZodiacPreviewScreen() {
   }
   return (
     <ImageBackground
-      source={require('@/assets/images/onboard-bg.png')}
-      style={styles.container}
+      source={bgSource}
+      style={[styles.container, { backgroundColor: isDark ? '#0B0613' : '#F5F3FF' }]}
       resizeMode="cover"
     >
       {/* Background Sparkles */}
-      <Sparkle size={14} color="rgba(168, 85, 247, 0.15)" style={[styles.bgSparkle, { top: 80, left: 30 }]} />
-      <Sparkle size={16} color="rgba(168, 85, 247, 0.1)" style={[styles.bgSparkle, { top: 120, right: 40 }]} />
-      <Sparkle size={12} color="rgba(168, 85, 247, 0.15)" style={[styles.bgSparkle, { bottom: 180, left: 45 }]} />
-      <Sparkle size={15} color="rgba(168, 85, 247, 0.1)" style={[styles.bgSparkle, { bottom: 100, right: 35 }]} />
+      <Sparkle size={14} color={isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(124, 92, 246, 0.1)"} style={[styles.bgSparkle, { top: 80, left: 30 }]} />
+      <Sparkle size={16} color={isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(124, 92, 246, 0.08)"} style={[styles.bgSparkle, { top: 120, right: 40 }]} />
+      <Sparkle size={12} color={isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(124, 92, 246, 0.1)"} style={[styles.bgSparkle, { bottom: 180, left: 45 }]} />
+      <Sparkle size={15} color={isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(124, 92, 246, 0.08)"} style={[styles.bgSparkle, { bottom: 100, right: 35 }]} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView
@@ -1109,12 +1139,12 @@ export default function ZodiacPreviewScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>
-                Your Cosmic <Text style={styles.headerTitleAccent}>Identity</Text>
+              <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>
+                Your Cosmic <Text style={[styles.headerTitleAccent, { color: isDark ? '#B37CFF' : '#7C3AED' }]}>Identity</Text>
               </Text>
             </View>
             <View style={styles.headerSubtitleRow}>
-              <Text style={styles.headerSubtitle}>Discover your signs</Text>
+              <Text style={[styles.headerSubtitle, { color: isDark ? 'rgba(255, 255, 255, 0.65)' : '#4B5563' }]}>Discover your signs</Text>
             </View>
           </View>
 
@@ -1369,7 +1399,6 @@ export default function ZodiacPreviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   bgSparkle: {
     position: 'absolute',
