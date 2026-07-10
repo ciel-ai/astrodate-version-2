@@ -14,13 +14,12 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
+import { OnboardingProgressBar } from '@/components/onboarding-progress-bar';
+import { useOnboardingFonts } from '@/hooks/use-onboarding-fonts';
 import { supabase } from '@/lib/supabase';
-
-const SERIF = 'Baskerville-Old-Face';
 
 interface PreferenceOption {
   id: string;
@@ -46,9 +45,7 @@ export default function OnboardingQuesScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
 
-  const [fontsLoaded] = useFonts({
-    [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
-  });
+  const fontsLoaded = useOnboardingFonts();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -148,22 +145,7 @@ export default function OnboardingQuesScreen() {
       >
         <View style={styles.container}>
           
-          {/* Progress bar — Page 1 of 10 indicator */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressRow}>
-              {Array.from({ length: 10 }).map((_, idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.progressSegment,
-                    { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' },
-                    idx < 1 && styles.progressSegmentActive,
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={[styles.progressText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>Page 1 of 10</Text>
-          </View>
+          <OnboardingProgressBar current={1} />
 
           {/* Heading */}
           <View style={styles.header}>
@@ -265,35 +247,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2.5,
     transform: [{ rotate: '45deg' }],
     marginLeft: 4,
-  },
-
-  // ── Progress Bar ──
-  progressSection: {
-    width: '100%',
-    alignItems: 'flex-start',
-    marginTop: 10,
-    marginBottom: 32,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    width: '100%',
-    height: 4,
-    gap: 6,
-    marginBottom: 8,
-  },
-  progressSegment: {
-    flex: 1,
-    height: '100%',
-    borderRadius: 2,
-  },
-  progressSegmentActive: {
-    backgroundColor: '#B57BFF',
-  },
-  progressText: {
-    color: '#9A93B5',
-    fontSize: 13,
-    fontWeight: '600',
-    opacity: 0.8,
   },
 
   // ── Header ──
