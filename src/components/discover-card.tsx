@@ -11,61 +11,13 @@
  *
  * Developer preview profile (Dinesh) is available for dev mode.
  */
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Circle, Path } from 'react-native-svg';
 import { GlassView } from 'expo-glass-effect';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 
 import type { DiscoverCardData } from '@/lib/discover';
 
-function openPaywall(reason: string) {
-  router.push({ pathname: '/paywall', params: { reason } } as any);
-}
 
-function GatedSection({
-  title,
-  info,
-  caret,
-  locked,
-  onLockPress,
-  children,
-}: {
-  title: string;
-  info?: boolean;
-  caret?: boolean;
-  locked: boolean;
-  onLockPress?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <GlassView glassEffectStyle="regular" style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionHeaderLeft}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
-        <View style={styles.sectionHeaderRight}>
-          {info && (
-            <View style={styles.infoIconCircle}>
-              <Text style={styles.infoIconText}>i</Text>
-            </View>
-          )}
-          {caret && <Text style={styles.caretText}>❯</Text>}
-        </View>
-      </View>
-
-      {locked ? (
-        <Pressable onPress={onLockPress} style={styles.lockContainer}>
-          <Text style={styles.lockIconLarge}>🔒</Text>
-          <Text style={styles.lockLabel}>Upgrade to unlock this cosmic insight</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.sectionContent}>{children}</View>
-      )}
-    </GlassView>
-  );
-}
 
 interface DiscoverCardProps {
   card: DiscoverCardData;
@@ -84,33 +36,7 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
   const heroPhoto = card.photos?.[0]?.url ?? null;
   const sourceImage = typeof heroPhoto === 'string' ? { uri: heroPhoto } : heroPhoto;
 
-  const isFreeTier = tier === 'free';
-  const isAstroPlus = tier === 'astro_plus' || tier === 'astroplus';
 
-  const onUpgradePress = () => openPaywall('discover_card_gated_section');
-
-  // Static interest chips from mockup
-  const candidateHobbies = [
-    { id: 'movies', name: 'Movies', icon: '🎬' },
-    { id: 'travel', name: 'Travel', icon: '✈️' },
-    { id: 'coffee', name: 'Coffee', icon: '☕' },
-    { id: 'stocks', name: 'Stocks', icon: '📈' },
-    { id: 'gaming', name: 'Gaming', icon: '🎮' },
-    { id: 'music', name: 'Music', icon: '🎵' },
-    { id: 'more', name: 'More', icon: '•••' },
-  ];
-
-  // Detailed mockup bullets for Why You Matched
-  const whyMatchedBullets = [
-    'You both love travelling',
-    'Both enjoy movies and coffee',
-    'Looking for a long-term relationship',
-    'Similar communication style',
-    'High emotional compatibility',
-  ];
-
-  // Intersecting interests list
-  const sharedInterests = ['Movies', 'Travel', 'Coffee', 'Investing', 'Dogs'];
 
   return (
     <View style={styles.card}>
@@ -122,26 +48,7 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
           <Text style={styles.heroInitials}>{initials}</Text>
         )}
 
-        {/* Top-left: Horizontal progress bar indicators */}
-        <View style={styles.paginationRow}>
-          <View style={[styles.paginationLine, styles.paginationLineActive]} />
-          <View style={styles.paginationLine} />
-          <View style={styles.paginationLine} />
-          <View style={styles.paginationLine} />
-        </View>
 
-        {/* Top-right: Outline bookmark/save icon */}
-        <View style={styles.bookmarkButton}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M5 3h14a2 2 0 0 1 2 2v16l-8-5-8 5V5a2 2 0 0 1 2-2z"
-              stroke="#FFFFFF"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </View>
 
         {/* Cosmic Match radial ring overlay on right side */}
         <View style={styles.scoreOverlay}>
@@ -191,233 +98,8 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
           </View>
         </View>
 
-        {/* Interest chips list at the bottom overlay */}
-        <View style={styles.interestsOverlay}>
-          {candidateHobbies.map((hobby) => (
-            <View key={hobby.id} style={styles.hobbyChipWrapper}>
-              <GlassView glassEffectStyle="clear" style={styles.hobbyIconCircle}>
-                <Text style={styles.hobbyIconText}>{hobby.icon}</Text>
-              </GlassView>
-              <Text style={styles.hobbyLabel}>{hobby.name}</Text>
-            </View>
-          ))}
-        </View>
+
       </View>
-
-      {/* ── 1. Why you matched Card (AstroX gated) ── */}
-      <GatedSection
-        title="✨ Why you matched"
-        locked={isFreeTier || isAstroPlus}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.bulletsList}>
-          {whyMatchedBullets.map((bullet, idx) => (
-            <View key={idx} style={styles.bulletRow}>
-              <View style={styles.checkCircle}>
-                <Text style={styles.checkText}>✓</Text>
-              </View>
-              <Text style={styles.bulletText}>{bullet}</Text>
-            </View>
-          ))}
-        </View>
-      </GatedSection>
-
-      {/* ── 2. Cosmic Compatibility Card (Astro+ gated) ── */}
-      <GatedSection
-        title="⚡ Cosmic Compatibility"
-        info
-        locked={isFreeTier}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.cosmicCompContent}>
-          <Svg width={110} height={110} viewBox="0 0 100 100" style={styles.astrolabeSvg}>
-            <Circle
-              cx="50"
-              cy="50"
-              r="45"
-              stroke="rgba(179, 133, 255, 0.15)"
-              strokeWidth={1}
-              strokeDasharray="3, 3"
-              fill="none"
-            />
-            <Circle
-              cx="50"
-              cy="50"
-              r="35"
-              stroke="rgba(179, 133, 255, 0.25)"
-              strokeWidth={1}
-              fill="none"
-            />
-            <Circle
-              cx="50"
-              cy="50"
-              r="25"
-              stroke="rgba(179, 133, 255, 0.4)"
-              strokeWidth={1.2}
-              strokeDasharray="5, 3"
-              fill="none"
-            />
-            <Circle
-              cx="50"
-              cy="50"
-              r="15"
-              stroke="rgba(179, 133, 255, 0.6)"
-              strokeWidth={1.5}
-              fill="none"
-            />
-            {/* Center star */}
-            <Path d="M50 40 L52 47 L59 50 L52 53 L50 60 L48 53 L41 50 L48 47 Z" fill="#B385FF" />
-            {/* Small decorative stars */}
-            <Circle cx="30" cy="30" r="0.8" fill="#B385FF" />
-            <Circle cx="70" cy="70" r="0.8" fill="#B385FF" />
-            <Circle cx="35" cy="65" r="0.8" fill="#B385FF" />
-            <Circle cx="65" cy="35" r="1.2" fill="#B385FF" />
-          </Svg>
-          <Text style={styles.cosmicCompCaption}>
-            Exceptional match across Western, Vedic & Personality astrology.
-          </Text>
-        </View>
-      </GatedSection>
-
-      {/* ── 3. Shared Interests Card (Astro+ gated) ── */}
-      <GatedSection
-        title="💜 Shared Interests"
-        locked={isFreeTier}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.sharedInterestsContent}>
-          <LinearGradient colors={['#EC4899', '#8B5CF6']} style={styles.gradientHeart}>
-            <Text style={styles.heartEmoji}>♥</Text>
-          </LinearGradient>
-          <View style={styles.sharedInterestsTextWrap}>
-            <Text style={styles.sharedInterestsCount}>{sharedInterests.length} Things you both like</Text>
-            <Text style={styles.sharedInterestsList}>{sharedInterests.join(', ')}</Text>
-          </View>
-        </View>
-      </GatedSection>
-
-      {/* ── 4. Synastry Badges Card (AstroX gated) ── */}
-      <GatedSection
-        title="✨ Synastry Badges"
-        locked={isFreeTier || isAstroPlus}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.synastryContent}>
-          <View style={styles.badgeIconWrap}>
-            <Svg width={44} height={44} viewBox="0 0 40 40">
-              <Circle
-                cx="20"
-                cy="20"
-                r="18"
-                fill="rgba(179, 133, 255, 0.08)"
-                stroke="rgba(179, 133, 255, 0.25)"
-                strokeWidth={1}
-              />
-              <Path d="M20 12 L22 18 L28 20 L22 22 L20 28 L18 22 L12 20 L18 18 Z" fill="#B385FF" />
-            </Svg>
-          </View>
-          <View style={styles.synastryTextWrap}>
-            <Text style={styles.synastryCount}>3 Special cosmic connections</Text>
-            <Text style={styles.synastryList}>Harmonious Souls, Nadi Match, Gana Match</Text>
-          </View>
-        </View>
-      </GatedSection>
-
-      {/* ── 5. Indian Astrology Card (Astro+ gated) ── */}
-      <GatedSection
-        title="🛡️ Indian Astrology"
-        info
-        locked={isFreeTier}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.indianAstrologyContent}>
-          <View style={styles.omCircle}>
-            <Text style={styles.omSymbol}>🕉</Text>
-          </View>
-          <View style={styles.indianAstrologyList}>
-            <View style={styles.doshaRow}>
-              <Text style={styles.manglikLabel}>⚠️ Manglik (Mild)</Text>
-            </View>
-            <View style={styles.doshaRow}>
-              <Text style={styles.doshaText}>Nadi Dosha</Text>
-              <Text style={styles.doshaValue}>No Dosha</Text>
-              <View style={styles.greenCheckCircle}>
-                <Text style={styles.greenCheckText}>✓</Text>
-              </View>
-            </View>
-            <View style={styles.doshaRow}>
-              <Text style={styles.doshaText}>Bhakoot Dosha</Text>
-              <Text style={styles.doshaValue}>Good</Text>
-              <View style={styles.greenCheckCircle}>
-                <Text style={styles.greenCheckText}>✓</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </GatedSection>
-
-      {/* ── 6. Ashtakoota Card (Astro+ gated) ── */}
-      <GatedSection
-        title="⚡ Ashtakoota (36/36)"
-        info
-        locked={isFreeTier}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.ashtakootaContent}>
-          <View style={styles.lotusCircle}>
-            <Text style={styles.lotusValue}>9</Text>
-          </View>
-          <View style={styles.ashtakootaRight}>
-            <Text style={styles.ashtakootaScore}>{card.indian_score ?? 28} / 36</Text>
-            <Text style={styles.ashtakootaLabel}>Excellent Match</Text>
-            <Text style={styles.ashtakootaLink}>View full Ashtakoota breakdown ❯</Text>
-          </View>
-        </View>
-      </GatedSection>
-
-      {/* ── 7. Personality Score Card (Astro+ gated) ── */}
-      <GatedSection
-        title="🧠 Personality Score (10%)"
-        caret
-        locked={isFreeTier}
-        onLockPress={onUpgradePress}
-      >
-        <View style={styles.personalityContent}>
-          <View style={styles.personalityAvatarCircle}>
-            <View style={styles.personalityAvatarInner} />
-          </View>
-          <View style={styles.personalityTextWrap}>
-            <Text style={styles.personalityScoreText}>{card.personality_score ?? 74}%</Text>
-            <Text style={styles.personalityDesc}>Good compatibility based on your personality.</Text>
-          </View>
-        </View>
-      </GatedSection>
-
-      {/* ── 8. More About Card (Ungated) ── */}
-      <GlassView glassEffectStyle="regular" style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>👤 More About {name}</Text>
-          <Text style={styles.caretText}>❯</Text>
-        </View>
-        <View style={styles.attributesList}>
-          <View style={styles.attributeRow}>
-            <Text style={styles.attributeIcon}>📏</Text>
-            <Text style={styles.attributeText}>{"Height: 5'10\""}</Text>
-          </View>
-          <View style={styles.attributeRow}>
-            <Text style={styles.attributeIcon}>🌐</Text>
-            <Text style={styles.attributeText}>Language: Tamil, English</Text>
-          </View>
-          <View style={styles.attributeRow}>
-            <Text style={styles.attributeIcon}>🎓</Text>
-            <Text style={styles.attributeText}>Education: Student</Text>
-          </View>
-          <View style={styles.attributeRow}>
-            <Text style={styles.attributeIcon}>❤️</Text>
-            <Text style={styles.attributeText}>Lifestyle: Non-smoker</Text>
-          </View>
-        </View>
-      </GlassView>
     </View>
   );
 }
@@ -442,39 +124,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 2,
   },
-  paginationRow: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    flexDirection: 'row',
-    gap: 4,
-  },
-  paginationLine: {
-    width: 24,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    borderRadius: 2,
-  },
-  paginationLineActive: {
-    backgroundColor: '#B385FF',
-  },
-  bookmarkButton: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    padding: 8,
-  },
+
   scoreOverlay: {
     position: 'absolute',
-    top: '30%',
+    top: 14,
     right: 14,
   },
   cosmicMatchRing: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     borderRadius: 999,
-    width: 90,
-    height: 90,
+    width: 66,
+    height: 66,
     backgroundColor: 'rgba(20, 12, 40, 0.65)',
     borderWidth: 1.5,
     borderColor: '#B385FF',
@@ -487,30 +148,30 @@ const styles = StyleSheet.create({
   },
   cosmicMatchPercent: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '800',
-    lineHeight: 22,
+    lineHeight: 16,
   },
   cosmicMatchLabel: {
     color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 7,
+    fontSize: 5,
     fontWeight: '700',
-    marginTop: 1,
+    marginTop: 0.5,
     textAlign: 'center',
   },
   starsRow: {
     flexDirection: 'row',
     gap: 1,
-    marginTop: 3,
+    marginTop: 1.5,
   },
   starIcon: {
-    fontSize: 7,
+    fontSize: 5,
     color: '#F59E0B',
   },
   nameOverlay: {
     position: 'absolute',
     left: 16,
-    bottom: 74,
+    bottom: 16,
   },
   nameRow: {
     flexDirection: 'row',
@@ -539,13 +200,13 @@ const styles = StyleSheet.create({
     color: '#B385FF',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 2,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 6,
+    marginTop: 3,
   },
   locationPin: {
     fontSize: 11,
@@ -573,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    marginTop: 4,
+    marginTop: 6,
     alignSelf: 'flex-start',
   },
   lookingForHeart: {

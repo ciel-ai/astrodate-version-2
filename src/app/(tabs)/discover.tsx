@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { DiscoverCard } from '@/components/discover-card';
-import { DiscoverActionBar } from '@/components/discover-action-bar';
 import { useAuth } from '@/context/auth';
 import {
   getDiscoverDeck,
@@ -113,6 +112,7 @@ export default function DiscoverScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [index]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
       if (useMockDinesh) {
@@ -155,6 +155,7 @@ export default function DiscoverScreen() {
     [currentCard, swiping, useMockDinesh]
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRewind = useCallback(async () => {
     if (useMockDinesh) {
       Alert.alert('Dev Action', 'Rewind triggered in mock mode');
@@ -319,20 +320,7 @@ export default function DiscoverScreen() {
         {body}
       </ScrollView>
 
-      {/* Action Bar wrapper */}
-      {(!loadError || useMockDinesh) && (cards !== null || useMockDinesh) && (
-        <View style={[styles.actionBarWrap, { bottom: insets.bottom + 16 }]}>
-          <DiscoverActionBar
-            disabled={swiping}
-            swipeDisabled={!currentCard || limitReached}
-            onPass={() => handleSwipe('pass')}
-            onLike={() => handleSwipe('like')}
-            onSuperLike={() => handleSwipe('super_like')}
-            onRewind={handleRewind}
-            rewindLocked={useMockDinesh ? false : rewindLocked}
-          />
-        </View>
-      )}
+
     </View>
   );
 }
@@ -396,6 +384,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+
   devToggle: {
     position: 'absolute',
     top: 110,
