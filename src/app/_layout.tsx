@@ -66,6 +66,8 @@ function RootLayout() {
           <Stack.Screen name="saved-insights" options={{ headerShown: false }} />
           {/* Paywall — contextual upgrade prompt (locked likes reveal, sort, etc.) */}
           <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
+          {/* Message thread for a matched conversation — custom in-screen header */}
+          <Stack.Screen name="chat/[channelId]" options={{ headerShown: false }} />
         </Stack>
       </NavThemeProvider>
     </AuthProvider>
