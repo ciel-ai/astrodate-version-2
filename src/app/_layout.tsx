@@ -1,12 +1,22 @@
+import { useEffect } from 'react';
 import { DarkTheme as NavDarkTheme, DefaultTheme as NavDefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
 import { AppThemeProvider, useAppTheme } from '@/lib/theme-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/context/auth';
 import { SubscriptionProvider } from '@/context/subscription';
+import { registerNotificationTapHandler } from '@/lib/push-notifications';
 
 function RootLayout() {
   const { theme } = useAppTheme();
+
+  // App-wide, registered once regardless of auth state so a cold-start tap
+  // (before AuthProvider resolves) is still captured by
+  // getLastNotificationResponseAsync inside the handler.
+  useEffect(() => {
+    return registerNotificationTapHandler();
+  }, []);
+
   return (
     <AuthProvider>
       <SubscriptionProvider>

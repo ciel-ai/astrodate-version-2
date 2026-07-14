@@ -62,6 +62,18 @@ export default function SettingsScreen() {
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Defaults mirror user_notification_preferences' own column defaults
+  // (supabase/migrations/20260630120000_baseline_tables.sql,
+  // 20260714120000_notification_engagement_tiers.sql) for a user who hasn't
+  // had a preferences row created yet.
+  const [notifPrefs, setNotifPrefs] = useState({
+    new_matches_enabled: true,
+    new_messages_enabled: true,
+    marketing_enabled: false,
+    engagement_enabled: true,
+  });
+  const [notifLoading, setNotifLoading] = useState(true);
+
   // Read current permission state on mount
   useEffect(() => {
     hasLocationPermission().then((granted) => {
@@ -69,6 +81,40 @@ export default function SettingsScreen() {
       setLocationLoading(false);
     });
   }, []);
+
+  // Read current notification preferences on mount. RLS
+  // ("Users manage own notification preferences", FOR ALL USING auth.uid() =
+  // user_id) already lets a signed-in user read their own row directly, no
+  // RPC needed for the read side.
+  useEffect(() => {
+    if (!user?.id) {
+      setNotifLoading(false);
+      return;
+    }
+    supabase
+      .from('user_notification_preferences')
+      .select('new_matches_enabled, new_messages_enabled, marketing_enabled, engagement_enabled')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setNotifPrefs(data);
+        setNotifLoading(false);
+      });
+  }, [user?.id]);
+
+  const handleNotifToggle = async (
+    key: keyof typeof notifPrefs,
+    rpcParam: 'p_new_matches_enabled' | 'p_new_messages_enabled' | 'p_marketing_enabled' | 'p_engagement_enabled',
+    value: boolean
+  ) => {
+    const previous = notifPrefs[key];
+    setNotifPrefs((prev) => ({ ...prev, [key]: value }));
+    const { error } = await supabase.rpc('update_notification_preferences', { [rpcParam]: value });
+    if (error) {
+      setNotifPrefs((prev) => ({ ...prev, [key]: previous }));
+      Alert.alert('Error', 'Could not save that setting. Please try again.');
+    }
+  };
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
@@ -344,6 +390,102 @@ export default function SettingsScreen() {
               </View>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
+          </View>
+
+          {/* ── Notifications ── */}
+          <Text style={styles.sectionLabel}>NOTIFICATIONS</Text>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+            {notifLoading ? (
+              <View style={styles.row}>
+                <ActivityIndicator color="#A855F7" size="small" />
+              </View>
+            ) : (
+              <>
+                <View style={styles.row}>
+                  <View style={styles.rowLeft}>
+                    <Text style={styles.rowIcon}>✨</Text>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>New Matches</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    id="toggle-notif-matches"
+                    value={notifPrefs.new_matches_enabled}
+                    onValueChange={(v) => handleNotifToggle('new_matches_enabled', 'p_new_matches_enabled', v)}
+                    trackColor={{ false: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', true: '#7C3AED' }}
+                    thumbColor={notifPrefs.new_matches_enabled ? '#D4B8FF' : (theme === 'dark' ? '#6B6785' : '#A39FBD')}
+                    ios_backgroundColor={theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'}
+                    accessibilityLabel="Toggle new match notifications"
+                  />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.row}>
+                  <View style={styles.rowLeft}>
+                    <Text style={styles.rowIcon}>💬</Text>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Messages</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    id="toggle-notif-messages"
+                    value={notifPrefs.new_messages_enabled}
+                    onValueChange={(v) => handleNotifToggle('new_messages_enabled', 'p_new_messages_enabled', v)}
+                    trackColor={{ false: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', true: '#7C3AED' }}
+                    thumbColor={notifPrefs.new_messages_enabled ? '#D4B8FF' : (theme === 'dark' ? '#6B6785' : '#A39FBD')}
+                    ios_backgroundColor={theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'}
+                    accessibilityLabel="Toggle message notifications"
+                  />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.row}>
+                  <View style={styles.rowLeft}>
+                    <Text style={styles.rowIcon}>❤️</Text>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Likes</Text>
+                      <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
+                        When someone new likes you.
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    id="toggle-notif-likes"
+                    value={notifPrefs.marketing_enabled}
+                    onValueChange={(v) => handleNotifToggle('marketing_enabled', 'p_marketing_enabled', v)}
+                    trackColor={{ false: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', true: '#7C3AED' }}
+                    thumbColor={notifPrefs.marketing_enabled ? '#D4B8FF' : (theme === 'dark' ? '#6B6785' : '#A39FBD')}
+                    ios_backgroundColor={theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'}
+                    accessibilityLabel="Toggle likes notifications"
+                  />
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.row}>
+                  <View style={styles.rowLeft}>
+                    <Text style={styles.rowIcon}>🔮</Text>
+                    <View style={styles.rowText}>
+                      <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Astrology Updates</Text>
+                      <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
+                        Daily forecasts and standout matches entering your sky.
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    id="toggle-notif-engagement"
+                    value={notifPrefs.engagement_enabled}
+                    onValueChange={(v) => handleNotifToggle('engagement_enabled', 'p_engagement_enabled', v)}
+                    trackColor={{ false: theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)', true: '#7C3AED' }}
+                    thumbColor={notifPrefs.engagement_enabled ? '#D4B8FF' : (theme === 'dark' ? '#6B6785' : '#A39FBD')}
+                    ios_backgroundColor={theme === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'}
+                    accessibilityLabel="Toggle astrology update notifications"
+                  />
+                </View>
+              </>
+            )}
           </View>
 
           {/* ── Appearance ── */}

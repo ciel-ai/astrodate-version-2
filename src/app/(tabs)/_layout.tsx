@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 
@@ -7,6 +8,7 @@ import { ChatsTabIcon } from '@/components/chats/chats-tab-icon';
 import { LikesProvider } from '@/context/likes';
 import { ChatsProvider } from '@/context/chats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { requestAndRegisterPushToken } from '@/lib/push-notifications';
 
 // Every tab screen is mounted once and frozen (not unmounted) when it loses
 // focus — switching tabs is instant and background tabs never re-render or
@@ -14,6 +16,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  // First authenticated screen a user reaches, so this is the one place that
+  // fires once per app session. requestPermissionsAsync is safe to call
+  // every time it remounts (sign-out/sign-in) -- the OS only shows the
+  // prompt itself once a user has never decided; after that it's a no-op
+  // that just resolves with the existing status.
+  useEffect(() => {
+    void requestAndRegisterPushToken();
+  }, []);
 
   return (
     <LikesProvider>

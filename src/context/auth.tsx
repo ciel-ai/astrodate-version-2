@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { syncLocationIfGranted } from '@/lib/location';
+import { syncPushTokenIfGranted } from '@/lib/push-notifications';
 import { withTimeout } from '@/lib/network';
 
 type AuthContextType = {
@@ -64,10 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     syncLocationIfGranted();
+    syncPushTokenIfGranted();
 
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         syncLocationIfGranted();
+        syncPushTokenIfGranted();
       }
     });
 

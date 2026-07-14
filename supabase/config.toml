@@ -393,6 +393,12 @@ verify_jwt = false
 # webhook call gets rejected before the function's own check ever runs.
 verify_jwt = false
 
+[functions.send-push-notification]
+# Called by pg_cron (drain-push-notification-queue) via pg_net with no user
+# JWT, only a scoped x-push-worker-secret header checked inside the function
+# itself -- same reasoning as process-synastry-prewarm above.
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

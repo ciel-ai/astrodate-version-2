@@ -322,6 +322,7 @@ export type Database = {
           attempt_count: number
           body: string
           created_at: string
+          created_date_utc: string
           dedupe_key: string
           error_message: string | null
           expo_receipt_ids: string[] | null
@@ -341,6 +342,7 @@ export type Database = {
           attempt_count?: number
           body: string
           created_at?: string
+          created_date_utc?: string
           dedupe_key: string
           error_message?: string | null
           expo_receipt_ids?: string[] | null
@@ -360,6 +362,7 @@ export type Database = {
           attempt_count?: number
           body?: string
           created_at?: string
+          created_date_utc?: string
           dedupe_key?: string
           error_message?: string | null
           expo_receipt_ids?: string[] | null
@@ -977,31 +980,37 @@ export type Database = {
       user_notification_preferences: {
         Row: {
           created_at: string
+          engagement_enabled: boolean
           marketing_enabled: boolean
           new_matches_enabled: boolean
           new_messages_enabled: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
+          timezone: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          engagement_enabled?: boolean
           marketing_enabled?: boolean
           new_matches_enabled?: boolean
           new_messages_enabled?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          timezone?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          engagement_enabled?: boolean
           marketing_enabled?: boolean
           new_matches_enabled?: boolean
           new_messages_enabled?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          timezone?: string
           updated_at?: string
           user_id?: string
         }
@@ -1128,6 +1137,7 @@ export type Database = {
           gender: string | null
           gender_detail: string | null
           id: string
+          is_verified: boolean
           location: string | null
           personality_vector: string | null
           phone_number: string
@@ -1145,6 +1155,7 @@ export type Database = {
           gender?: string | null
           gender_detail?: string | null
           id?: string
+          is_verified?: boolean
           location?: string | null
           personality_vector?: string | null
           phone_number: string
@@ -1162,6 +1173,7 @@ export type Database = {
           gender?: string | null
           gender_detail?: string | null
           id?: string
+          is_verified?: boolean
           location?: string | null
           personality_vector?: string | null
           phone_number?: string
@@ -1735,7 +1747,11 @@ export type Database = {
       }
       get_discover_deck: { Args: never; Returns: Json }
       get_fallback_feed: {
-        Args: { input_user_id: string }
+        Args: {
+          input_user_id: string
+          p_age_expand?: number
+          p_distance_multiplier?: number
+        }
         Returns: {
           age: number
           bhakoot_dosha: boolean
@@ -1788,6 +1804,20 @@ export type Database = {
           is_online: boolean
           last_seen: string
           user_id: string
+        }[]
+      }
+      get_my_conversations: {
+        Args: never
+        Returns: {
+          channel_id: string
+          last_message_at: string
+          last_message_sender_id: string
+          last_message_text: string
+          matched_at: string
+          other_user_id: string
+          other_user_name: string
+          other_user_photo: string
+          unread_count: number
         }[]
       }
       get_my_daily_pick: { Args: never; Returns: Json }
@@ -1886,6 +1916,10 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       increment_ai_usage: {
         Args: { p_endpoint: string; p_limit: number; p_user: string }
+        Returns: boolean
+      }
+      is_deck_eligible: {
+        Args: { p_candidate_id: string; p_viewer_id: string }
         Returns: boolean
       }
       like_back: { Args: { p_liker_id: string }; Returns: Json }
@@ -2578,19 +2612,23 @@ export type Database = {
       unlockrows: { Args: { "": string }; Returns: number }
       update_notification_preferences: {
         Args: {
+          p_engagement_enabled?: boolean
           p_marketing_enabled?: boolean
           p_new_matches_enabled?: boolean
           p_new_messages_enabled?: boolean
           p_quiet_hours_end?: string
           p_quiet_hours_start?: string
+          p_timezone?: string
         }
         Returns: {
           created_at: string
+          engagement_enabled: boolean
           marketing_enabled: boolean
           new_matches_enabled: boolean
           new_messages_enabled: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
+          timezone: string
           updated_at: string
           user_id: string
         }

@@ -46,6 +46,12 @@ export default ({ config }) => ({
       },
     ],
     'expo-secure-store',
+    [
+      'expo-notifications',
+      {
+        color: '#7C3AED',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
