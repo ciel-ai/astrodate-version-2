@@ -386,6 +386,13 @@ deno_version = 2
 # gateway's own JWT check must be off or that call never reaches the code.
 verify_jwt = false
 
+[functions.revenuecat-webhook]
+# Called by RevenueCat's servers with a shared-secret Authorization header
+# (checked inside the function itself against REVENUECAT_WEBHOOK_SECRET), not
+# a Supabase user JWT -- the gateway's own JWT check must be off or every
+# webhook call gets rejected before the function's own check ever runs.
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
