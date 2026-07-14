@@ -16,40 +16,74 @@ import {
   type DiscoverDeckMeta,
 } from '@/lib/discover';
 
-// Mock Dinesh profile data matching the design mockup exactly
+// Mock Dinesh profile data — full realistic profile for UI preview & testing
 const DINESH_MOCK_CARD: DiscoverCardData = {
   user_id: 'dinesh-mock-id',
   full_name: 'Dinesh',
   gender: 'Male',
-  age: 19,
+  age: 28,
   location: 'Chennai, India',
   score: 81,
   band: 'high',
   is_top_match_of_day: true,
   western_sign: 'Pisces',
-  distance_label: '3 km away',
+  distance_label: 'Less than 1 km away',
   fully_computed: true,
   personality_score: 74,
   indian_score: 28,
   western_score: 36,
-  manglik_status: true, // Mild manglik
-  nadi_dosha: false, // No dosha
-  bhakoot_dosha: false, // Good
+  manglik_status: true,
+  nadi_dosha: false,
+  bhakoot_dosha: false,
   why_you_match: 'Exceptional match across Western, Vedic & Personality astrology.',
+  vedic_sign: 'Meena (Pisces)',
+  nakshatra: 'Revati',
+  height_cm: 178,
+  looking_for: 'Long-term relationship',
+  job_title: 'Software Engineer',
+  hometown: 'Chennai',
   photos: [
     {
-      // Local asset we generated
+      // Primary hero — local asset
       url: require('@/assets/images/dinesh.png'),
       is_primary: true,
+    },
+    {
+      url: require('@/assets/images/dinesh_2.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_3.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_4.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_5.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_6.png'),
+      is_primary: false,
     },
   ],
   prompts: [
     {
       question: 'A boundary I have is...',
-      answer: 'Communication and honesty. Being upfront about what you want.',
+      answer: 'Communication and honesty. Being upfront about what you want from the start saves everyone time and feelings.',
+    },
+    {
+      question: 'The way to my heart is...',
+      answer: 'Late-night conversations about the cosmos, sharing a good meal, and someone who actually remembers the small things I mention in passing.',
+    },
+    {
+      question: 'My love language is...',
+      answer: 'Quality time — I believe presence is the rarest and most meaningful gift you can give someone.',
     },
   ],
-  about: 'Looking for a meaningful connection.',
+  about: 'Software engineer by day, stargazer by night 🌌. I grew up in Chennai and I genuinely believe your birth chart says more about you than your Instagram does. I love trying new restaurants, getting lost on long drives, and deep conversations that go way past midnight. Looking for someone who is equally comfortable being spontaneous and staying in on a rainy Sunday. Pisces sun ♓, Scorpio moon 🦂 — make of that what you will.',
 };
 
 function openPaywall(reason: string) {
@@ -240,6 +274,7 @@ export default function DiscoverScreen() {
     body = (
       <>
         <DiscoverCard card={currentCard} tier={currentTier} />
+        <View style={styles.actionBarSpacer} />
       </>
     );
   } else if (meta && meta.more_high_locked_count > 0 && !useMockDinesh) {
@@ -320,6 +355,82 @@ export default function DiscoverScreen() {
         {body}
       </ScrollView>
 
+      {/* Fixed action bar — only shown when a card is visible */}
+      {currentCard && (
+        <View style={[styles.actionBarWrap, { bottom: insets.bottom + 16 }]}>
+          <View style={styles.actionBar}>
+            {/* Rewind */}
+            <View style={styles.btnWrapper}>
+              <Pressable
+                style={[styles.actionBtn, styles.rewindBtn]}
+                onPress={() => handleRewind()}
+              >
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M9 5 4 12l5 7M4 12h11a5 5 0 0 1 0 10h-1"
+                    stroke="#B385FF"
+                    strokeWidth={2.2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Text style={[styles.btnLabel, { color: '#B385FF' }]}>Rewind</Text>
+            </View>
+
+            {/* Pass */}
+            <View style={styles.btnWrapper}>
+              <Pressable
+                style={[styles.actionBtn, styles.passBtn]}
+                onPress={() => handleSwipe('pass')}
+                disabled={swiping}
+              >
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path d="M5 5 19 19M19 5 5 19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
+                </Svg>
+              </Pressable>
+              <Text style={[styles.btnLabel, { color: '#9CA3AF' }]}>Pass</Text>
+            </View>
+
+            {/* Super Like */}
+            <View style={styles.btnWrapper}>
+              <Pressable
+                style={[styles.actionBtn, styles.superLikeBtn]}
+                onPress={() => handleSwipe('super_like')}
+                disabled={swiping}
+              >
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M12 2.5 14.9 9l7.1.6-5.4 4.7 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9L2 9.6 9.1 9z"
+                    fill="#3FC5F0"
+                    stroke="#3FC5F0"
+                    strokeWidth={1.2}
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </Pressable>
+              <Text style={[styles.btnLabel, { color: '#3FC5F0' }]}>Super Like</Text>
+            </View>
+
+            {/* Like */}
+            <View style={styles.btnWrapper}>
+              <Pressable
+                style={[styles.actionBtn, styles.likeBtn]}
+                onPress={() => handleSwipe('like')}
+                disabled={swiping}
+              >
+                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
+                    fill="#E91E63"
+                  />
+                </Svg>
+              </Pressable>
+              <Text style={[styles.btnLabel, { color: '#E91E63' }]}>Like</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
     </View>
   );
@@ -406,7 +517,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
+  actionBarSpacer: { height: 100 },
   actionBarWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  actionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: 'rgba(9, 3, 28, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  btnWrapper: { alignItems: 'center', width: 64 },
+  btnLabel: { fontSize: 10, fontWeight: '600', marginTop: 5, textAlign: 'center' },
+  actionBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  rewindBtn: { backgroundColor: 'rgba(179,133,255,0.12)', borderColor: 'rgba(179,133,255,0.35)' },
+  passBtn: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' },
+  superLikeBtn: { backgroundColor: 'rgba(63,197,240,0.12)', borderColor: 'rgba(63,197,240,0.35)' },
+  likeBtn: { backgroundColor: 'rgba(233,30,99,0.15)', borderColor: '#E91E63' },
   stateBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 },
   stateTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   stateBody: { color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center' },

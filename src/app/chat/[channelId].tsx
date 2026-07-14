@@ -16,7 +16,6 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import * as Crypto from 'expo-crypto';
 
 import { useAuth } from '@/context/auth';
 import { useChats } from '@/context/chats';

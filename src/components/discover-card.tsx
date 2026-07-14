@@ -1,105 +1,353 @@
 /**
  * DiscoverCard
  *
- * Real discover profile card fed by get_discover_deck: hero photo with a
- * tiered score ring + name overlay, and high-fidelity scrollable sections.
+ * Scrollable profile card for the Discover deck.
+ * Layout: Hero photo → photo gallery → prompts → about bio
  *
- * Gated according to subscription tiers:
- * - Free: Total score only + "🔒 Upgrade to unlock" banners for details.
- * - Astro+: Access to Cosmic Compatibility, Ashtakoota, and Personality Score.
- * - AstroX: Access to all the above + Synastry Badges and the "Why you matched" narrative.
- *
- * Developer preview profile (Dinesh) is available for dev mode.
+ * No expo-glass-effect dependency (not installed in this project).
  */
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, View, Animated, PanResponder } from 'react-native';
 import { Image } from 'expo-image';
-import { GlassView } from 'expo-glass-effect';
+import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import type { DiscoverCardData } from '@/lib/discover';
-
-
 
 interface DiscoverCardProps {
   card: DiscoverCardData;
   tier: string;
 }
 
+/** Simple full-width photo block used throughout the profile card. */
+function FullPhoto({ src }: { src: number | { uri: string } | null }) {
+  if (!src) return null;
+  return (
+    <View style={photoStyles.wrap}>
+      <Image source={src} style={StyleSheet.absoluteFill} contentFit="cover" />
+    </View>
+  );
+}
+
+
+const photoStyles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    height: 320,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(30,15,60,0.7)',
+  },
+});
+
+/** Interactive "Swipe to Discover" slider that triggers paywall screen navigation on complete swipe. */
+function SwipeDiscover() {
+  const [width, setWidth] = useState(0);
+  const pan = useRef(new Animated.ValueXY()).current;
+
+  const handleWidth = 54;
+  const paddingOffset = 10; // 5px padding on left/right of container
+  const maxTranslate = width ? width - handleWidth - paddingOffset : 150;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, gestureState) => {
+        const newX = Math.min(Math.max(0, gestureState.dx), maxTranslate);
+        pan.setValue({ x: newX, y: 0 });
+      },
+      onPanResponderRelease: (e, gestureState) => {
+        if (gestureState.dx >= maxTranslate * 0.75) {
+          Animated.timing(pan, {
+            toValue: { x: maxTranslate, y: 0 },
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            router.push('/astro-x-features');
+            setTimeout(() => {
+              Animated.spring(pan, {
+                toValue: { x: 0, y: 0 },
+                useNativeDriver: true,
+              }).start();
+            }, 600);
+          });
+        } else {
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  const textOpacity = pan.x.interpolate({
+    inputRange: [0, maxTranslate * 0.5, maxTranslate],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp',
+  });
+
+  const progressTranslateX = pan.x.interpolate({
+    inputRange: [0, maxTranslate || 1],
+    outputRange: [-(width || 300), -handleWidth - 5],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <LinearGradient
+      colors={['#1E1B4B', '#4C1D95', '#831843']} // deep indigo, royal purple, deep magenta/pink
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={styles.scrollDiscoverBox}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {/* Background celestial pattern overlay on the right side */}
+      <Image
+        source={require('@/assets/images/cards/western-card-bg.jpg')}
+        style={styles.sliderBgPattern}
+        contentFit="cover"
+      />
+
+
+      {/* Styled text block matching the reference design */}
+      <Animated.View style={[styles.textWrapper, { opacity: textOpacity }]}>
+        <View style={styles.swipeTitleRow}>
+          <Text style={styles.sparkleIcon}>✨</Text>
+          <Text style={styles.scrollDiscoverText}>Swipe to Reveal <Text style={styles.scrollDiscoverTextHighlight}>Compatibility</Text></Text>
+        </View>
+        <Text style={styles.scrollDiscoverSubtext}>✦ AI • Astrology • Personality Insights ✦</Text>
+      </Animated.View>
+      
+      {width > 0 && (
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[
+            styles.swipeHandle,
+            {
+              transform: [{ translateX: pan.x }],
+            },
+          ]}
+        >
+          <View style={styles.swipeHandleInnerCircle}>
+            <Text style={styles.swipeArrow}>➔</Text>
+          </View>
+        </Animated.View>
+      )}
+    </LinearGradient>
+  );
+}
+
+
 export function DiscoverCard({ card, tier }: DiscoverCardProps) {
-  const name = card.full_name ?? 'Dinesh';
-  const age = card.age ?? 19;
+  const name = card.full_name ?? 'Someone';
+  const age = card.age ?? '';
   const initials = name.slice(0, 2).toUpperCase();
-  const zodiac = card.western_sign ?? 'Pisces';
-  const locationLabel = card.location ?? 'Chennai, India';
-  const distanceLabel = card.distance_label ?? '3 km away';
+  const zodiac = card.western_sign ?? '';
+  const locationLabel = card.location ?? '';
+  const distanceLabel = card.distance_label ?? '';
 
-  // Support local images (require targets) or remote url strings
-  const heroPhoto = card.photos?.[0]?.url ?? null;
-  const sourceImage = typeof heroPhoto === 'string' ? { uri: heroPhoto } : heroPhoto;
+  const photos = card.photos ?? [];
+  const heroPhoto: string | number | null = photos[0]?.url ?? null;
+  const extraPhotos = photos.slice(1);
 
+  const prompts = card.prompts ?? [];
+  const about = card.about ?? null;
 
+  function resolveSource(url: string | number | null | undefined): number | { uri: string } | null {
+    if (url === null || url === undefined) return null;
+    if (typeof url === 'number') return url;
+    if (typeof url === 'string' && url.length > 0) return { uri: url };
+    return null;
+  }
+
+  // Pre-resolve all extra photo sources so we avoid IIFEs in JSX
+  const ep0src = resolveSource(extraPhotos[0]?.url);
+  const ep1src = resolveSource(extraPhotos[1]?.url);
+  const ep2src = resolveSource(extraPhotos[2]?.url);
+  const ep3src = resolveSource(extraPhotos[3]?.url);
+  const ep4src = resolveSource(extraPhotos[4]?.url);
+
+  const heroSource = resolveSource(heroPhoto);
 
   return (
     <View style={styles.card}>
-      {/* ── Hero Image Section ── */}
+
+      {/* ── 1. Hero Photo ── */}
       <View style={styles.hero}>
-        {sourceImage ? (
-          <Image source={sourceImage} style={StyleSheet.absoluteFill} contentFit="cover" />
+        {heroSource ? (
+          <Image source={heroSource} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
           <Text style={styles.heroInitials}>{initials}</Text>
         )}
 
-
-
-        {/* Cosmic Match radial ring overlay on right side */}
+        {/* Cosmic Match ring – bottom right */}
         <View style={styles.scoreOverlay}>
-          <GlassView glassEffectStyle="clear" style={styles.cosmicMatchRing}>
+          <View style={styles.cosmicMatchRing}>
             <Text style={styles.cosmicMatchPercent}>{Math.round(card.score)}%</Text>
-            <Text style={styles.cosmicMatchLabel}>Cosmic Match</Text>
-            <View style={styles.starsRow}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Text key={i} style={styles.starIcon}>★</Text>
-              ))}
-            </View>
-          </GlassView>
+            <Text style={styles.cosmicMatchLabel}>Compatibility</Text>
+            <Text style={styles.cosmicMatchPlus}>+++</Text>
+          </View>
         </View>
 
-        {/* Left Name/Location overlays */}
+        {/* Name / location overlay – bottom left */}
         <View style={styles.nameOverlay}>
           <View style={styles.nameRow}>
-            <Text style={styles.name}>
-              {name}, {age}
-            </Text>
-            {/* Verified badge */}
+            <Text style={styles.nameText}>{name}</Text>
             <View style={styles.verifiedBadge}>
               <Text style={styles.verifiedText}>✓</Text>
             </View>
+            <Text style={styles.nameAgeText}>{age}</Text>
           </View>
 
-          {/* Zodiac row */}
-          <Text style={styles.zodiacText}>
-            ♓ {zodiac}
-          </Text>
-
-          {/* Location row */}
-          <View style={styles.locationRow}>
-            <Text style={styles.locationPin}>📍</Text>
-            <Text style={styles.locationText}>
-              {[locationLabel, distanceLabel].filter(Boolean).join('  •  ')}
-            </Text>
-          </View>
-
-          {/* Looking for pill */}
-          <View style={styles.lookingForSection}>
-            <Text style={styles.lookingForTitle}>Looking for</Text>
-            <View style={styles.lookingForBadge}>
-              <Text style={styles.lookingForHeart}>💖</Text>
-              <Text style={styles.lookingForText}>Long-term relationship</Text>
+          {(locationLabel || distanceLabel) ? (
+            <View style={styles.locationRowHero}>
+              <Text style={styles.locationPinHero}>📍</Text>
+              <Text style={styles.locationTextHero}>
+                {locationLabel}  •  {distanceLabel.replace('Less than', '<')}
+              </Text>
             </View>
+          ) : null}
+
+          {card.looking_for ? (
+            <View style={styles.lookingForBadgeHero}>
+              <Text style={styles.lookingForHeartHero}>💖</Text>
+              <Text style={styles.lookingForTextHero}>Looking for a {card.looking_for.toLowerCase()}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      {/* ── 2. About (structured grid info card) ── */}
+      <LinearGradient
+        colors={['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)']} // deep indigo-violet space gradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.aboutGridCard}
+      >
+        {/* Top grid: 4 columns */}
+        <View style={styles.aboutGridRow}>
+          {/* Col 1: Relationship */}
+          <View style={styles.gridCol}>
+            <LinearGradient
+              colors={['#EC4899', '#BE185D']} // pink gradient
+              style={styles.gridIconCircleGradient}
+            >
+              <Text style={styles.gridIconText}>💖</Text>
+            </LinearGradient>
+            <Text style={styles.gridMainText} numberOfLines={1}>Long-term</Text>
+            <Text style={styles.gridSubText} numberOfLines={1}>Relationship</Text>
+          </View>
+
+          <View style={styles.gridDivider} />
+
+          {/* Col 2: Western Zodiac */}
+          <View style={styles.gridCol}>
+            <LinearGradient
+              colors={['#A855F7', '#6D28D9']} // purple gradient
+              style={styles.gridIconCircleGradient}
+            >
+              <Text style={styles.gridIconText}>♓</Text>
+            </LinearGradient>
+            <Text style={styles.gridMainText} numberOfLines={1}>{card.western_sign || 'Pisces'}</Text>
+            <Text style={styles.gridSubText} numberOfLines={1}>(Western)</Text>
+          </View>
+
+          <View style={styles.gridDivider} />
+
+          {/* Col 3: Vedic Zodiac */}
+          <View style={styles.gridCol}>
+            <LinearGradient
+              colors={['#3B82F6', '#1D4ED8']} // blue gradient
+              style={styles.gridIconCircleGradient}
+            >
+              <Text style={styles.gridIconText}>🪐</Text>
+            </LinearGradient>
+            <Text style={styles.gridMainText} numberOfLines={1}>{card.vedic_sign ? card.vedic_sign.split(' ')[0] : 'Meena'}</Text>
+            <Text style={styles.gridSubText} numberOfLines={1}>(Vedic)</Text>
+          </View>
+
+          <View style={styles.gridDivider} />
+
+          {/* Col 4: Nakshatra */}
+          <View style={styles.gridCol}>
+            <LinearGradient
+              colors={['#F59E0B', '#B45309']} // gold/star gradient
+              style={styles.gridIconCircleGradient}
+            >
+              <Text style={styles.gridIconText}>⭐</Text>
+            </LinearGradient>
+            <Text style={styles.gridMainText} numberOfLines={1}>{card.nakshatra || 'Revati'}</Text>
+            <Text style={styles.gridSubText} numberOfLines={1}>Nakshatra</Text>
           </View>
         </View>
 
+        {/* Bottom capsule bar: Height & Location */}
+        <View style={styles.capsuleBar}>
+          <View style={styles.capsuleItemColumn}>
+            <View style={styles.capsuleRow}>
+              <Text style={styles.capsuleIcon}>📏</Text>
+              <Text style={styles.capsuleTextValue}>{card.height_cm || 178} cm</Text>
+            </View>
+            <Text style={styles.capsuleTextLabel}>Height</Text>
+          </View>
 
-      </View>
+          <View style={styles.capsuleDivider} />
+
+          <View style={styles.capsuleItemColumn}>
+            <View style={styles.capsuleRow}>
+              <Text style={styles.capsuleIcon}>🏫</Text>
+              <Text style={styles.capsuleTextValue}>{locationLabel.split(',')[0] || 'Chennai'}</Text>
+            </View>
+            <Text style={styles.capsuleTextLabel}>Location</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Swipe to Discover slider */}
+      <SwipeDiscover />
+
+
+      {/* ── 3. Photo 2 ── */}
+      <FullPhoto src={ep0src} />
+
+      {/* ── 4. Prompt 1 ── */}
+      {prompts[0] && (
+        <View style={styles.promptCard}>
+          <Text style={styles.promptQuestion}>{prompts[0].question}</Text>
+          <Text style={styles.promptAnswer}>{prompts[0].answer}</Text>
+        </View>
+      )}
+
+      {/* ── 5. Photo 3 ── */}
+      <FullPhoto src={ep1src} />
+
+      {/* ── 6. Prompt 2 ── */}
+      {prompts[1] && (
+        <View style={styles.promptCard}>
+          <Text style={styles.promptQuestion}>{prompts[1].question}</Text>
+          <Text style={styles.promptAnswer}>{prompts[1].answer}</Text>
+        </View>
+      )}
+
+      {/* ── 7. Photo 4 ── */}
+      <FullPhoto src={ep2src} />
+
+      {/* ── 8. Photo 5 ── */}
+      <FullPhoto src={ep3src} />
+
+      {/* ── 9. Prompt 3 ── */}
+      {prompts[2] && (
+        <View style={styles.promptCard}>
+          <Text style={styles.promptQuestion}>{prompts[2].question}</Text>
+          <Text style={styles.promptAnswer}>{prompts[2].answer}</Text>
+        </View>
+      )}
+
+      {/* ── 10. Photo 6 ── */}
+      <FullPhoto src={ep4src} />
+
+      <View style={{ height: 8 }} />
+
     </View>
   );
 }
@@ -110,7 +358,7 @@ const styles = StyleSheet.create({
   // ── Hero ──
   hero: {
     width: '100%',
-    aspectRatio: 4 / 5,
+    aspectRatio: 3 / 4,
     borderRadius: 24,
     backgroundColor: 'rgba(30, 15, 60, 0.70)',
     alignItems: 'center',
@@ -127,491 +375,369 @@ const styles = StyleSheet.create({
 
   scoreOverlay: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    bottom: 16,
+    right: 16,
   },
   cosmicMatchRing: {
     paddingVertical: 6,
     paddingHorizontal: 8,
-    borderRadius: 999,
-    width: 66,
-    height: 66,
-    backgroundColor: 'rgba(20, 12, 40, 0.65)',
-    borderWidth: 1.5,
-    borderColor: '#B385FF',
+    borderRadius: 38,
+    width: 76,
+    height: 76,
+    backgroundColor: 'rgba(20, 12, 40, 0.75)',
+    borderWidth: 2,
+    borderColor: '#EC4899', // bright neon pink border matching the screenshot
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#B385FF', shadowOpacity: 0.4, shadowRadius: 8 },
+      ios: { shadowColor: '#EC4899', shadowOpacity: 0.5, shadowRadius: 10 },
       android: { elevation: 6 },
     }),
   },
   cosmicMatchPercent: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 16,
+    fontSize: 18,
+    fontWeight: '900',
   },
   cosmicMatchLabel: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 5,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 7.5,
     fontWeight: '700',
     marginTop: 0.5,
     textAlign: 'center',
   },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 1,
-    marginTop: 1.5,
+  cosmicMatchPlus: {
+    color: '#F59E0B', // gold crosses
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 1,
   },
-  starIcon: {
-    fontSize: 5,
-    color: '#F59E0B',
-  },
+
+  // Name overlay
   nameOverlay: {
     position: 'absolute',
     left: 16,
     bottom: 16,
+    right: 100, // leave space for the ring
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
-  name: {
+  nameText: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '800',
   },
   verifiedBadge: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#7C3AED',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 6,
   },
   verifiedText: {
     color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: 'bold',
   },
-  zodiacText: {
-    color: '#B385FF',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
+  nameAgeText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '800',
+    marginLeft: 8,
   },
-  locationRow: {
+  locationRowHero: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 3,
-  },
-  locationPin: {
-    fontSize: 11,
-  },
-  locationText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  lookingForSection: {
-    marginTop: 8,
-  },
-  lookingForTitle: {
-    color: 'rgba(255, 255, 255, 0.55)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  lookingForBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(233, 30, 99, 0.3)',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 6,
-    alignSelf: 'flex-start',
-  },
-  lookingForHeart: {
-    fontSize: 10,
-  },
-  lookingForText: {
-    color: '#FF6EA7',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  interestsOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 8,
-    overflow: 'hidden',
-  },
-  hobbyChipWrapper: {
-    alignItems: 'center',
-    gap: 3,
-    width: 44,
-  },
-  hobbyIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(20, 12, 40, 0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  hobbyIconText: {
-    fontSize: 13,
-  },
-  hobbyLabel: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // ── Gated/Section Cards ──
-  sectionCard: {
-    borderRadius: 18,
-    backgroundColor: 'rgba(20, 12, 40, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  infoIconCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoIconText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  caretText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  sectionContent: {
-    marginTop: 2,
-  },
-
-  // ── Lock Overlay ──
-  lockContainer: {
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  lockIconLarge: {
-    fontSize: 20,
-  },
-  lockLabel: {
-    color: 'rgba(255, 255, 255, 0.45)',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
-  // ── Section Contents ──
-  // Bullets
-  bulletsList: {
-    gap: 8,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkText: {
-    color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  bulletText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  // Cosmic Compatibility
-  cosmicCompContent: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  astrolabeSvg: {
-    alignSelf: 'center',
-  },
-  cosmicCompCaption: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    textAlign: 'center',
-    fontWeight: '500',
-    lineHeight: 16,
-    paddingHorizontal: 8,
-  },
-
-  // Shared Interests
-  sharedInterestsContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  gradientHeart: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heartEmoji: {
-    color: '#FFFFFF',
-    fontSize: 20,
-  },
-  sharedInterestsTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  sharedInterestsCount: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  sharedInterestsList: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Synastry
-  synastryContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  badgeIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  synastryTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  synastryCount: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  synastryList: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Indian Astrology
-  indianAstrologyContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  omCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: 'rgba(179, 133, 255, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(179, 133, 255, 0.08)',
-  },
-  omSymbol: {
-    color: '#FFFFFF',
-    fontSize: 22,
-  },
-  indianAstrologyList: {
-    flex: 1,
-    gap: 6,
-  },
-  doshaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  manglikLabel: {
-    color: '#F59E0B',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  doshaText: {
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: 11,
-    fontWeight: '500',
-    width: 84,
-  },
-  doshaValue: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-    flex: 1,
-  },
-  greenCheckCircle: {
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greenCheckText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
-
-  // Ashtakoota
-  ashtakootaContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  lotusCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: 'rgba(179, 133, 255, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(179, 133, 255, 0.08)',
-  },
-  lotusValue: {
-    color: '#B385FF',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  ashtakootaRight: {
-    flex: 1,
-    gap: 2,
-  },
-  ashtakootaScore: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  ashtakootaLabel: {
-    color: '#B385FF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  ashtakootaLink: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontWeight: '500',
     marginTop: 4,
   },
-
-  // Personality Score
-  personalityContent: {
+  locationPinHero: {
+    fontSize: 12,
+  },
+  locationTextHero: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  lookingForBadgeHero: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 6,
+    backgroundColor: 'rgba(20, 12, 40, 0.65)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
-  personalityAvatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(179, 133, 255, 0.3)',
+  lookingForHeartHero: {
+    fontSize: 11,
+  },
+  lookingForTextHero: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // ── Gallery ──
+  galleryRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  galleryItem: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    backgroundColor: 'rgba(30,15,60,0.7)',
+    overflow: 'hidden',
+  },
+  galleryPlaceholder: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 2,
   },
-  personalityAvatarInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(179, 133, 255, 0.5)',
-    backgroundColor: 'rgba(179, 133, 255, 0.08)',
-  },
-  personalityTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  personalityScoreText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  personalityDesc: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    fontWeight: '500',
+  galleryPlaceholderText: {
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 32,
+    fontWeight: '700',
   },
 
-  // More About Attributes
-  attributesList: {
-    gap: 10,
+  // ── Full-width single photo ──
+  fullWidthPhoto: {
+    width: '100%',
+    height: 320,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(30,15,60,0.7)',
   },
-  attributeRow: {
+
+  // ── Prompts ──
+  promptCard: {
+    borderRadius: 18,
+    backgroundColor: 'rgba(20,12,40,0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(179,133,255,0.18)',
+    padding: 16,
+    gap: 8,
+  },
+  promptQuestion: {
+    color: '#B385FF',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  promptAnswer: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+
+  // ── About Grid Card ──
+  aboutGridCard: {
+    borderRadius: 20,
+    backgroundColor: 'rgba(20,12,40,0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 18,
+    paddingHorizontal: 10,
+    width: '100%',
+  },
+  aboutGridRow: {
     flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 4,
   },
-  attributeIcon: {
-    fontSize: 14,
-    width: 18,
+  gridCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridIconCircleGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gridIconText: {
+    fontSize: 18,
+  },
+  gridMainText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'center',
   },
-  attributeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+  gridSubText: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 8.5,
     fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  gridDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  capsuleBar: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(10, 5, 22, 0.55)',
+    borderRadius: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  capsuleItemColumn: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  capsuleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  capsuleDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  capsuleIcon: {
+    fontSize: 14,
+  },
+  capsuleTextValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  capsuleTextLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 9.5,
+    fontWeight: '600',
+    marginTop: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+
+  // Scroll Down Indicator Box
+  // Scroll Down Indicator Box
+  scrollDiscoverBox: {
+    width: '100%',
+    height: 66,
+    borderRadius: 33,
+    borderWidth: 1.5,
+    borderColor: 'rgba(168, 85, 247, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  swipeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  sparkleIcon: {
+    fontSize: 14,
+    color: '#FDE047',
+  },
+  scrollDiscoverText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
+  },
+  scrollDiscoverTextHighlight: {
+    color: '#EC4899', // bright neon pink matching highlight
+  },
+  scrollDiscoverSubtext: {
+    color: '#93C5FD',
+    fontSize: 9.5,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  swipeProgressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(168, 85, 247, 0.35)',
+    borderRadius: 33,
+  },
+  swipeHandle: {
+    position: 'absolute',
+    left: 5,
+    top: 4.5,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    borderWidth: 2,
+    borderColor: '#C084FC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  swipeHandleInnerCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  textWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+    zIndex: 1,
+    paddingLeft: 56, // offset to prevent overlap with start handle
+    width: '100%',
+  },
+  sliderBgPattern: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    opacity: 0.35,
+    borderRadius: 33,
+    zIndex: 0,
   },
 });

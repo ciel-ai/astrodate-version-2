@@ -12,7 +12,8 @@ import { withTimeout } from './network';
 export type DeckBand = 'high' | 'medium' | 'low';
 
 export type DiscoverPhoto = {
-  url: string;
+  /** Remote URL string or a local require() result (number in React Native). */
+  url: string | number;
   is_primary: boolean;
 };
 
@@ -39,13 +40,18 @@ export type DiscoverCardData = {
   manglik_status: boolean | null;
   nadi_dosha: boolean | null;
   bhakoot_dosha: boolean | null;
-  /** AstroX-only synastry narrative (Section 3: "Full + synastry 'why you
-   *  match'") -- reuses compute-synastry's existing compatibility_summary,
-   *  null for every other tier and null when genuinely not yet computed. */
+  /** AstroX-only synastry narrative */
   why_you_match: string | null;
   photos: DiscoverPhoto[];
   prompts: DiscoverPrompt[];
   about: string | null;
+  /** Profile info shown in the About card */
+  vedic_sign?: string | null;
+  nakshatra?: string | null;
+  height_cm?: number | null;
+  looking_for?: string | null;
+  job_title?: string | null;
+  hometown?: string | null;
 };
 
 export type DiscoverDeckMeta = {
