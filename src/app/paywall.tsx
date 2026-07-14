@@ -3,11 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// No in-app-purchase flow exists anywhere in this codebase yet (no
-// RevenueCat/react-native-purchases usage, no purchase screen) -- this is a
-// placeholder paywall that explains *why* the user hit a wall, framed by
-// `reason`. Wiring an actual purchase button to a real entitlement flow is a
-// separate task.
+// Explains *why* the user hit a wall, framed by `reason`. The actual plan
+// picker + RevenueCat purchase flow lives in /subscription.
 const COPY: Record<string, { title: string; body: string }> = {
   instant_match: {
     title: 'Unlock to match with them instantly',
@@ -64,7 +61,10 @@ export default function PaywallScreen() {
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.body}>{copy.body}</Text>
 
-        <Pressable style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}>
+        <Pressable
+          onPress={() => router.push('/subscription')}
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+        >
           <Text style={styles.ctaText}>See plans</Text>
         </Pressable>
 

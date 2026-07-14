@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,8 +17,8 @@ import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
-import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { deleteUserPhoto, getUserPhotos, uploadUserPhoto, type UserPhoto } from '@/lib/user-photos';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -35,52 +35,6 @@ function getImagePicker(): typeof import('expo-image-picker') | null {
   }
 }
 
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const lookup = new Uint8Array(256);
-  for (let i = 0; i < chars.length; i++) {
-    lookup[chars.charCodeAt(i)] = i;
-  }
-
-  let bufferLength = base64.length * 0.75;
-  if (base64[base64.length - 1] === '=') {
-    bufferLength--;
-    if (base64[base64.length - 2] === '=') {
-      bufferLength--;
-    }
-  }
-
-  const arrayBuffer = new ArrayBuffer(bufferLength);
-  const bytes = new Uint8Array(arrayBuffer);
-
-  let p = 0;
-  for (let i = 0; i < base64.length; i += 4) {
-    const encoded1 = lookup[base64.charCodeAt(i)];
-    const encoded2 = lookup[base64.charCodeAt(i + 1)];
-    const encoded3 = lookup[base64.charCodeAt(i + 2)];
-    const encoded4 = lookup[base64.charCodeAt(i + 3)];
-
-    const bytes1 = (encoded1 << 2) | (encoded2 >> 4);
-    const bytes2 = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-    const bytes3 = ((encoded3 & 3) << 6) | (encoded4 & 63);
-
-    bytes[p++] = bytes1;
-    if (p < bufferLength) bytes[p++] = bytes2;
-    if (p < bufferLength) bytes[p++] = bytes3;
-  }
-
-  return arrayBuffer;
-}
-
-
-interface PhotoItem {
-  id: string;
-  photo_url: string;
-  storage_path: string;
-  display_order: number;
-  is_primary: boolean;
-}
-
 export default function UploadPhotosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,7 +45,7 @@ export default function UploadPhotosScreen() {
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photos, setPhotos] = useState<UserPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
 
@@ -101,60 +55,13 @@ export default function UploadPhotosScreen() {
     : require('@/assets/images/onboard-light-bg.png');
 
   const loadUserPhotos = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('[loadUserPhotos] No authenticated user found.');
-        return;
-      }
-
-      console.log('[loadUserPhotos] Fetching photos for user:', user.id);
-      const { data, error } = await supabase
-        .from('user_photos')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('display_order', { ascending: true });
-
-      if (error) {
-        console.error('[loadUserPhotos] Database fetch error:', error);
-        throw error;
-      }
-      console.log('[loadUserPhotos] Retrieved photos from database:', data);
-
-      if (data && data.length > 0) {
-        // The bucket is public (20260710120000_make_user_photos_bucket_public.sql)
-        // and every stored photo_url is already a public URL, so this signed-URL
-        // round trip is no longer required to make images load -- kept as-is since
-        // it's harmless and still correctly resolves to a working URL either way.
-        const paths = data.map(p => p.storage_path);
-        console.log('[loadUserPhotos] Generating signed URLs for paths:', paths);
-        const { data: signedData, error: signedError } = await supabase.storage
-          .from('user-photos')
-          .createSignedUrls(paths, 86400); // 24 hours expiry
-
-        if (signedError) {
-          console.error('[loadUserPhotos] Error generating signed URLs:', signedError);
-          throw signedError;
-        }
-
-        const photosWithSignedUrls = data.map(photo => {
-          const signedItem = signedData?.find(s => s.path === photo.storage_path);
-          return {
-            ...photo,
-            photo_url: signedItem?.signedUrl || photo.photo_url,
-          };
-        });
-
-        console.log('[loadUserPhotos] Finished mapping photos with signed URLs:', photosWithSignedUrls);
-        setPhotos(photosWithSignedUrls);
-      } else {
-        setPhotos([]);
-      }
-    } catch (e: any) {
-      console.warn('Failed to load user photos:', e.message);
-    } finally {
-      setLoading(false);
+    const result = await getUserPhotos();
+    if (result.success) {
+      setPhotos(result.data ?? []);
+    } else {
+      console.warn('Failed to load user photos:', result.error);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -182,96 +89,36 @@ export default function UploadPhotosScreen() {
       }
 
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.8,
         base64: true,
       });
 
       if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
-        console.log('[handlePickImage] Image picking cancelled.');
         return;
       }
 
+      const asset = pickerResult.assets[0];
+      if (!asset.base64) throw new Error('Could not read image file data');
+
       setUploadingIdx(index);
-      const selectedUri = pickerResult.assets[0].uri;
-      const base64Data = pickerResult.assets[0].base64;
+      const result = await uploadUserPhoto({ uri: asset.uri, base64: asset.base64, displayOrder: index });
+      setUploadingIdx(null);
 
-      if (!base64Data) throw new Error('Could not read image file data');
-
-      console.log('[handlePickImage] Image picked. Converting base64 to ArrayBuffer...');
-      const arrayBuffer = base64ToArrayBuffer(base64Data);
-
-      // 1. Upload to Supabase Storage
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user found');
-
-      const fileExt = selectedUri.split('.').pop() || 'jpg';
-      // Date.now() here runs inside an onPress handler, not during render.
-      // eslint-disable-next-line react-hooks/purity
-      const fileName = `${Date.now()}_${index}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      console.log('[handlePickImage] Uploading to storage path:', filePath);
-      const { error: uploadError } = await supabase.storage
-        .from('user-photos')
-        .upload(filePath, arrayBuffer, {
-          contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
-        });
-
-      if (uploadError) {
-        console.error('[handlePickImage] Storage upload error:', uploadError);
-        throw uploadError;
+      if (!result.success) {
+        Alert.alert('Upload Failed', result.error || 'An error occurred during image upload.');
+        return;
       }
-      console.log('[handlePickImage] Storage upload successful. Getting public URL...');
 
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('user-photos')
-        .getPublicUrl(filePath);
-
-      console.log('[handlePickImage] Public URL obtained:', publicUrl);
-
-      // 3. Insert metadata record in database
-      // Primary is whichever photo lands first, not whichever fills slot 0 --
-      // otherwise a user who fills slots 1-3 before slot 0 ends up with zero
-      // primary photos, and slot 0 filled after another upload already
-      // finished would create a second one.
-      const isFirstPhoto = !photos.some((p) => p.is_primary);
-      console.log('[handlePickImage] Inserting metadata into database...');
-      const { data: insertData, error: dbError } = await supabase
-        .from('user_photos')
-        .insert({
-          user_id: user.id,
-          photo_url: publicUrl,
-          storage_path: filePath,
-          display_order: index,
-          is_primary: isFirstPhoto,
-        })
-        .select();
-
-      if (dbError) {
-        console.error('[handlePickImage] Database insert error:', dbError);
-        // The storage object already succeeded -- remove it so it doesn't
-        // become a permanently orphaned file with no DB row pointing to it.
-        await supabase.storage.from('user-photos').remove([filePath]).catch((cleanupErr) => {
-          console.error('[handlePickImage] Failed to clean up orphaned storage object:', cleanupErr);
-        });
-        throw dbError;
-      }
-      console.log('[handlePickImage] Database insertion successful:', insertData);
-
-      // 4. Reload local photos state
       await loadUserPhotos();
     } catch (err: any) {
-      console.error('[handlePickImage] Error:', err);
-      Alert.alert('Upload Failed', err.message || 'An error occurred during image upload.');
-    } finally {
       setUploadingIdx(null);
+      Alert.alert('Upload Failed', err.message || 'An error occurred during image upload.');
     }
   };
 
-  const handleDeletePhoto = (photo: PhotoItem) => {
+  const handleDeletePhoto = (photo: UserPhoto) => {
     Alert.alert(
       'Remove Photo',
       'Are you sure you want to delete this photo?',
@@ -281,19 +128,14 @@ export default function UploadPhotosScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            try {
-              setLoading(true);
-              // Delete from storage
-              await supabase.storage.from('user-photos').remove([photo.storage_path]);
-              // Delete from database
-              await supabase.from('user_photos').delete().eq('id', photo.id);
-              // Reload local list
-              await loadUserPhotos();
-            } catch (err: any) {
-              Alert.alert('Error deleting photo', err.message);
-            } finally {
+            setLoading(true);
+            const result = await deleteUserPhoto(photo);
+            if (!result.success) {
               setLoading(false);
+              Alert.alert('Cannot Remove Photo', result.error || 'Failed to remove photo');
+              return;
             }
+            await loadUserPhotos();
           },
         },
       ]

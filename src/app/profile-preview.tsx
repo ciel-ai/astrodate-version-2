@@ -147,7 +147,7 @@ export default function ProfilePreviewScreen() {
     rowBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(120,60,210,0.06)',
     rowBdr: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(168,85,247,0.14)',
     label: isDark ? '#9A8FBF' : '#7B6A9B',
-    value: isDark ? '#EDE9FF' : '#1A0A2E',
+    accent: isDark ? '#EDE9FF' : '#1A0A2E',
     heading: isDark ? '#FFFFFF' : '#1A0A2E',
     dot: isDark ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.18)',
   };
@@ -228,7 +228,7 @@ export default function ProfilePreviewScreen() {
                   {/* Content */}
                   <View style={styles.rowContent}>
                     <Text style={[styles.rowLabel, { color: T.label }]}>{row.label}</Text>
-                    <Text style={[styles.rowValue, { color: T.value }]} numberOfLines={1}>
+                    <Text style={[styles.rowValue, { color: T.accent }]} numberOfLines={1}>
                       {row.value}
                     </Text>
                   </View>

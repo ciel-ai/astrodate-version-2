@@ -10,6 +10,7 @@ export default ({ config }) => ({
   userInterfaceStyle: 'automatic',
   ios: {
     icon: './assets/images/icon.png',
+    bundleIdentifier: 'com.ciel.ai.astrodate',
   },
   android: {
     adaptiveIcon: {

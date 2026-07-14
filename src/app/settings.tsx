@@ -1,14 +1,21 @@
 /**
  * Settings screen
  *
- * Surfaces the location-sharing toggle (backed by disableLocationSharing /
- * requestAndSyncLocation) and links through to Privacy Policy.
+ * Split from Profile on purpose: Profile is what other users see about you,
+ * Settings is how you control your own account and the app. Reached from
+ * Profile's header gear icon.
+ *
+ * Delete account calls the delete-account Edge Function (see
+ * supabase/functions/delete-account), which relies on every table's
+ * ON DELETE CASCADE to auth.users for DB cleanup and separately purges the
+ * user's storage objects. It does not cancel App Store/Play Store billing.
  */
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   ImageBackground,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,21 +27,30 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useAppTheme } from '@/lib/theme-context';
 
 import Glitters from '@/components/glitters';
+import { useAuth } from '@/context/auth';
+import { useSubscriptionStatus } from '@/context/subscription';
+import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
 import {
   disableLocationSharing,
   hasLocationPermission,
   requestAndSyncLocation,
 } from '@/lib/location';
+import { supabase } from '@/lib/supabase';
 
 const SERIF = 'Baskerville-Old-Face';
+const SUPPORT_EMAIL = 'hello@astrodate.in';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme, themeMode, setThemeMode } = useAppTheme();
+  const { user, signOut } = useAuth();
+  const { membership } = useSubscriptionStatus();
+  const { restorePurchases } = useSubscriptionPayment();
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
@@ -42,6 +58,9 @@ export default function SettingsScreen() {
 
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Read current permission state on mount
   useEffect(() => {
@@ -87,6 +106,72 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSignOut = () => {
+    Alert.alert('Sign out?', "You'll need to sign back in to see your matches and chats.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          setSigningOut(true);
+          await signOut();
+          router.replace('/');
+          setSigningOut(false);
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    const subscriptionNote = membership?.is_active
+      ? ' This does not cancel your subscription — cancel it in the App Store/Play Store first, or you may keep being billed.'
+      : '';
+    Alert.alert(
+      'Delete account permanently?',
+      `This removes your profile, photos, matches, and messages forever. This can't be undone.${subscriptionNote}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete my account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { data, error } = await supabase.functions.invoke('delete-account');
+            if (error || !data?.success) {
+              setDeleting(false);
+              Alert.alert(
+                'Something went wrong',
+                "We couldn't delete your account. Email us and we'll take care of it.",
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Email support', onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Delete my account`) },
+                ]
+              );
+              return;
+            }
+            await signOut();
+            router.replace('/');
+            setDeleting(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    const restored = await restorePurchases();
+    setRestoring(false);
+    Alert.alert(
+      restored ? 'Purchases restored' : 'Nothing to restore',
+      restored ? 'Your subscription is up to date.' : "We couldn't find an active purchase for this account."
+    );
+  };
+
+  const phoneDisplay = user?.phone ? `+${user.phone}` : 'Not linked';
+  const planDisplay = membership?.is_active ? membership?.plan_badge ?? membership?.plan_name ?? 'Member' : 'Free plan';
+  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+
   const bgSource = theme === 'dark'
     ? require('@/assets/images/create-bg.png')
     : require('@/assets/images/onboard-light-bg.png');
@@ -122,6 +207,91 @@ export default function SettingsScreen() {
         <Text style={[styles.title, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Settings</Text>
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
+
+          {/* ── Account & Security ── */}
+          <Text style={styles.sectionLabel}>ACCOUNT & SECURITY</Text>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>📱</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Phone number</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>Your login credential — contact support to change it.</Text>
+                </View>
+              </View>
+              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{phoneDisplay}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              id="btn-settings-sign-out"
+              onPress={handleSignOut}
+              disabled={signingOut}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>🚪</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, styles.destructiveText]}>Sign out</Text>
+                </View>
+              </View>
+              {signingOut ? <ActivityIndicator size="small" color="#F87171" /> : null}
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              id="btn-settings-delete-account"
+              onPress={handleDeleteAccount}
+              disabled={deleting}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>🗑️</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, styles.destructiveText]}>Delete account</Text>
+                </View>
+              </View>
+              {deleting ? <ActivityIndicator size="small" color="#F87171" /> : null}
+            </Pressable>
+          </View>
+
+          {/* ── Subscription & Billing ── */}
+          <Text style={styles.sectionLabel}>SUBSCRIPTION & BILLING</Text>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+            <Pressable
+              id="btn-settings-manage-subscription"
+              onPress={() => router.push('/subscription')}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>✦</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Manage subscription</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>Current plan: {planDisplay}</Text>
+                </View>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              id="btn-settings-restore-purchases"
+              onPress={handleRestore}
+              disabled={restoring}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>♻️</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Restore purchases</Text>
+                </View>
+              </View>
+              {restoring ? <ActivityIndicator size="small" color="#A855F7" /> : null}
+            </Pressable>
+          </View>
 
           {/* ── Privacy & Location ── */}
           <Text style={styles.sectionLabel}>PRIVACY & LOCATION</Text>
@@ -217,6 +387,52 @@ export default function SettingsScreen() {
             </View>
           </View>
 
+          {/* ── Legal & Support ── */}
+          <Text style={styles.sectionLabel}>LEGAL & SUPPORT</Text>
+          <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+            <Pressable
+              id="btn-settings-terms"
+              onPress={() => router.push('/terms')}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>📜</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Terms of Service</Text>
+                </View>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              id="btn-settings-contact-support"
+              onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>💬</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Contact support</Text>
+                </View>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>ℹ️</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>App version</Text>
+                </View>
+              </View>
+              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{appVersion}</Text>
+            </View>
+          </View>
+
           {/* Info note */}
           <View style={[styles.infoNote, { backgroundColor: theme === 'dark' ? 'rgba(20, 12, 40, 0.55)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(168, 85, 247, 0.18)' : 'rgba(168, 85, 247, 0.3)' }]}>
             <Text style={[styles.infoNoteText, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -306,6 +522,14 @@ const styles = StyleSheet.create({
     color: '#7C7796',
     fontSize: 12,
     lineHeight: 17,
+  },
+  rowValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  destructiveText: {
+    color: '#F87171',
   },
   chevron: {
     color: '#6B6785',
