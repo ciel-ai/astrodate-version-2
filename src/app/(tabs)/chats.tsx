@@ -68,7 +68,7 @@ function EmptyChats() {
     <View style={styles.emptyWrap}>
       <Text style={styles.emptyEmoji}>✦</Text>
       <Text style={styles.emptyTitle}>No conversations yet</Text>
-      <Text style={styles.emptyBody}>When you match with someone, you'll be able to chat with them here.</Text>
+      <Text style={styles.emptyBody}>When you match with someone, you&apos;ll be able to chat with them here.</Text>
       <Pressable
         onPress={() => router.push('/(tabs)/discover' as any)}
         style={({ pressed }) => [styles.emptyCta, pressed && styles.emptyCtaPressed]}

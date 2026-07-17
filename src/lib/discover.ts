@@ -22,6 +22,14 @@ export type DiscoverPrompt = {
   answer: string;
 };
 
+export type PersonalityFactors = {
+  hobbies?: number | null;
+  personality_traits?: number | null;
+  relationship_goals?: number | null;
+  lifestyle?: number | null;
+  communication?: number | null;
+};
+
 export type DiscoverCardData = {
   user_id: string;
   full_name: string | null;
@@ -52,6 +60,25 @@ export type DiscoverCardData = {
   looking_for?: string | null;
   job_title?: string | null;
   hometown?: string | null;
+  education?: string | null;
+  drinking?: string | null;
+  smoking?: string | null;
+  weed?: string | null;
+  religion?: string | null;
+  sexual_orientation?: string | null;
+  have_children?: string | null;
+  want_children?: string | null;
+  relationship_style?: string | null;
+  workout?: string | null;
+  diet?: string | null;
+  pets?: string | null;
+  languages?: string[] | null;
+  travel?: string | null;
+  relationship_status?: string | null;
+  interest?: string[] | null;
+  hobbies?: string[] | null;
+  introvert_extrovert?: string | null;
+  personality_factors?: PersonalityFactors | null;
 };
 
 export type DiscoverDeckMeta = {

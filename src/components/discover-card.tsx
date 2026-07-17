@@ -6,17 +6,39 @@
  *
  * No expo-glass-effect dependency (not installed in this project).
  */
-import React, { useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, Animated, PanResponder } from 'react-native';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { DiscoverCardData } from '@/lib/discover';
 
 interface DiscoverCardProps {
   card: DiscoverCardData;
   tier: string;
+  isFlipped?: boolean;
+  onFlipChange?: (flipped: boolean) => void;
+  extraDetails?: {
+    education?: string | null;
+    drinking?: string | null;
+    smoking?: string | null;
+    weed?: string | null;
+    religion?: string | null;
+    sexual_orientation?: string | null;
+    have_children?: string | null;
+    want_children?: string | null;
+    relationship_style?: string | null;
+    workout?: string | null;
+    diet?: string | null;
+    pets?: string | null;
+    languages?: string[] | null;
+    travel?: string | null;
+    relationship_status?: string | null;
+    interest?: string[] | null;
+    hobbies?: string[] | null;
+    introvert_extrovert?: string | null;
+  } | null;
 }
 
 /** Simple full-width photo block used throughout the profile card. */
@@ -41,55 +63,67 @@ const photoStyles = StyleSheet.create({
 });
 
 /** Interactive "Swipe to Discover" slider that triggers paywall screen navigation on complete swipe. */
-function SwipeDiscover() {
+function SwipeDiscover({ card }: { card: DiscoverCardData }) {
   const [width, setWidth] = useState(0);
-  const pan = useRef(new Animated.ValueXY()).current;
+  const [pan] = useState(() => new Animated.ValueXY());
 
   const handleWidth = 54;
   const paddingOffset = 10; // 5px padding on left/right of container
   const maxTranslate = width ? width - handleWidth - paddingOffset : 150;
 
-  const panResponder = useRef(
+  const panResponder = useMemo(() =>
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => Math.abs(gestureState.dx) > 2,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderMove: (e, gestureState) => {
         const newX = Math.min(Math.max(0, gestureState.dx), maxTranslate);
         pan.setValue({ x: newX, y: 0 });
       },
       onPanResponderRelease: (e, gestureState) => {
-        if (gestureState.dx >= maxTranslate * 0.75) {
+        if (gestureState.dx >= maxTranslate * 0.55) {
           Animated.timing(pan, {
             toValue: { x: maxTranslate, y: 0 },
             duration: 150,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start(() => {
-            router.push('/astro-x-features');
+            router.push({
+              pathname: '/astro-x-features',
+              params: {
+                userId: card.user_id,
+                fullName: card.full_name ?? '',
+                score: card.score?.toString() ?? '',
+                personalityScore: card.personality_score?.toString() ?? '',
+                westernScore: card.western_score?.toString() ?? '',
+                indianScore: card.indian_score?.toString() ?? '',
+                whyYouMatch: card.why_you_match ?? '',
+                manglikStatus: card.manglik_status !== null ? (card.manglik_status ? 'yes' : 'no') : '',
+                nadiDosha: card.nadi_dosha !== null ? (card.nadi_dosha ? 'yes' : 'no') : '',
+                bhakootDosha: card.bhakoot_dosha !== null ? (card.bhakoot_dosha ? 'yes' : 'no') : '',
+                factors: JSON.stringify(card.personality_factors || null),
+              }
+            });
             setTimeout(() => {
               Animated.spring(pan, {
                 toValue: { x: 0, y: 0 },
-                useNativeDriver: true,
+                useNativeDriver: false,
               }).start();
             }, 600);
           });
         } else {
           Animated.spring(pan, {
             toValue: { x: 0, y: 0 },
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start();
         }
       },
-    })
-  ).current;
+    }),
+    [maxTranslate, pan, card]
+  );
 
   const textOpacity = pan.x.interpolate({
     inputRange: [0, maxTranslate * 0.5, maxTranslate],
     outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  const progressTranslateX = pan.x.interpolate({
-    inputRange: [0, maxTranslate || 1],
-    outputRange: [-(width || 300), -handleWidth - 5],
     extrapolate: 'clamp',
   });
 
@@ -100,31 +134,48 @@ function SwipeDiscover() {
       end={{ x: 1, y: 0 }}
       style={styles.scrollDiscoverBox}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      {...panResponder.panHandlers}
     >
       {/* Background celestial pattern overlay on the right side */}
       <Image
         source={require('@/assets/images/cards/western-card-bg.jpg')}
         style={styles.sliderBgPattern}
         contentFit="cover"
+        pointerEvents="none"
       />
 
+      {width > 0 && (
+        <Animated.View
+          style={[
+            styles.swipeProgressFill,
+            {
+              width: pan.x.interpolate({
+                inputRange: [0, maxTranslate],
+                outputRange: [54, width - 10],
+                extrapolate: 'clamp',
+              }),
+              pointerEvents: 'none',
+            },
+          ]}
+        />
+      )}
 
       {/* Styled text block matching the reference design */}
-      <Animated.View style={[styles.textWrapper, { opacity: textOpacity }]}>
+      <Animated.View style={[styles.textWrapper, { opacity: textOpacity, pointerEvents: 'none' }]}>
         <View style={styles.swipeTitleRow}>
           <Text style={styles.sparkleIcon}>✨</Text>
           <Text style={styles.scrollDiscoverText}>Swipe to Reveal <Text style={styles.scrollDiscoverTextHighlight}>Compatibility</Text></Text>
         </View>
         <Text style={styles.scrollDiscoverSubtext}>✦ AI • Astrology • Personality Insights ✦</Text>
       </Animated.View>
-      
+
       {width > 0 && (
         <Animated.View
-          {...panResponder.panHandlers}
           style={[
             styles.swipeHandle,
             {
               transform: [{ translateX: pan.x }],
+              pointerEvents: 'none',
             },
           ]}
         >
@@ -137,12 +188,15 @@ function SwipeDiscover() {
   );
 }
 
+function cap(str: string | undefined | null) {
+  if (!str) return '—';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
 
-export function DiscoverCard({ card, tier }: DiscoverCardProps) {
+export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, extraDetails }: DiscoverCardProps) {
   const name = card.full_name ?? 'Someone';
   const age = card.age ?? '';
   const initials = name.slice(0, 2).toUpperCase();
-  const zodiac = card.western_sign ?? '';
   const locationLabel = card.location ?? '';
   const distanceLabel = card.distance_label ?? '';
 
@@ -151,7 +205,27 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
   const extraPhotos = photos.slice(1);
 
   const prompts = card.prompts ?? [];
-  const about = card.about ?? null;
+
+  const [flipAnimation] = useState(() => new Animated.Value(0));
+
+  const frontInterpolate = flipAnimation.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['0deg', '180deg'],
+  });
+  const backInterpolate = flipAnimation.interpolate({
+    inputRange: [0, 180],
+    outputRange: ['180deg', '360deg'],
+  });
+  const frontOpacity = flipAnimation.interpolate({
+    inputRange: [89, 90],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const backOpacity = flipAnimation.interpolate({
+    inputRange: [89, 90],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   function resolveSource(url: string | number | null | undefined): number | { uri: string } | null {
     if (url === null || url === undefined) return null;
@@ -169,185 +243,368 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
 
   const heroSource = resolveSource(heroPhoto);
 
+  const [flipDisabled, setFlipDisabled] = useState(false);
+  const [showFullAbout, setShowFullAbout] = useState(false);
+  const [showAllPrefs, setShowAllPrefs] = useState(false);
+  const [showAllLifestyle, setShowAllLifestyle] = useState(false);
+
+  // Animate card flipping based on isFlipped state
+  useEffect(() => {
+    Animated.timing(flipAnimation, {
+      toValue: isFlipped ? 180 : 0,
+      duration: 700,
+      useNativeDriver: true,
+    }).start();
+  }, [isFlipped, flipAnimation]);
+
+  const handleOpenCosmic = () => {
+    if (flipDisabled) return;
+    setFlipDisabled(true);
+    onFlipChange?.(true);
+    setTimeout(() => setFlipDisabled(false), 750);
+  };
+
   return (
     <View style={styles.card}>
+      <View style={styles.heroContainer}>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [{ rotateY: frontInterpolate }],
+              opacity: frontOpacity,
+              backfaceVisibility: 'hidden',
+              backgroundColor: 'rgba(30, 15, 60, 0.70)',
+              borderRadius: 24,
+              overflow: 'hidden',
+              pointerEvents: isFlipped ? 'none' : 'auto',
+            },
+          ]}
+        >
+          <Pressable onPress={handleOpenCosmic} disabled={flipDisabled} style={StyleSheet.absoluteFill}>
+            {heroSource ? (
+              <Image source={heroSource} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : (
+              <Text style={styles.heroInitials}>{initials}</Text>
+            )}
+          </Pressable>
+        </Animated.View>
 
-      {/* ── 1. Hero Photo ── */}
-      <View style={styles.hero}>
-        {heroSource ? (
-          <Image source={heroSource} style={StyleSheet.absoluteFill} contentFit="cover" />
-        ) : (
-          <Text style={styles.heroInitials}>{initials}</Text>
-        )}
+        {/* Back face — cosmic card reveal */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [{ rotateY: backInterpolate }],
+              opacity: backOpacity,
+              backfaceVisibility: 'hidden',
+              borderRadius: 24,
+              overflow: 'hidden',
+              pointerEvents: isFlipped ? 'auto' : 'none',
+            },
+          ]}
+        >
+          {/* Background is Pressable to flip back when tapping empty space */}
+          <Pressable onPress={() => onFlipChange?.(false)} style={StyleSheet.absoluteFill}>
+            <Image
+              source={require('@/assets/images/cards/western-card-bg.jpg')}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+            />
+            {/* Light scrim so text is readable but bg is visible */}
+            <View style={{ ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9,5,20,0.65)' }} />
+          </Pressable>
 
-        {/* Cosmic Match ring – bottom right */}
-        <View style={styles.scoreOverlay}>
-          <View style={styles.cosmicMatchRing}>
-            <Text style={styles.cosmicMatchPercent}>{Math.round(card.score)}%</Text>
-            <Text style={styles.cosmicMatchLabel}>Compatibility</Text>
-            <Text style={styles.cosmicMatchPlus}>+++</Text>
-          </View>
-        </View>
+          {/* Scrollable cosmic profile content inside the back of the card */}
+          <ScrollView
+            style={StyleSheet.absoluteFill}
+            contentContainerStyle={{ minHeight: '100%' }}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+          >
+            <Pressable onPress={() => onFlipChange?.(false)} style={{ padding: 16, paddingBottom: 24, gap: 14 }}>
+              {/* Cosmic Profile Overview Grid Card */}
+              <LinearGradient
+                colors={['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.aboutGridCard}
+              >
+                <View style={styles.aboutGridRow}>
+                  <View style={styles.gridCol}>
+                    <LinearGradient colors={['#EC4899', '#BE185D']} style={styles.gridIconCircleGradient}>
+                      <Text style={styles.gridIconText}>💖</Text>
+                    </LinearGradient>
+                    <Text style={styles.gridMainText} numberOfLines={1}>Long-term</Text>
+                    <Text style={styles.gridSubText} numberOfLines={1}>Relationship</Text>
+                  </View>
+                  <View style={styles.gridDivider} />
+                  <View style={styles.gridCol}>
+                    <LinearGradient colors={['#A855F7', '#6D28D9']} style={styles.gridIconCircleGradient}>
+                      <Text style={styles.gridIconText}>♓</Text>
+                    </LinearGradient>
+                    <Text style={styles.gridMainText} numberOfLines={1}>{card.western_sign || 'Pisces'}</Text>
+                    <Text style={styles.gridSubText} numberOfLines={1}>(Western)</Text>
+                  </View>
+                  <View style={styles.gridDivider} />
+                  <View style={styles.gridCol}>
+                    <LinearGradient colors={['#3B82F6', '#1D4ED8']} style={styles.gridIconCircleGradient}>
+                      <Text style={styles.gridIconText}>🪐</Text>
+                    </LinearGradient>
+                    <Text style={styles.gridMainText} numberOfLines={1}>{card.vedic_sign ? card.vedic_sign.split(' ')[0] : 'Meena'}</Text>
+                    <Text style={styles.gridSubText} numberOfLines={1}>(Vedic)</Text>
+                  </View>
+                  <View style={styles.gridDivider} />
+                  <View style={styles.gridCol}>
+                    <LinearGradient colors={['#F59E0B', '#B45309']} style={styles.gridIconCircleGradient}>
+                      <Text style={styles.gridIconText}>⭐</Text>
+                    </LinearGradient>
+                    <Text style={styles.gridMainText} numberOfLines={1}>{card.nakshatra || 'Revati'}</Text>
+                    <Text style={styles.gridSubText} numberOfLines={1}>Nakshatra</Text>
+                  </View>
+                </View>
+                <View style={styles.capsuleBar}>
+                  <View style={styles.capsuleItemColumn}>
+                    <View style={styles.capsuleRow}>
+                      <Text style={styles.capsuleIcon}>📏</Text>
+                      <Text style={styles.capsuleTextValue}>{card.height_cm || 178} cm</Text>
+                    </View>
+                    <Text style={styles.capsuleTextLabel}>Height</Text>
+                  </View>
+                  <View style={styles.capsuleDivider} />
+                  <View style={styles.capsuleItemColumn}>
+                    <View style={styles.capsuleRow}>
+                      <Text style={styles.capsuleIcon}>🏫</Text>
+                      <Text style={styles.capsuleTextValue}>{locationLabel.split(',')[0] || 'Chennai'}</Text>
+                    </View>
+                    <Text style={styles.capsuleTextLabel}>Location</Text>
+                  </View>
+                </View>
+              </LinearGradient>
 
-        {/* Name / location overlay – bottom left */}
-        <View style={styles.nameOverlay}>
-          <View style={styles.nameRow}>
-            <Text style={styles.nameText}>{name}</Text>
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✓</Text>
-            </View>
-            <Text style={styles.nameAgeText}>{age}</Text>
-          </View>
+              {!!card.about && (
+                <View style={styles.cSection}>
+                  <Text style={styles.cSectionTitle}>About Me</Text>
+                  <View style={styles.cCard}>
+                    <Text style={styles.cAboutText} numberOfLines={showFullAbout ? undefined : 4}>
+                      {card.about}
+                    </Text>
+                    {card.about.length > 120 && (
+                      <Pressable
+                        onPress={() => setShowFullAbout(prev => !prev)}
+                        style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                      >
+                        <Text style={{ color: '#C084FC', fontSize: 13, fontWeight: '700' }}>
+                          {showFullAbout ? 'Read Less' : 'Read More'}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              )}
 
-          {(locationLabel || distanceLabel) ? (
-            <View style={styles.locationRowHero}>
-              <Text style={styles.locationPinHero}>📍</Text>
-              <Text style={styles.locationTextHero}>
-                {locationLabel}  •  {distanceLabel.replace('Less than', '<')}
-              </Text>
-            </View>
-          ) : null}
+              <View style={styles.cSection}>
+                <Text style={styles.cSectionTitle}>Preferences & Personality</Text>
+                <View style={{ gap: 10 }}>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Relationship Status</Text>
+                      <Text style={styles.cInfoValue}>{cap(extraDetails?.relationship_status)}</Text>
+                    </View>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Personality Type</Text>
+                      <Text style={styles.cInfoValue}>{cap(extraDetails?.introvert_extrovert)}</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Interested In</Text>
+                      <Text style={styles.cInfoValue}>{cap(extraDetails?.interest?.[0])}</Text>
+                    </View>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Sexual Orientation</Text>
+                      <Text style={styles.cInfoValue}>{extraDetails?.sexual_orientation || '—'}</Text>
+                    </View>
+                  </View>
 
-          {card.looking_for ? (
-            <View style={styles.lookingForBadgeHero}>
-              <Text style={styles.lookingForHeartHero}>💖</Text>
-              <Text style={styles.lookingForTextHero}>Looking for a {card.looking_for.toLowerCase()}</Text>
-            </View>
-          ) : null}
-        </View>
+                  {showAllPrefs && (
+                    <>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Religion</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.religion || '—'}</Text>
+                        </View>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Relationship Style</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.relationship_style || '—'}</Text>
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Have Children</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.have_children || '—'}</Text>
+                        </View>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Want Children</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.want_children || '—'}</Text>
+                        </View>
+                      </View>
+                    </>
+                  )}
+
+                  <Pressable
+                    onPress={() => setShowAllPrefs(prev => !prev)}
+                    style={{ marginTop: 6, alignSelf: 'flex-start' }}
+                  >
+                    <Text style={{ color: '#C084FC', fontSize: 13, fontWeight: '700' }}>
+                      {showAllPrefs ? 'Show Less' : 'Show More'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.cSection}>
+                <Text style={styles.cSectionTitle}>Lifestyle</Text>
+                <View style={{ gap: 10 }}>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Education</Text>
+                      <Text style={styles.cInfoValue}>{extraDetails?.education || '—'}</Text>
+                    </View>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Smoking</Text>
+                      <Text style={styles.cInfoValue}>{extraDetails?.smoking || '—'}</Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Drinking</Text>
+                      <Text style={styles.cInfoValue}>{extraDetails?.drinking || '—'}</Text>
+                    </View>
+                    <View style={styles.cGrid2ColFlex}>
+                      <Text style={styles.cInfoLabel}>Weed</Text>
+                      <Text style={styles.cInfoValue}>{extraDetails?.weed || '—'}</Text>
+                    </View>
+                  </View>
+
+                  {showAllLifestyle && (
+                    <>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Workout</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.workout || '—'}</Text>
+                        </View>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Diet</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.diet || '—'}</Text>
+                        </View>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Pets</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.pets || '—'}</Text>
+                        </View>
+                        <View style={styles.cGrid2ColFlex}>
+                          <Text style={styles.cInfoLabel}>Travel</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails?.travel || '—'}</Text>
+                        </View>
+                      </View>
+                      {extraDetails?.languages && extraDetails.languages.length > 0 && (
+                        <View style={styles.cInfoFullCol}>
+                          <Text style={styles.cInfoLabel}>Languages Spoken</Text>
+                          <Text style={styles.cInfoValue}>{extraDetails.languages.join(', ')}</Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+
+                  <Pressable
+                    onPress={() => setShowAllLifestyle(prev => !prev)}
+                    style={{ marginTop: 6, alignSelf: 'flex-start' }}
+                  >
+                    <Text style={{ color: '#C084FC', fontSize: 13, fontWeight: '700' }}>
+                      {showAllLifestyle ? 'Show Less' : 'Show More'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {extraDetails?.hobbies && extraDetails.hobbies.length > 0 && (
+                <View style={[styles.cSection, { marginBottom: 8 }]}>
+                  <Text style={styles.cSectionTitle}>Hobbies & Interests</Text>
+                  <View style={styles.cHobbiesWrap}>
+                    {extraDetails.hobbies.map((h: string, i: number) => (
+                      <View key={i} style={styles.cHobbyChip}>
+                        <Text style={styles.cHobbyChipText}>{h}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </Pressable>
+          </ScrollView>
+        </Animated.View>
       </View>
 
-      {/* ── 2. About (structured grid info card) ── */}
-      <LinearGradient
-        colors={['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)']} // deep indigo-violet space gradient
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.aboutGridCard}
-      >
-        {/* Top grid: 4 columns */}
-        <View style={styles.aboutGridRow}>
-          {/* Col 1: Relationship */}
-          <View style={styles.gridCol}>
-            <LinearGradient
-              colors={['#EC4899', '#BE185D']} // pink gradient
-              style={styles.gridIconCircleGradient}
-            >
-              <Text style={styles.gridIconText}>💖</Text>
-            </LinearGradient>
-            <Text style={styles.gridMainText} numberOfLines={1}>Long-term</Text>
-            <Text style={styles.gridSubText} numberOfLines={1}>Relationship</Text>
+
+
+      {/* Name, Age, Location, Looking For & Score Summary Box */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <View style={styles.summaryLeft}>
+            <View style={styles.summaryNameRow}>
+              <Text style={styles.summaryNameText}>{name}</Text>
+              <View style={styles.verifiedBadgeMini}>
+                <Text style={styles.verifiedTextMini}>✓</Text>
+              </View>
+              <Text style={styles.summaryAgeText}>{age}</Text>
+            </View>
+            {!!(locationLabel || distanceLabel) && (
+              <Text style={styles.summaryLocationText}>
+                📍 {locationLabel} {distanceLabel ? `• ${distanceLabel.replace('Less than', '<')}` : ''}
+              </Text>
+            )}
           </View>
-
-          <View style={styles.gridDivider} />
-
-          {/* Col 2: Western Zodiac */}
-          <View style={styles.gridCol}>
-            <LinearGradient
-              colors={['#A855F7', '#6D28D9']} // purple gradient
-              style={styles.gridIconCircleGradient}
-            >
-              <Text style={styles.gridIconText}>♓</Text>
-            </LinearGradient>
-            <Text style={styles.gridMainText} numberOfLines={1}>{card.western_sign || 'Pisces'}</Text>
-            <Text style={styles.gridSubText} numberOfLines={1}>(Western)</Text>
-          </View>
-
-          <View style={styles.gridDivider} />
-
-          {/* Col 3: Vedic Zodiac */}
-          <View style={styles.gridCol}>
-            <LinearGradient
-              colors={['#3B82F6', '#1D4ED8']} // blue gradient
-              style={styles.gridIconCircleGradient}
-            >
-              <Text style={styles.gridIconText}>🪐</Text>
-            </LinearGradient>
-            <Text style={styles.gridMainText} numberOfLines={1}>{card.vedic_sign ? card.vedic_sign.split(' ')[0] : 'Meena'}</Text>
-            <Text style={styles.gridSubText} numberOfLines={1}>(Vedic)</Text>
-          </View>
-
-          <View style={styles.gridDivider} />
-
-          {/* Col 4: Nakshatra */}
-          <View style={styles.gridCol}>
-            <LinearGradient
-              colors={['#F59E0B', '#B45309']} // gold/star gradient
-              style={styles.gridIconCircleGradient}
-            >
-              <Text style={styles.gridIconText}>⭐</Text>
-            </LinearGradient>
-            <Text style={styles.gridMainText} numberOfLines={1}>{card.nakshatra || 'Revati'}</Text>
-            <Text style={styles.gridSubText} numberOfLines={1}>Nakshatra</Text>
+          <View style={styles.summaryScoreRing}>
+            <Text style={styles.summaryScorePercent}>{Math.round(card.score)}%</Text>
+            <Text style={styles.summaryScoreLabel}>Match</Text>
           </View>
         </View>
 
-        {/* Bottom capsule bar: Height & Location */}
-        <View style={styles.capsuleBar}>
-          <View style={styles.capsuleItemColumn}>
-            <View style={styles.capsuleRow}>
-              <Text style={styles.capsuleIcon}>📏</Text>
-              <Text style={styles.capsuleTextValue}>{card.height_cm || 178} cm</Text>
-            </View>
-            <Text style={styles.capsuleTextLabel}>Height</Text>
+        {card.looking_for ? (
+          <View style={styles.summaryLookingFor}>
+            <Text style={styles.summaryLookingForText}>
+              💖 Looking for a <Text style={{ fontWeight: '700', color: '#F59E0B' }}>{card.looking_for.toLowerCase()}</Text>
+            </Text>
           </View>
+        ) : null}
+      </View>
 
-          <View style={styles.capsuleDivider} />
-
-          <View style={styles.capsuleItemColumn}>
-            <View style={styles.capsuleRow}>
-              <Text style={styles.capsuleIcon}>🏫</Text>
-              <Text style={styles.capsuleTextValue}>{locationLabel.split(',')[0] || 'Chennai'}</Text>
-            </View>
-            <Text style={styles.capsuleTextLabel}>Location</Text>
-          </View>
-        </View>
-      </LinearGradient>
-
-      {/* Swipe to Discover slider */}
-      <SwipeDiscover />
-
-
-      {/* ── 3. Photo 2 ── */}
+      <SwipeDiscover card={card} />
       <FullPhoto src={ep0src} />
-
-      {/* ── 4. Prompt 1 ── */}
       {prompts[0] && (
         <View style={styles.promptCard}>
           <Text style={styles.promptQuestion}>{prompts[0].question}</Text>
           <Text style={styles.promptAnswer}>{prompts[0].answer}</Text>
         </View>
       )}
-
-      {/* ── 5. Photo 3 ── */}
       <FullPhoto src={ep1src} />
-
-      {/* ── 6. Prompt 2 ── */}
       {prompts[1] && (
         <View style={styles.promptCard}>
           <Text style={styles.promptQuestion}>{prompts[1].question}</Text>
           <Text style={styles.promptAnswer}>{prompts[1].answer}</Text>
         </View>
       )}
-
-      {/* ── 7. Photo 4 ── */}
       <FullPhoto src={ep2src} />
-
-      {/* ── 8. Photo 5 ── */}
       <FullPhoto src={ep3src} />
-
-      {/* ── 9. Prompt 3 ── */}
       {prompts[2] && (
         <View style={styles.promptCard}>
           <Text style={styles.promptQuestion}>{prompts[2].question}</Text>
           <Text style={styles.promptAnswer}>{prompts[2].answer}</Text>
         </View>
       )}
-
-      {/* ── 10. Photo 6 ── */}
       <FullPhoto src={ep4src} />
-
       <View style={{ height: 8 }} />
-
     </View>
   );
 }
@@ -358,7 +615,7 @@ const styles = StyleSheet.create({
   // ── Hero ──
   hero: {
     width: '100%',
-    aspectRatio: 3 / 4,
+    aspectRatio: 3 / 4.4,
     borderRadius: 24,
     backgroundColor: 'rgba(30, 15, 60, 0.70)',
     alignItems: 'center',
@@ -739,5 +996,272 @@ const styles = StyleSheet.create({
     opacity: 0.35,
     borderRadius: 33,
     zIndex: 0,
+  },
+  heroContainer: {
+    width: '100%',
+    aspectRatio: 3 / 4.4,
+    borderRadius: 24,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+    position: 'relative',
+    ...Platform.select({
+      ios: { shadowColor: '#6A3FE0', shadowOpacity: 0.15, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
+  },
+  tapToFlipBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: 'rgba(9, 3, 28, 0.75)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#A855F7',
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  tapToFlipText: {
+    color: '#D4B8FF',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  modalScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(9, 5, 20, 0.88)',
+  },
+  cosmicInline: {
+    width: '100%',
+    gap: 16,
+    paddingTop: 8,
+  },
+  cosmicCloseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  cosmicCloseIcon: {
+    color: '#A855F7',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  cosmicCloseText: {
+    color: '#A855F7',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cSection: {
+    width: '100%',
+  },
+  cSectionTitle: {
+    color: '#BE185D',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  cCard: {
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+  },
+  cAboutText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  cGrid3: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cGrid3Col: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  cGridEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  cGridLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 8.5,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  cGridValue: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  cGrid2: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  cGrid2Col: {
+    width: '48.5%',
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  cGrid2ColFlex: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  cInfoFullCol: {
+    width: '100%',
+    backgroundColor: 'rgba(20, 12, 40, 0.45)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  cInfoLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  cInfoValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  cHobbiesWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  cHobbyChip: {
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  cHobbyChipText: {
+    color: '#E9D5FF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  summaryCard: {
+    backgroundColor: 'rgba(20, 12, 40, 0.65)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 16,
+    gap: 12,
+    marginTop: 8,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  summaryNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryNameText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  verifiedBadgeMini: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 5,
+  },
+  verifiedTextMini: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  summaryAgeText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    marginLeft: 6,
+  },
+  summaryLocationText: {
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  summaryScoreRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#EC4899',
+    backgroundColor: 'rgba(20, 12, 40, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryScorePercent: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  summaryScoreLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  summaryLookingFor: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  summaryLookingForText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

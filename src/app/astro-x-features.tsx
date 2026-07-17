@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Pressable, StyleSheet, Text, View,
-  ScrollView, Dimensions, Platform, Modal,
+  ScrollView, Dimensions, Modal, Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -13,9 +13,84 @@ const { width: SW } = Dimensions.get('window');
 
 export default function AstroXFeaturesScreen() {
   const insets = useSafeAreaInsets();
+  const {
+    userId,
+    fullName,
+    score,
+    personalityScore,
+    westernScore,
+    indianScore,
+    whyYouMatch,
+    manglikStatus,
+    nadiDosha,
+    bhakootDosha,
+    factors,
+  } = useLocalSearchParams<{
+    userId?: string;
+    fullName?: string;
+    score?: string;
+    personalityScore?: string;
+    westernScore?: string;
+    indianScore?: string;
+    whyYouMatch?: string;
+    manglikStatus?: string;
+    nadiDosha?: string;
+    bhakootDosha?: string;
+    factors?: string;
+  }>();
+
+  const parsedFactors = useMemo(() => {
+    try {
+      return factors ? JSON.parse(factors) : null;
+    } catch {
+      return null;
+    }
+  }, [factors]);
+
+  // Compute personality % from the factor breakdown (same weighted formula as the DB).
+  // Weights mirror get_personality_compatibility:
+  //   Hobbies 25 | Traits 20 | Goals 20 | Lifestyle 15 | Communication 10
+  // Renormalize over present factors (same as backend).
+  const pct = useMemo(() => {
+    const WEIGHTS: Record<string, number> = {
+      hobbies: 25,
+      personality_traits: 20,
+      relationship_goals: 20,
+      lifestyle: 15,
+      communication: 10,
+    };
+    if (parsedFactors) {
+      let weightSum = 0;
+      let scoreSum = 0;
+      for (const [key, w] of Object.entries(WEIGHTS)) {
+        const val = (parsedFactors as Record<string, number | null>)[key];
+        if (val != null) {
+          weightSum += w;
+          scoreSum += val * w;
+        }
+      }
+      if (weightSum > 0) return Math.min(100, Math.round(scoreSum / weightSum));
+    }
+    // Fallback: server-side personality_points is on 0–10 scale → ×10 for %
+    if (personalityScore) return Math.min(100, Math.round(parseFloat(personalityScore) * 10));
+    return 74;
+  }, [parsedFactors, personalityScore]);
+
+  // Derived factor display values (0–100). Fallback to '—' if not present.
+  const relationshipGoalVal = parsedFactors?.relationship_goals != null ? Math.round(parsedFactors.relationship_goals) : '—';
+  const hobbiesVal           = parsedFactors?.hobbies != null ? Math.round(parsedFactors.hobbies) : '—';
+  const lifestyleVal         = parsedFactors?.lifestyle != null ? Math.round(parsedFactors.lifestyle) : '—';
+  const personalityVal       = parsedFactors?.personality_traits != null ? Math.round(parsedFactors.personality_traits) : '—';
+  const communicationVal     = parsedFactors?.communication != null ? Math.round(parsedFactors.communication) : '—';
+
+  const overallScore = score ? Math.round(parseFloat(score)) : 81;
+  const westPct = westernScore ? Math.round(parseFloat(westernScore)) : 92;
+  const vedicPct = indianScore ? Math.round(parseFloat(indianScore)) : 78;
+
   const [showCompatibility, setShowCompatibility] = useState(false);
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [showAshtaModal, setShowAshtaModal] = useState(false);
+  const [showPersonalityModal, setShowPersonalityModal] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -85,14 +160,20 @@ export default function AstroXFeaturesScreen() {
 
               {/* Right — text */}
               <View style={styles.bannerRight}>
-                <Text style={styles.bannerSmall}>Exceptional match across</Text>
+                <Text style={styles.bannerSmall}>Match Insights for {fullName || 'Someone'}</Text>
                 <Text style={styles.bannerBig}>
-                  <Text style={styles.tWestern}>Western</Text>
-                  <Text style={styles.bannerBig}>, </Text>
-                  <Text style={styles.tVedic}>Vedic</Text>
-                  <Text style={styles.bannerBig}> & {`\n`}</Text>
-                  <Text style={styles.tPersonality}>Personality</Text>
-                  <Text style={styles.bannerBig}> astrology.</Text>
+                  {whyYouMatch ? (
+                    <Text style={styles.bannerBig}>{whyYouMatch}</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.tWestern}>Western</Text>
+                      <Text style={styles.bannerBig}>, </Text>
+                      <Text style={styles.tVedic}>Vedic</Text>
+                      <Text style={styles.bannerBig}> & {`\n`}</Text>
+                      <Text style={styles.tPersonality}>Personality</Text>
+                      <Text style={styles.bannerBig}> astrology.</Text>
+                    </>
+                  )}
                 </Text>
 
                 {/* Badges row */}
@@ -140,9 +221,6 @@ export default function AstroXFeaturesScreen() {
                 </View>
               ))}
             </View>
-
-            {/* Chevron */}
-            <Text style={styles.chevron}>›</Text>
           </View>
         </LinearGradient>
 
@@ -206,16 +284,26 @@ export default function AstroXFeaturesScreen() {
             </View>
 
             {/* Manglik warning */}
-            <Text style={styles.manglikBold}>⚠️  Manglik (Mild)</Text>
+            <Text style={styles.manglikBold}>
+              {manglikStatus === 'yes' ? '⚠️  Manglik (Strong)' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : '⚠️  Manglik (Mild)'}
+            </Text>
 
             {/* Dosha rows */}
             <View style={styles.doshaRowFull}>
               <Text style={styles.doshaTextFull}>Nadi Dosha</Text>
-              <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+              {nadiDosha === 'yes' ? (
+                <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+              ) : (
+                <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+              )}
             </View>
             <View style={styles.doshaRowFull}>
               <Text style={styles.doshaTextFull}>Bhakoot Dosha</Text>
-              <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+              {bhakootDosha === 'yes' ? (
+                <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+              ) : (
+                <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+              )}
             </View>
 
             {/* Full-width button */}
@@ -231,10 +319,12 @@ export default function AstroXFeaturesScreen() {
           >
             <Text style={styles.smallCardTitle}>🧠 Personality Score</Text>
             <View style={styles.personalityRing}>
-              <Text style={styles.personalityPct}>74%</Text>
+              <Text style={styles.personalityPct}>{pct}%</Text>
             </View>
-            <Text style={styles.personalityDesc}>Good compatibility{'\n'}based on your{'\n'}personality.</Text>
-            <Pressable style={styles.viewFullBtn}>
+            <Text style={styles.personalityDesc}>
+              {pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : 'Fair'} compatibility{'\n'}based on your{'\n'}personality.
+            </Text>
+            <Pressable style={styles.viewFullBtn} onPress={() => setShowPersonalityModal(true)}>
               <Text style={styles.viewFullText}>View personality details  →</Text>
             </Pressable>
           </LinearGradient>
@@ -335,7 +425,7 @@ export default function AstroXFeaturesScreen() {
               {/* Western Astrology — Purple */}
               <View style={styles.ringItem}>
                 <View style={[styles.ringCircle, { borderColor: '#8B5CF6' }]}>
-                  <Text style={styles.ringPct}>92%</Text>
+                  <Text style={styles.ringPct}>{westPct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Western{`\n`}Astrology</Text>
                 <Text style={[styles.ringWeight, { color: '#8B5CF6' }]}>(45%)</Text>
@@ -344,7 +434,7 @@ export default function AstroXFeaturesScreen() {
               {/* Vedic Astrology — Cyan */}
               <View style={styles.ringItem}>
                 <View style={[styles.ringCircle, { borderColor: '#06B6D4' }]}>
-                  <Text style={styles.ringPct}>78%</Text>
+                  <Text style={styles.ringPct}>{vedicPct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Vedic{`\n`}Astrology</Text>
                 <Text style={[styles.ringWeight, { color: '#06B6D4' }]}>(45%)</Text>
@@ -353,7 +443,7 @@ export default function AstroXFeaturesScreen() {
               {/* Personality — Pink */}
               <View style={styles.ringItem}>
                 <View style={[styles.ringCircle, { borderColor: '#EC4899' }]}>
-                  <Text style={styles.ringPct}>74%</Text>
+                  <Text style={styles.ringPct}>{pct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Personality{`\n`}Match</Text>
                 <Text style={[styles.ringWeight, { color: '#EC4899' }]}>(10%)</Text>
@@ -367,7 +457,7 @@ export default function AstroXFeaturesScreen() {
             >
               <Text style={styles.totalScoreLabel}>Total Compatibility Score</Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                <Text style={styles.totalScoreNum}>81</Text>
+                <Text style={styles.totalScoreNum}>{overallScore}</Text>
                 <Text style={styles.totalScoreDen}> /100</Text>
               </View>
             </LinearGradient>
@@ -513,6 +603,68 @@ export default function AstroXFeaturesScreen() {
                 </View>
               </View>
 
+            </View>
+
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── PERSONALITY DETAILS MODAL ── */}
+      <Modal
+        visible={showPersonalityModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPersonalityModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPersonalityModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+
+            {/* Handle bar */}
+            <View style={styles.modalHandle} />
+
+            {/* Title row */}
+            <View style={styles.modalTitleRow}>
+              <Text style={styles.modalTitle}>🧠 Personality Compatibility Details</Text>
+              <Text style={styles.modalInfoIcon}>ⓘ</Text>
+            </View>
+
+            {/* Factor Table */}
+            <View style={styles.factorTableContainer}>
+              {/* Header */}
+              <View style={styles.tableHeaderRow}>
+                <Text style={styles.tableHeaderColText}>Factor</Text>
+                <Text style={styles.tableHeaderColText}>Match</Text>
+              </View>
+
+              {/* Relationship Goal Row */}
+              <View style={styles.tableBodyRow}>
+                <Text style={styles.tableBodyColText}>Relationship goal</Text>
+                <Text style={styles.tableBodyColValText}>{relationshipGoalVal}%</Text>
+              </View>
+
+              {/* Hobbies Row */}
+              <View style={styles.tableBodyRow}>
+                <Text style={styles.tableBodyColText}>Hobbies</Text>
+                <Text style={styles.tableBodyColValText}>{hobbiesVal}%</Text>
+              </View>
+
+              {/* Lifestyle Row */}
+              <View style={styles.tableBodyRow}>
+                <Text style={styles.tableBodyColText}>Lifestyle</Text>
+                <Text style={styles.tableBodyColValText}>{lifestyleVal}%</Text>
+              </View>
+
+              {/* Personality Row */}
+              <View style={styles.tableBodyRow}>
+                <Text style={styles.tableBodyColText}>Personality</Text>
+                <Text style={styles.tableBodyColValText}>{personalityVal}%</Text>
+              </View>
+
+              {/* Communication Row */}
+              <View style={[styles.tableBodyRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.tableBodyColText}>Communication</Text>
+                <Text style={styles.tableBodyColValText}>{communicationVal}%</Text>
+              </View>
             </View>
 
           </Pressable>
@@ -1165,5 +1317,47 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.06)',
     marginVertical: 4,
+  },
+  factorTableContainer: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E6E2F0',
+    backgroundColor: '#FFFFFF',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#1B1242',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  tableHeaderColText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tableBodyRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBE8F3',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F7F5FC',
+  },
+  tableBodyColText: {
+    flex: 1,
+    color: '#2E2E3E',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 14,
+  },
+  tableBodyColValText: {
+    flex: 1,
+    color: '#2E2E3E',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 14,
   },
 });

@@ -66,10 +66,28 @@ export default function LikesScreen() {
       if (result.reason === 'locked') openPaywall('instant_match');
       return;
     }
+
+    const likerProfile = data?.likes.find((l) => l.user_id === userId);
+    const otherName = likerProfile?.full_name ?? 'Someone';
+    const otherPhoto = likerProfile?.photo_url ?? '';
+    const newChannelId = result.channel_id;
+
     await refresh();
     Alert.alert("It's a match! ✨", 'Say hello — your chat is ready.', [
       { text: 'Later', style: 'cancel' },
-      { text: 'Say hi', onPress: () => router.push('/chats') },
+      {
+        text: 'Say hi',
+        onPress: () =>
+          router.push({
+            pathname: '/chat/[channelId]',
+            params: {
+              channelId: newChannelId,
+              otherUserId: userId,
+              otherUserName: otherName,
+              otherUserPhoto: otherPhoto,
+            },
+          } as any),
+      },
     ]);
   };
 

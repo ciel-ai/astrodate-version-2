@@ -381,35 +381,62 @@ export type Database = {
         Row: {
           about_me: string | null
           created_at: string | null
+          diet: string | null
           drinking: string | null
           education: string | null
+          have_children: string | null
           id: string
           languages: string[] | null
+          pets: string | null
+          relationship_style: string | null
+          religion: string | null
           smoking: string | null
+          travel: string | null
           updated_at: string | null
           user_id: string
+          want_children: string | null
+          weed: string | null
+          workout: string | null
         }
         Insert: {
           about_me?: string | null
           created_at?: string | null
+          diet?: string | null
           drinking?: string | null
           education?: string | null
+          have_children?: string | null
           id?: string
           languages?: string[] | null
+          pets?: string | null
+          relationship_style?: string | null
+          religion?: string | null
           smoking?: string | null
+          travel?: string | null
           updated_at?: string | null
           user_id: string
+          want_children?: string | null
+          weed?: string | null
+          workout?: string | null
         }
         Update: {
           about_me?: string | null
           created_at?: string | null
+          diet?: string | null
           drinking?: string | null
           education?: string | null
+          have_children?: string | null
           id?: string
           languages?: string[] | null
+          pets?: string | null
+          relationship_style?: string | null
+          religion?: string | null
           smoking?: string | null
+          travel?: string | null
           updated_at?: string | null
           user_id?: string
+          want_children?: string | null
+          weed?: string | null
+          workout?: string | null
         }
         Relationships: []
       }

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { DiscoverCard } from '@/components/discover-card';
+import { DiscoverActionBar } from '@/components/discover-action-bar';
 import { useAuth } from '@/context/auth';
 import {
   getDiscoverDeck,
@@ -29,7 +30,7 @@ const DINESH_MOCK_CARD: DiscoverCardData = {
   western_sign: 'Pisces',
   distance_label: 'Less than 1 km away',
   fully_computed: true,
-  personality_score: 74,
+  personality_score: 7.4,
   indian_score: 28,
   western_score: 36,
   manglik_status: true,
@@ -84,6 +85,31 @@ const DINESH_MOCK_CARD: DiscoverCardData = {
     },
   ],
   about: 'Software engineer by day, stargazer by night 🌌. I grew up in Chennai and I genuinely believe your birth chart says more about you than your Instagram does. I love trying new restaurants, getting lost on long drives, and deep conversations that go way past midnight. Looking for someone who is equally comfortable being spontaneous and staying in on a rainy Sunday. Pisces sun ♓, Scorpio moon 🦂 — make of that what you will.',
+  education: 'Post Graduate',
+  drinking: 'Socially',
+  smoking: 'Non-smoker',
+  weed: 'Never',
+  religion: 'Hindu',
+  sexual_orientation: 'Straight',
+  have_children: 'No',
+  want_children: 'Someday',
+  relationship_style: 'Monogamous',
+  workout: 'Daily',
+  diet: 'Vegetarian',
+  pets: 'Dog lover',
+  languages: ['English', 'Tamil'],
+  travel: 'Love traveling',
+  relationship_status: 'single',
+  interest: ['women'],
+  hobbies: ['Stargazing', 'Trekking', 'Long Drives', 'Foodie'],
+  introvert_extrovert: 'introvert',
+  personality_factors: {
+    relationship_goals: 100,
+    hobbies: 95,
+    lifestyle: 90,
+    personality_traits: 88,
+    communication: 85,
+  },
 };
 
 function openPaywall(reason: string) {
@@ -102,10 +128,20 @@ export default function DiscoverScreen() {
   const [limitReached, setLimitReached] = useState(false);
   const [rewindLocked, setRewindLocked] = useState(true);
 
+  const [isCosmicOpen, setIsCosmicOpen] = useState(false);
+
   // Gated behind __DEV__ build-time flag. In production, this always evaluates to false.
   const [useMockDinesh, setUseMockDinesh] = useState(!!__DEV__);
 
+  // Determine current card: Mock profile if dev toggle is on, otherwise live card
+  const currentCard = useMockDinesh ? DINESH_MOCK_CARD : (cards?.[index] ?? null);
+
+
+
+
+
   const loadDeck = useCallback(async () => {
+    if (!user) return;
     setLoadError(false);
     setCards(null);
     setLimitReached(false);
@@ -132,8 +168,7 @@ export default function DiscoverScreen() {
     loadDeck();
   }, [loadDeck]);
 
-  // Determine current card: Mock profile if dev toggle is on, otherwise live card
-  const currentCard = useMockDinesh ? DINESH_MOCK_CARD : (cards?.[index] ?? null);
+  // (currentCard is declared above)
 
   // If in mock dev mode, let the tier default to AstroX so we can preview the full screen
   const currentTier = useMockDinesh ? 'astro_x' : tier;
@@ -146,7 +181,7 @@ export default function DiscoverScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [index]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
       if (useMockDinesh) {
@@ -189,7 +224,7 @@ export default function DiscoverScreen() {
     [currentCard, swiping, useMockDinesh]
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const handleRewind = useCallback(async () => {
     if (useMockDinesh) {
       Alert.alert('Dev Action', 'Rewind triggered in mock mode');
@@ -272,10 +307,13 @@ export default function DiscoverScreen() {
     );
   } else if (currentCard) {
     body = (
-      <>
-        <DiscoverCard card={currentCard} tier={currentTier} />
-        <View style={styles.actionBarSpacer} />
-      </>
+      <DiscoverCard 
+        card={currentCard} 
+        tier={currentTier} 
+        isFlipped={isCosmicOpen} 
+        onFlipChange={setIsCosmicOpen}
+        extraDetails={currentCard}
+      />
     );
   } else if (meta && meta.more_high_locked_count > 0 && !useMockDinesh) {
     body = (
@@ -348,7 +386,7 @@ export default function DiscoverScreen() {
         ref={scrollRef}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: 8, paddingBottom: insets.bottom + 120 },
+          { paddingTop: 8, paddingBottom: 110 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -357,78 +395,16 @@ export default function DiscoverScreen() {
 
       {/* Fixed action bar — only shown when a card is visible */}
       {currentCard && (
-        <View style={[styles.actionBarWrap, { bottom: insets.bottom + 16 }]}>
-          <View style={styles.actionBar}>
-            {/* Rewind */}
-            <View style={styles.btnWrapper}>
-              <Pressable
-                style={[styles.actionBtn, styles.rewindBtn]}
-                onPress={() => handleRewind()}
-              >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M9 5 4 12l5 7M4 12h11a5 5 0 0 1 0 10h-1"
-                    stroke="#B385FF"
-                    strokeWidth={2.2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Svg>
-              </Pressable>
-              <Text style={[styles.btnLabel, { color: '#B385FF' }]}>Rewind</Text>
-            </View>
-
-            {/* Pass */}
-            <View style={styles.btnWrapper}>
-              <Pressable
-                style={[styles.actionBtn, styles.passBtn]}
-                onPress={() => handleSwipe('pass')}
-                disabled={swiping}
-              >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path d="M5 5 19 19M19 5 5 19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
-                </Svg>
-              </Pressable>
-              <Text style={[styles.btnLabel, { color: '#9CA3AF' }]}>Pass</Text>
-            </View>
-
-            {/* Super Like */}
-            <View style={styles.btnWrapper}>
-              <Pressable
-                style={[styles.actionBtn, styles.superLikeBtn]}
-                onPress={() => handleSwipe('super_like')}
-                disabled={swiping}
-              >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M12 2.5 14.9 9l7.1.6-5.4 4.7 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9L2 9.6 9.1 9z"
-                    fill="#3FC5F0"
-                    stroke="#3FC5F0"
-                    strokeWidth={1.2}
-                    strokeLinejoin="round"
-                  />
-                </Svg>
-              </Pressable>
-              <Text style={[styles.btnLabel, { color: '#3FC5F0' }]}>Super Like</Text>
-            </View>
-
-            {/* Like */}
-            <View style={styles.btnWrapper}>
-              <Pressable
-                style={[styles.actionBtn, styles.likeBtn]}
-                onPress={() => handleSwipe('like')}
-                disabled={swiping}
-              >
-                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
-                    fill="#E91E63"
-                  />
-                </Svg>
-              </Pressable>
-              <Text style={[styles.btnLabel, { color: '#E91E63' }]}>Like</Text>
-            </View>
-          </View>
+        <View style={[styles.actionBarWrap, { bottom: 10 }]}>
+          <DiscoverActionBar
+            onPass={() => handleSwipe('pass')}
+            onLike={() => handleSwipe('like')}
+            onSuperLike={() => handleSwipe('super_like')}
+            onRewind={handleRewind}
+            rewindLocked={rewindLocked}
+            disabled={swiping}
+            swipeDisabled={!currentCard}
+          />
         </View>
       )}
 
@@ -519,32 +495,6 @@ const styles = StyleSheet.create({
   },
   actionBarSpacer: { height: 100 },
   actionBarWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  actionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(9, 3, 28, 0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 40,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  btnWrapper: { alignItems: 'center', width: 64 },
-  btnLabel: { fontSize: 10, fontWeight: '600', marginTop: 5, textAlign: 'center' },
-  actionBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  rewindBtn: { backgroundColor: 'rgba(179,133,255,0.12)', borderColor: 'rgba(179,133,255,0.35)' },
-  passBtn: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)' },
-  superLikeBtn: { backgroundColor: 'rgba(63,197,240,0.12)', borderColor: 'rgba(63,197,240,0.35)' },
-  likeBtn: { backgroundColor: 'rgba(233,30,99,0.15)', borderColor: '#E91E63' },
   stateBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 },
   stateTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   stateBody: { color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center' },

@@ -46,6 +46,12 @@ export default ({ config }) => ({
       },
     ],
     'expo-secure-store',
+    [
+      'expo-audio',
+      {
+        microphonePermission: 'Astro date uses your microphone to record voice messages in chats.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
