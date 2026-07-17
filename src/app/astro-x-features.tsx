@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Pressable, StyleSheet, Text, View,
-  ScrollView, Dimensions, Modal, Platform,
+  ScrollView, Dimensions, Modal, Platform, Animated, Easing,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -83,6 +83,13 @@ export default function AstroXFeaturesScreen() {
   const personalityVal       = parsedFactors?.personality_traits != null ? Math.round(parsedFactors.personality_traits) : '—';
   const communicationVal     = parsedFactors?.communication != null ? Math.round(parsedFactors.communication) : '—';
 
+  // Numeric equivalents for progress bar widths (fallback to 0 if '—')
+  const relGoalPct = parsedFactors?.relationship_goals != null ? Math.round(parsedFactors.relationship_goals) : 0;
+  const hobbiesPct = parsedFactors?.hobbies != null ? Math.round(parsedFactors.hobbies) : 0;
+  const lifestylePct = parsedFactors?.lifestyle != null ? Math.round(parsedFactors.lifestyle) : 0;
+  const personalityPct = parsedFactors?.personality_traits != null ? Math.round(parsedFactors.personality_traits) : 0;
+  const commPct = parsedFactors?.communication != null ? Math.round(parsedFactors.communication) : 0;
+
   const overallScore = score ? Math.round(parseFloat(score)) : 81;
   const westPct = westernScore ? Math.round(parseFloat(westernScore)) : 92;
   const vedicPct = indianScore ? Math.round(parseFloat(indianScore)) : 78;
@@ -91,6 +98,65 @@ export default function AstroXFeaturesScreen() {
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [showAshtaModal, setShowAshtaModal] = useState(false);
   const [showPersonalityModal, setShowPersonalityModal] = useState(false);
+  const [showIndianModal, setShowIndianModal] = useState(false);
+
+  // Pulsing glow animation for the tap hint
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Rotation animations for orbits
+  const spinAnimCW = useRef(new Animated.Value(0)).current;
+  const spinAnimCCW = useRef(new Animated.Value(0)).current;
+  // Glitter animation for the inner diamond core
+  const glitterAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Tap hint pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1,    duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Clockwise orbit rotation
+    Animated.loop(
+      Animated.timing(spinAnimCW, {
+        toValue: 1,
+        duration: 12000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Counter-clockwise orbit rotation
+    Animated.loop(
+      Animated.timing(spinAnimCCW, {
+        toValue: 1,
+        duration: 9000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Fast random-style sparkle glitter effect
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glitterAnim, { toValue: 1.25, duration: 350, useNativeDriver: true }),
+        Animated.timing(glitterAnim, { toValue: 0.85, duration: 250, useNativeDriver: true }),
+        Animated.timing(glitterAnim, { toValue: 1.12, duration: 400, useNativeDriver: true }),
+        Animated.timing(glitterAnim, { toValue: 0.95, duration: 300, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const spinCW = spinAnimCW.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const spinCCW = spinAnimCCW.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['360deg', '0deg'],
+  });
 
   return (
     <View style={styles.container}>
@@ -124,41 +190,58 @@ export default function AstroXFeaturesScreen() {
       >
 
         {/* ── CARD 1: Astro Match Top Banner ── */}
-        <Pressable onPress={() => setShowCompatibility(true)}>
-          <View style={styles.bannerCard}>
+        <Pressable onPress={() => setShowCompatibility(true)}
+          style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
+        >
+          <View style={[styles.bannerCard, {
+            borderWidth: 1,
+            borderColor: 'rgba(167,139,250,0.25)',
+            overflow: 'hidden',
+          }]}>
             <Image
               source={require('@/assets/images/insights-bg.jpg')}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
             />
-            {/* Darken the right side so text pops */}
             <View style={styles.bannerOverlay} />
 
-            {/* Live feed pill — top left */}
-            <View style={styles.livePill}>
-              <Text style={styles.livePillText}>⚡ Switch to Live Feed</Text>
-            </View>
-
-            {/* Content: left visual + right text, vertically centered */}
             <View style={styles.bannerContent}>
-              {/* Left — golden orbit rings + sparkle star */}
               <View style={styles.bannerLeft}>
-                {/* Outermost ring */}
-                <View style={styles.orbitOuter}>
-                  {/* Middle ring */}
-                  <View style={styles.orbitMiddle}>
-                    {/* Inner ring */}
-                    <View style={styles.orbitInner}>
-                      {/* Glowing star core */}
-                      <View style={styles.orbitCore}>
-                        <Text style={styles.orbitStar}>✦</Text>
-                      </View>
-                    </View>
-                  </View>
+                <View style={{ width: 106, height: 106, alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Outermost Ring (Clockwise, dashed) */}
+                  <Animated.View style={[
+                    StyleSheet.absoluteFill,
+                    { alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spinCW }] }
+                  ]}>
+                    <View style={[styles.orbitOuter, { borderStyle: 'dashed' }]} />
+                  </Animated.View>
+
+                  {/* Middle Ring (Counter-Clockwise, dashed) */}
+                  <Animated.View style={[
+                    StyleSheet.absoluteFill,
+                    { alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spinCCW }] }
+                  ]}>
+                    <View style={[styles.orbitMiddle, { borderStyle: 'dashed' }]} />
+                  </Animated.View>
+
+                  {/* Inner Ring (Clockwise, solid) */}
+                  <Animated.View style={[
+                    StyleSheet.absoluteFill,
+                    { alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spinCW }] }
+                  ]}>
+                    <View style={styles.orbitInner} />
+                  </Animated.View>
+
+                  {/* Central Diamond Core (Glitter scale pulse, non-spinning) */}
+                  <Animated.View style={[
+                    styles.orbitCore,
+                    { transform: [{ scale: glitterAnim }] }
+                  ]}>
+                    <Text style={styles.orbitStar}>✦</Text>
+                  </Animated.View>
                 </View>
               </View>
 
-              {/* Right — text */}
               <View style={styles.bannerRight}>
                 <Text style={styles.bannerSmall}>Match Insights for {fullName || 'Someone'}</Text>
                 <Text style={styles.bannerBig}>
@@ -176,22 +259,41 @@ export default function AstroXFeaturesScreen() {
                   )}
                 </Text>
 
-                {/* Badges row */}
-                <View style={styles.bannerBadgeRow}>
-                  <View style={styles.bannerBadge}>
-                    <Text style={styles.bannerBadgeText}>🎯 Accurate</Text>
-                  </View>
-                  <View style={styles.bannerBadge}>
-                    <Text style={styles.bannerBadgeText}>💡 Insightful</Text>
-                  </View>
-                  <View style={styles.bannerBadge}>
-                    <Text style={styles.bannerBadgeText}>⚡ Powerful</Text>
-                  </View>
-                </View>
               </View>
             </View>
+
+            {/* Premium animated tap hint */}
+            <Animated.View style={[
+              {
+                position: 'absolute',
+                bottom: 10,
+                alignSelf: 'center',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 3,
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+                borderRadius: 30,
+                backgroundColor: 'rgba(124,58,237,0.35)',
+                borderWidth: 1,
+                borderColor: 'rgba(196,181,253,0.45)',
+                shadowColor: '#7C3AED',
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.9,
+                shadowRadius: 8,
+                elevation: 6,
+              },
+              { transform: [{ scale: pulseAnim }] },
+            ]}>
+              <Text style={{ fontSize: 7 }}>✨</Text>
+              <Text style={{ color: '#E9D5FF', fontSize: 8, fontWeight: '700', letterSpacing: 0.4 }}>
+                Tap to reveal compatibility
+              </Text>
+              <Text style={{ fontSize: 7 }}>✨</Text>
+            </Animated.View>
           </View>
         </Pressable>
+
 
         {/* ── CARD 2: Why You Matched (full width, image + list) ── */}
         <LinearGradient
@@ -248,17 +350,6 @@ export default function AstroXFeaturesScreen() {
                     <Text style={styles.ashtaBigLabel}>Excellent{`\n`}Match</Text>
                   </View>
                 </View>
-
-                {/* Score box */}
-                <View style={styles.ashtaHexWrap}>
-                  <LinearGradient
-                    colors={['rgba(50,20,100,0.95)', 'rgba(25,8,60,0.99)']}
-                    style={styles.ashtaHex}
-                  >
-                    <Text style={styles.ashtaHexNum}>9</Text>
-                  </LinearGradient>
-                  <Text style={styles.ashtaHexLabel}>Score</Text>
-                </View>
               </View>
             </View>
 
@@ -274,40 +365,19 @@ export default function AstroXFeaturesScreen() {
           {/* Indian Astrology */}
           <LinearGradient
             colors={['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)']}
-            style={styles.smallCard}
+            style={[styles.smallCard, { justifyContent: 'space-between' }]}
           >
-            <Text style={styles.smallCardTitle}>🔰 Indian Astrology</Text>
+            <View>
+              <Text style={styles.smallCardTitle}>🔰 Indian Astrology</Text>
 
-            {/* Centered OM emoji — no background circle */}
-            <View style={styles.omMandalaWrap}>
-              <Text style={styles.omMandalaEmoji}>🕉️</Text>
+              {/* OM emoji */}
+              <View style={styles.omMandalaWrap}>
+                <Text style={styles.omMandalaEmoji}>🕉️</Text>
+              </View>
             </View>
 
-            {/* Manglik warning */}
-            <Text style={styles.manglikBold}>
-              {manglikStatus === 'yes' ? '⚠️  Manglik (Strong)' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : '⚠️  Manglik (Mild)'}
-            </Text>
-
-            {/* Dosha rows */}
-            <View style={styles.doshaRowFull}>
-              <Text style={styles.doshaTextFull}>Nadi Dosha</Text>
-              {nadiDosha === 'yes' ? (
-                <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-              ) : (
-                <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
-              )}
-            </View>
-            <View style={styles.doshaRowFull}>
-              <Text style={styles.doshaTextFull}>Bhakoot Dosha</Text>
-              {bhakootDosha === 'yes' ? (
-                <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-              ) : (
-                <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
-              )}
-            </View>
-
-            {/* Full-width button */}
-            <Pressable style={[styles.cardFullBtn, { marginTop: 10 }]}>
+            {/* Full-width button — pinned to bottom, opens modal */}
+            <Pressable style={styles.cardFullBtn} onPress={() => setShowIndianModal(true)}>
               <Text style={styles.cardFullBtnText}>View full report  →</Text>
             </Pressable>
           </LinearGradient>
@@ -324,8 +394,8 @@ export default function AstroXFeaturesScreen() {
             <Text style={styles.personalityDesc}>
               {pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : 'Fair'} compatibility{'\n'}based on your{'\n'}personality.
             </Text>
-            <Pressable style={styles.viewFullBtn} onPress={() => setShowPersonalityModal(true)}>
-              <Text style={styles.viewFullText}>View personality details  →</Text>
+            <Pressable style={styles.cardFullBtn} onPress={() => setShowPersonalityModal(true)}>
+              <Text style={styles.cardFullBtnText}>View personality details  →</Text>
             </Pressable>
           </LinearGradient>
 
@@ -428,7 +498,6 @@ export default function AstroXFeaturesScreen() {
                   <Text style={styles.ringPct}>{westPct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Western{`\n`}Astrology</Text>
-                <Text style={[styles.ringWeight, { color: '#8B5CF6' }]}>(45%)</Text>
               </View>
 
               {/* Vedic Astrology — Cyan */}
@@ -437,7 +506,6 @@ export default function AstroXFeaturesScreen() {
                   <Text style={styles.ringPct}>{vedicPct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Vedic{`\n`}Astrology</Text>
-                <Text style={[styles.ringWeight, { color: '#06B6D4' }]}>(45%)</Text>
               </View>
 
               {/* Personality — Pink */}
@@ -446,7 +514,6 @@ export default function AstroXFeaturesScreen() {
                   <Text style={styles.ringPct}>{pct}%</Text>
                 </View>
                 <Text style={styles.ringLabel}>Personality{`\n`}Match</Text>
-                <Text style={[styles.ringWeight, { color: '#EC4899' }]}>(10%)</Text>
               </View>
             </View>
 
@@ -628,45 +695,172 @@ export default function AstroXFeaturesScreen() {
               <Text style={styles.modalInfoIcon}>ⓘ</Text>
             </View>
 
-            {/* Factor Table */}
-            <View style={styles.factorTableContainer}>
-              {/* Header */}
-              <View style={styles.tableHeaderRow}>
-                <Text style={styles.tableHeaderColText}>Factor</Text>
-                <Text style={styles.tableHeaderColText}>Match</Text>
-              </View>
-
+            {/* Premium Factor Cards */}
+            <View style={{ marginTop: 8, marginBottom: 20, gap: 12 }}>
               {/* Relationship Goal Row */}
-              <View style={styles.tableBodyRow}>
-                <Text style={styles.tableBodyColText}>Relationship goal</Text>
-                <Text style={styles.tableBodyColValText}>{relationshipGoalVal}%</Text>
+              <View style={styles.factorCard}>
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>🎯  Relationship goal</Text>
+                  <Text style={[styles.factorValue, { color: '#C084FC' }]}>
+                    {relationshipGoalVal !== '—' ? `${relationshipGoalVal}%` : '—'}
+                  </Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={['#8B5CF6', '#C084FC']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressBar, { width: `${relGoalPct}%` }]}
+                  />
+                </View>
               </View>
 
               {/* Hobbies Row */}
-              <View style={styles.tableBodyRow}>
-                <Text style={styles.tableBodyColText}>Hobbies</Text>
-                <Text style={styles.tableBodyColValText}>{hobbiesVal}%</Text>
+              <View style={styles.factorCard}>
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>🎨  Hobbies</Text>
+                  <Text style={[styles.factorValue, { color: '#FBBF24' }]}>
+                    {hobbiesVal !== '—' ? `${hobbiesVal}%` : '—'}
+                  </Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={['#F59E0B', '#FBBF24']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressBar, { width: `${hobbiesPct}%` }]}
+                  />
+                </View>
               </View>
 
               {/* Lifestyle Row */}
-              <View style={styles.tableBodyRow}>
-                <Text style={styles.tableBodyColText}>Lifestyle</Text>
-                <Text style={styles.tableBodyColValText}>{lifestyleVal}%</Text>
+              <View style={styles.factorCard}>
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>🍷  Lifestyle</Text>
+                  <Text style={[styles.factorValue, { color: '#06B6D4' }]}>
+                    {lifestyleVal !== '—' ? `${lifestyleVal}%` : '—'}
+                  </Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={['#3B82F6', '#06B6D4']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressBar, { width: `${lifestylePct}%` }]}
+                  />
+                </View>
               </View>
 
               {/* Personality Row */}
-              <View style={styles.tableBodyRow}>
-                <Text style={styles.tableBodyColText}>Personality</Text>
-                <Text style={styles.tableBodyColValText}>{personalityVal}%</Text>
+              <View style={styles.factorCard}>
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>🎭  Personality traits</Text>
+                  <Text style={[styles.factorValue, { color: '#EC4899' }]}>
+                    {personalityVal !== '—' ? `${personalityVal}%` : '—'}
+                  </Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={['#D946EF', '#EC4899']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressBar, { width: `${personalityPct}%` }]}
+                  />
+                </View>
               </View>
 
               {/* Communication Row */}
-              <View style={[styles.tableBodyRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.tableBodyColText}>Communication</Text>
-                <Text style={styles.tableBodyColValText}>{communicationVal}%</Text>
+              <View style={styles.factorCard}>
+                <View style={styles.factorHeader}>
+                  <Text style={styles.factorLabel}>💬  Communication</Text>
+                  <Text style={[styles.factorValue, { color: '#10B981' }]}>
+                    {communicationVal !== '—' ? `${communicationVal}%` : '—'}
+                  </Text>
+                </View>
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={['#14B8A6', '#10B981']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressBar, { width: `${commPct}%` }]}
+                  />
+                </View>
               </View>
             </View>
 
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── INDIAN ASTROLOGY REPORT MODAL ── */}
+      <Modal
+        visible={showIndianModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowIndianModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowIndianModal(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            {/* Handle */}
+            <View style={styles.modalHandle} />
+
+            {/* Header */}
+            <View style={styles.modalTitleRow}>
+              <Text style={styles.modalTitle}>🔰 Indian Astrology Report</Text>
+              <Pressable onPress={() => setShowIndianModal(false)}>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 20 }}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* OM Symbol */}
+            <View style={{ alignItems: 'center', paddingVertical: 18 }}>
+              <Text style={{ fontSize: 52 }}>🕉️</Text>
+            </View>
+
+            {/* Manglik status */}
+            <View style={{
+              marginHorizontal: 16,
+              marginBottom: 16,
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+              borderWidth: 1,
+              borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)',
+              alignItems: 'center',
+            }}>
+              <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : '#34D399', fontSize: 16, fontWeight: '700' }}>
+                {manglikStatus === 'yes' ? '⚠️  Manglik (Strong)' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : '⚠️  Manglik (Mild)'}
+              </Text>
+            </View>
+
+            {/* Dosha table */}
+            <View style={{ marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
+              {/* Header row */}
+              <View style={{ flexDirection: 'row', backgroundColor: 'rgba(30,10,70,0.95)', paddingVertical: 10, paddingHorizontal: 16 }}>
+                <Text style={{ color: '#fff', fontWeight: '700', flex: 1, fontSize: 13 }}>Dosha</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Status</Text>
+              </View>
+              {/* Nadi Dosha */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.7)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
+                {nadiDosha === 'yes' ? (
+                  <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+                ) : (
+                  <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                )}
+              </View>
+              {/* Bhakoot Dosha */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.5)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
+                {bhakootDosha === 'yes' ? (
+                  <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+                ) : (
+                  <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                )}
+              </View>
+            </View>
+
+            <View style={{ height: 30 }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -825,8 +1019,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingTop: 36,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 32,
   },
   bannerLeft: {
     width: SW * 0.34,
@@ -885,7 +1079,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
     marginTop: 8,
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
   },
   bannerBadge: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -1153,9 +1347,9 @@ const styles = StyleSheet.create({
   },
   // Glowing outer halo
   ashtaRingOuter: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     borderWidth: 1,
     borderColor: 'rgba(124,58,237,0.25)',
     alignItems: 'center',
@@ -1163,9 +1357,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(124,58,237,0.04)',
   },
   ashtaBigRing: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     borderWidth: 4,
     borderColor: '#7C3AED',
     backgroundColor: 'rgba(124,58,237,0.08)',
@@ -1177,8 +1371,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-  ashtaBigScore: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
-  ashtaBigLabel: { color: '#C4B5FD', fontSize: 8, fontWeight: '700', textAlign: 'center', marginTop: 2 },
+  ashtaBigScore: { color: '#fff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 },
+  ashtaBigLabel: { color: '#C4B5FD', fontSize: 9, fontWeight: '700', textAlign: 'center', marginTop: 2 },
   ashtaHexWrap: { alignItems: 'center', gap: 5 },
   ashtaHex: {
     width: 48,
@@ -1207,6 +1401,7 @@ const styles = StyleSheet.create({
   omMandalaWrap: {
     alignItems: 'center',
     marginBottom: 10,
+    marginTop: 14,
   },
   omMandalaCircle: {
     width: 74,
@@ -1217,7 +1412,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,120,40,0.35)',
   },
-  omMandalaEmoji: { fontSize: 42 },
+  omMandalaEmoji: { fontSize: 64 },
   manglikBold: { color: '#F59E0B', fontSize: 11, fontWeight: '800', marginBottom: 6 },
   doshaRowFull: {
     flexDirection: 'row',
@@ -1318,46 +1513,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     marginVertical: 4,
   },
-  factorTableContainer: {
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
+  factorCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#E6E2F0',
-    backgroundColor: '#FFFFFF',
-    marginTop: 10,
-    marginBottom: 20,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  tableHeaderRow: {
+  factorHeader: {
     flexDirection: 'row',
-    backgroundColor: '#1B1242',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  tableHeaderColText: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+  factorLabel: {
+    color: '#E2E8F0',
+    fontSize: 13.5,
+    fontWeight: '600',
+  },
+  factorValue: {
     fontSize: 14,
+    fontWeight: '700',
   },
-  tableBodyRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBE8F3',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#F7F5FC',
+  progressTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-  tableBodyColText: {
-    flex: 1,
-    color: '#2E2E3E',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  tableBodyColValText: {
-    flex: 1,
-    color: '#2E2E3E',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
   },
 });
