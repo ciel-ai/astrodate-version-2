@@ -23,15 +23,22 @@ export type ConversationSummary = {
   matched_at: string;
 };
 
+export type MessageType = 'text' | 'image' | 'audio';
+
 export type Message = {
   id: string;
   sender_id: string;
   receiver_id: string;
-  message_text: string;
+  message_text: string | null;
   is_read: boolean;
   channel_id: string;
   moderation_status: ModerationStatus;
   created_at: string;
+  // Added by 20260714120000_chat_media_messages. Rows created before that
+  // migration have message_type absent -> treated as 'text' at the call site.
+  message_type?: MessageType;
+  media_url?: string | null;
+  media_duration_ms?: number | null;
 };
 
 const MESSAGES_PAGE_SIZE = 30;
@@ -189,6 +196,87 @@ export async function sendMessage(
       blocked: isDbBlocked,
       reason: isDbBlocked ? 'Message violates community guidelines.' : (err?.message ?? 'Failed to send message'),
     };
+  }
+}
+
+export type SendMediaResult =
+  | { success: true; mediaUrl: string }
+  | { success: false; reason: string };
+
+/**
+ * Uploads a photo or voice note to the `messages` storage bucket, then inserts
+ * a media message row. `id` is the client-generated UUID already used for the
+ * optimistic bubble (same contract as sendMessage). Media rows skip text
+ * moderation -- there's no text to classify -- and are stored under the
+ * sender's uid folder, which the bucket's INSERT policy requires. The bucket
+ * is public (see the migration), so the returned URL is readable by the
+ * receiver too. The screen swaps its optimistic local-file bubble for this URL
+ * on success.
+ */
+export async function sendMediaMessage(
+  id: string,
+  channelId: string,
+  receiverId: string,
+  media: {
+    kind: Exclude<MessageType, 'text'>;
+    bytes: ArrayBuffer;
+    ext: string;
+    contentType: string;
+    durationMs?: number;
+  }
+): Promise<SendMediaResult> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, reason: 'Not authenticated' };
+
+    const filePath = `${user.id}/${id}.${media.ext}`;
+
+    const { error: uploadError } = await withTimeout(
+      Promise.resolve(
+        supabase.storage.from('messages').upload(filePath, media.bytes, { contentType: media.contentType })
+      ),
+      30000,
+      'media upload timed out'
+    );
+    if (uploadError) {
+      console.warn('[chats] media upload failed:', uploadError.message);
+      return { success: false, reason: uploadError.message };
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('messages').getPublicUrl(filePath);
+
+    const { error } = await withTimeout(
+      Promise.resolve(
+        supabase.from('messages').insert({
+          id,
+          sender_id: user.id,
+          receiver_id: receiverId,
+          channel_id: channelId,
+          message_type: media.kind,
+          media_url: publicUrl,
+          media_duration_ms: media.durationMs ?? null,
+          moderation_status: 'SAFE',
+        })
+      ),
+      15000,
+      'sendMediaMessage timed out'
+    );
+
+    if (error) {
+      // Row insert failed after the object uploaded -- remove the orphan.
+      await supabase.storage.from('messages').remove([filePath]).catch(() => {});
+      console.warn('[chats] sendMediaMessage insert failed:', error.message);
+      return { success: false, reason: error.message };
+    }
+
+    return { success: true, mediaUrl: publicUrl };
+  } catch (err: any) {
+    console.warn('[chats] sendMediaMessage exception:', err?.message ?? err);
+    return { success: false, reason: err?.message ?? 'Failed to send media' };
   }
 }
 

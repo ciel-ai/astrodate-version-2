@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { DiscoverCard } from '@/components/discover-card';
 import { DiscoverActionBar } from '@/components/discover-action-bar';
@@ -17,6 +18,101 @@ import {
   type DiscoverDeckMeta,
 } from '@/lib/discover';
 import { blockAndLeave, getMyBlockedUsers, reportUser } from '@/lib/chats';
+
+// Mock Dinesh profile data — full realistic profile for UI preview & testing
+const DINESH_MOCK_CARD: DiscoverCardData = {
+  user_id: 'dinesh-mock-id',
+  full_name: 'Dinesh',
+  gender: 'Male',
+  age: 28,
+  location: 'Chennai, India',
+  score: 81,
+  band: 'high',
+  is_top_match_of_day: true,
+  western_sign: 'Pisces',
+  distance_label: 'Less than 1 km away',
+  fully_computed: true,
+  personality_score: 7.4,
+  indian_score: 28,
+  western_score: 36,
+  manglik_status: true,
+  nadi_dosha: false,
+  bhakoot_dosha: false,
+  why_you_match: 'Exceptional match across Western, Vedic & Personality astrology.',
+  vedic_sign: 'Meena (Pisces)',
+  nakshatra: 'Revati',
+  height_cm: 178,
+  looking_for: 'Long-term relationship',
+  job_title: 'Software Engineer',
+  hometown: 'Chennai',
+  photos: [
+    {
+      // Primary hero — local asset
+      url: require('@/assets/images/dinesh.png'),
+      is_primary: true,
+    },
+    {
+      url: require('@/assets/images/dinesh_2.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_3.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_4.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_5.png'),
+      is_primary: false,
+    },
+    {
+      url: require('@/assets/images/dinesh_6.png'),
+      is_primary: false,
+    },
+  ],
+  prompts: [
+    {
+      question: 'A boundary I have is...',
+      answer: 'Communication and honesty. Being upfront about what you want from the start saves everyone time and feelings.',
+    },
+    {
+      question: 'The way to my heart is...',
+      answer: 'Late-night conversations about the cosmos, sharing a good meal, and someone who actually remembers the small things I mention in passing.',
+    },
+    {
+      question: 'My love language is...',
+      answer: 'Quality time — I believe presence is the rarest and most meaningful gift you can give someone.',
+    },
+  ],
+  about: 'Software engineer by day, stargazer by night 🌌. I grew up in Chennai and I genuinely believe your birth chart says more about you than your Instagram does. I love trying new restaurants, getting lost on long drives, and deep conversations that go way past midnight. Looking for someone who is equally comfortable being spontaneous and staying in on a rainy Sunday. Pisces sun ♓, Scorpio moon 🦂 — make of that what you will.',
+  education: 'Post Graduate',
+  drinking: 'Socially',
+  smoking: 'Non-smoker',
+  weed: 'Never',
+  religion: 'Hindu',
+  sexual_orientation: 'Straight',
+  have_children: 'No',
+  want_children: 'Someday',
+  relationship_style: 'Monogamous',
+  workout: 'Daily',
+  diet: 'Vegetarian',
+  pets: 'Dog lover',
+  languages: ['English', 'Tamil'],
+  travel: 'Love traveling',
+  relationship_status: 'single',
+  interest: ['women'],
+  hobbies: ['Stargazing', 'Trekking', 'Long Drives', 'Foodie'],
+  introvert_extrovert: 'introvert',
+  personality_factors: {
+    relationship_goals: 100,
+    hobbies: 95,
+    lifestyle: 90,
+    personality_traits: 88,
+    communication: 85,
+  },
+};
 
 function openPaywall(reason: string) {
   router.push({ pathname: '/paywall', params: { reason } } as any);
@@ -35,7 +131,20 @@ export default function DiscoverScreen() {
   const [limitReached, setLimitReached] = useState(false);
   const [rewindLocked, setRewindLocked] = useState(true);
 
+  const [isCosmicOpen, setIsCosmicOpen] = useState(false);
+
+  // Gated behind __DEV__ build-time flag. In production, this always evaluates to false.
+  const [useMockDinesh, setUseMockDinesh] = useState(!!__DEV__);
+
+  // Determine current card: Mock profile if dev toggle is on, otherwise live card
+  const currentCard = useMockDinesh ? DINESH_MOCK_CARD : (cards?.[index] ?? null);
+
+
+
+
+
   const loadDeck = useCallback(async () => {
+    if (!user) return;
     setLoadError(false);
     setCards(null);
     setLimitReached(false);
@@ -49,11 +158,6 @@ export default function DiscoverScreen() {
     setTier(deck.tier);
     setIndex(0);
 
-    // A tier check alone can't tell "Astro+ who hasn't rewound today" apart
-    // from "Astro+ who already spent their 1/day in an earlier session" --
-    // ask the server for the real remaining count instead of assuming
-    // unlocked-unless-free. Falls back to locked (not optimistically
-    // unlocked) if the check itself fails.
     if (user?.id) {
       const remaining = await getRewindsRemaining(user.id);
       setRewindLocked((remaining ?? 0) <= 0);
@@ -102,7 +206,10 @@ export default function DiscoverScreen() {
     }, [pruneStaleCards])
   );
 
-  const currentCard = cards?.[index] ?? null;
+  // (currentCard is declared above)
+
+  // If in mock dev mode, let the tier default to AstroX so we can preview the full screen
+  const currentTier = useMockDinesh ? 'astro_x' : tier;
 
   // Without this, scrolling down into one candidate's photos/prompts before
   // swiping leaves the next candidate's card rendered already scrolled to
@@ -112,18 +219,24 @@ export default function DiscoverScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [index]);
 
+
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
+      if (useMockDinesh) {
+        // Dev mode simulation
+        if (action === 'like') {
+          Alert.alert("It's a match!", `You and Dinesh liked each other.`);
+        }
+        Alert.alert('Dev Swipe Action', `Mock action: ${action}`);
+        return;
+      }
+
       if (!currentCard || swiping) return;
       setSwiping(true);
       const result = await recordSwipe(currentCard.user_id, action);
       setSwiping(false);
 
-      if (!result) {
-        // Network/timeout -- leave the card in place so the user can retry
-        // the same swipe rather than silently skipping someone.
-        return;
-      }
+      if (!result) return;
 
       if (!result.success) {
         if (result.reason === 'swipe_limit_reached') {
@@ -135,12 +248,6 @@ export default function DiscoverScreen() {
             [{ text: 'OK' }, { text: 'See plans', onPress: () => openPaywall('super_like_limit') }]
           );
         } else {
-          // invalid_target/invalid_action shouldn't be reachable from this
-          // UI (TypeScript's SwipeAction type and currentCard.user_id both
-          // rule them out) -- but silently doing nothing on an unrecognized
-          // reason leaves the user tapping a dead button with no feedback,
-          // so fall back to a generic message rather than assume the list
-          // above is exhaustive forever.
           Alert.alert('Something went wrong', 'Please try again.');
         }
         return;
@@ -152,26 +259,27 @@ export default function DiscoverScreen() {
 
       setIndex((i) => i + 1);
     },
-    [currentCard, swiping]
+    [currentCard, swiping, useMockDinesh]
   );
 
+
   const handleRewind = useCallback(async () => {
+    if (useMockDinesh) {
+      Alert.alert('Dev Action', 'Rewind triggered in mock mode');
+      return;
+    }
+
     if (swiping) return;
     if (rewindLocked) {
       openPaywall('rewind_not_available');
       return;
     }
-    // No index===0 short-circuit here: index only counts swipes made in the
-    // current in-memory session and resets to 0 on every loadDeck() call
-    // (app reopen, "Try again"). It says nothing about whether a real last
-    // swipe exists server-side -- only rewind_last_swipe() knows that, so
-    // the request always goes through and lets the server decide.
 
     setSwiping(true);
     const result = await rewindLastSwipe();
     setSwiping(false);
 
-    if (!result) return; // network/timeout -- stay put, let them retry
+    if (!result) return;
 
     if (!result.success) {
       if (result.reason === 'rewind_limit_reached') {
@@ -182,10 +290,6 @@ export default function DiscoverScreen() {
       } else if (result.reason === 'nothing_to_rewind') {
         Alert.alert("Nothing to undo", "You haven't swiped on anyone yet today.");
       } else if (result.reason === 'rewind_not_available') {
-        // Reachable despite the rewindLocked pre-check above: a subscription
-        // can lapse between this deck's load (when rewindLocked was set) and
-        // this tap, so the server's answer can legitimately differ from the
-        // client's stale guess.
         setRewindLocked(true);
         openPaywall('rewind_not_available');
       } else {
@@ -197,18 +301,11 @@ export default function DiscoverScreen() {
     setLimitReached(false);
 
     if (index > 0) {
-      // The RPC undid exactly the swipe that took us from index-1 to index --
-      // stepping back one card re-shows that same restored person without an
-      // extra round-trip.
       setIndex((i) => i - 1);
     } else {
-      // index===0: the restored swipe predates this session's loaded deck
-      // (app was just reopened, or this is the first action taken), so
-      // there's no "previous card" in the current in-memory array to step
-      // back to -- refetch instead of guessing at a position.
       await loadDeck();
     }
-  }, [swiping, rewindLocked, index, loadDeck]);
+  }, [swiping, rewindLocked, index, loadDeck, useMockDinesh]);
 
   const submitReport = useCallback(async (targetId: string, category: string) => {
     const ok = await reportUser(targetId, null, category);
@@ -258,7 +355,7 @@ export default function DiscoverScreen() {
 
   let body: React.ReactNode;
 
-  if (loadError) {
+  if (loadError && !useMockDinesh) {
     body = (
       <View style={styles.stateBox}>
         <Text style={styles.stateTitle}>Couldn&apos;t load your deck</Text>
@@ -267,24 +364,13 @@ export default function DiscoverScreen() {
         </Pressable>
       </View>
     );
-  } else if (cards === null) {
+  } else if (cards === null && !useMockDinesh) {
     body = (
       <View style={styles.stateBox}>
         <ActivityIndicator color="#B57BFF" />
       </View>
     );
-  } else if (limitReached || (!currentCard && meta?.swipes_exhausted)) {
-    // Two ways to land here: a swipe attempt got explicitly REJECTED
-    // (limitReached), or the deck simply ran out of cards at the exact
-    // moment today's swipes ran out (the now-common case, since the deck is
-    // capped to remaining swipes -- see meta.swipes_exhausted). Both are the
-    // same real situation from the user's perspective, so they share one
-    // message instead of the rejected-only path getting the informative
-    // copy and the successful-exhaustion path getting a generic fallback.
-    // A flat "come back tomorrow" wastes the one thing we actually know: how
-    // many genuinely excellent matches were sitting just out of reach when
-    // the quota ran out. Use that real, server-computed count (never a
-    // fabricated one) instead of a flat dead-end message.
+  } else if ((limitReached || (!currentCard && meta?.swipes_exhausted)) && !useMockDinesh) {
     const lockedCount = meta?.more_high_locked_count ?? 0;
     body = (
       <View style={styles.stateBox}>
@@ -305,11 +391,15 @@ export default function DiscoverScreen() {
     );
   } else if (currentCard) {
     body = (
-      <>
-        <DiscoverCard card={currentCard} tier={tier} onOpenMenu={handleOpenMenu} />
-      </>
+      <DiscoverCard
+        card={currentCard}
+        tier={currentTier}
+        isFlipped={isCosmicOpen}
+        onFlipChange={setIsCosmicOpen}
+        extraDetails={currentCard}
+      />
     );
-  } else if (meta && meta.more_high_locked_count > 0) {
+  } else if (meta && meta.more_high_locked_count > 0 && !useMockDinesh) {
     body = (
       <Pressable
         style={styles.lockedCard}
@@ -335,38 +425,73 @@ export default function DiscoverScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
 
+      {/* Development environment toggle for testing the Dinesh mockup */}
+      {!!__DEV__ && (
+        <Pressable
+          style={styles.devToggle}
+          onPress={() => setUseMockDinesh((prev) => !prev)}
+        >
+          <Text style={styles.devToggleText}>
+            {useMockDinesh ? '🔌 Switch to Live Feed' : '🧪 Preview Mock Dinesh'}
+          </Text>
+        </Pressable>
+      )}
+
+      {/* Main header row */}
+      <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerText}>Discover</Text>
+          <Text style={styles.sparkleIcon}>✨</Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          {/* Settings / Filter Button */}
+          <Pressable style={styles.filterButton} onPress={() => Alert.alert('Filters', 'Filter settings coming soon.')}>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+              <Path
+                d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"
+                stroke="#FFFFFF"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
+          </Pressable>
+
+          {/* AstroX Premium Badge */}
+          <Pressable style={styles.astroXBadge} onPress={() => openPaywall('discover_header_astrox')}>
+            <Text style={styles.crownEmoji}>👑</Text>
+            <Text style={styles.astroXBadgeText}>AstroX</Text>
+          </Pressable>
+        </View>
+      </View>
+
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110 },
+          { paddingTop: 8, paddingBottom: 110 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.header}>Discover</Text>
         {body}
       </ScrollView>
 
-      {/* Shown whenever the deck has actually loaded, independent of
-          currentCard/limitReached -- rewind_last_swipe() undoes the
-          database's last swipe regardless of whether a card is on screen,
-          so it must stay reachable even after the deck empties or a swipe
-          gets rejected for being over quota. Pass/like/super-like disable
-          via swipeDisabled in those same cases since there's nothing to
-          act on, but rewind does not. */}
-      {!loadError && cards !== null && (
-        <View style={[styles.actionBarWrap, { bottom: insets.bottom + 16 }]}>
+      {/* Fixed action bar — only shown when a card is visible */}
+      {currentCard && (
+        <View style={[styles.actionBarWrap, { bottom: 10 }]}>
           <DiscoverActionBar
-            disabled={swiping}
-            swipeDisabled={!currentCard || limitReached}
             onPass={() => handleSwipe('pass')}
             onLike={() => handleSwipe('like')}
             onSuperLike={() => handleSwipe('super_like')}
             onRewind={handleRewind}
             rewindLocked={rewindLocked}
+            disabled={swiping}
+            swipeDisabled={!currentCard}
           />
         </View>
       )}
+
     </View>
   );
 }
@@ -374,7 +499,85 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#09031C' },
   scrollContent: { paddingHorizontal: 16 },
-  header: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginBottom: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    backgroundColor: '#09031C',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerText: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '800',
+  },
+  sparkleIcon: {
+    fontSize: 20,
+    color: '#B385FF',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  filterButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  astroXBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderWidth: 1.2,
+    borderColor: '#F59E0B',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  crownEmoji: {
+    fontSize: 12,
+  },
+  astroXBadgeText: {
+    color: '#F59E0B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  devToggle: {
+    position: 'absolute',
+    top: 110,
+    right: 16,
+    zIndex: 9999,
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 4 },
+      android: { elevation: 6 },
+    }),
+  },
+  devToggleText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  actionBarSpacer: { height: 100 },
   actionBarWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   stateBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 },
   stateTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', textAlign: 'center' },

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { getMembershipOrFree, type MembershipSummary } from '@/lib/subscription';
 import { supabase } from '@/lib/supabase';
@@ -20,8 +20,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [membership, setMembership] = useState<MembershipSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const fetchMembership = useCallback(async () => {
-    if (!user) {
+    if (!userRef.current) {
       setMembership(null);
       setIsLoading(false);
       return;
@@ -35,7 +40,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [user?.id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchMembership();
   }, [fetchMembership]);
 
@@ -43,15 +47,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // sync_ios_subscription service-role path) flips user_subscriptions.status.
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
     const channel = supabase
-      .channel('subscription-' + user.id)
+      .channel('subscription-' + userId)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'user_subscriptions',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         () => void fetchMembership()
       )

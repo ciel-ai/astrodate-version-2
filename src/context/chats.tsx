@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { useAuth } from './auth';
@@ -32,7 +32,13 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const refresh = useCallback(async () => {
+    if (!userRef.current) return;
     setLoading(true);
     const result = await getConversations();
     if (result) setConversations(result);
@@ -57,34 +63,51 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   // one place instead of duplicating the aggregation client-side).
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
+    const channelName = `chats-list-${userId}`;
+    let active = true;
+    let channel: any = null;
 
-    const channel = supabase
-      .channel(`chats-list-${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` },
-        () => {
-          void refresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user1_id=eq.${user.id}` },
-        () => {
-          void refresh();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user2_id=eq.${user.id}` },
-        () => {
-          void refresh();
-        }
-      )
-      .subscribe();
+    const setup = async () => {
+      const existing = supabase.getChannels().find(c => c.topic === channelName);
+      if (existing) {
+        await supabase.removeChannel(existing);
+      }
+      if (!active) return;
+
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` },
+          () => {
+            void refresh();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user1_id=eq.${userId}` },
+          () => {
+            void refresh();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user2_id=eq.${userId}` },
+          () => {
+            void refresh();
+          }
+        )
+        .subscribe();
+    };
+
+    void setup();
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
     };
     // Keyed on user.id, not the user object: auth emits a fresh session/user reference on
     // every token refresh, and depending on the whole object tears down + rebuilds this

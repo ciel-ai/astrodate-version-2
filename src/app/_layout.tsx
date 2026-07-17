@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { DarkTheme as NavDarkTheme, DefaultTheme as NavDefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
+import { KeyboardProvider } from '@/lib/keyboard-controller';
 import { AppThemeProvider, useAppTheme } from '@/lib/theme-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
@@ -20,6 +21,7 @@ function RootLayout() {
   return (
     <AuthProvider>
       <SubscriptionProvider>
+        <KeyboardProvider>
         <NavThemeProvider value={theme === 'dark' ? NavDarkTheme : NavDefaultTheme}>
           <AnimatedSplashOverlay />
           <Stack
@@ -88,6 +90,7 @@ function RootLayout() {
             <Stack.Screen name="edit-prompts" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
         </NavThemeProvider>
+        </KeyboardProvider>
       </SubscriptionProvider>
     </AuthProvider>
   );

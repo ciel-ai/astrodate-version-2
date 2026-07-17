@@ -7,6 +7,7 @@ export interface UserProfile {
   gender?: string | null;
   gender_detail?: string | null;
   location?: string | null;
+  sexual_orientation?: string | null;
 }
 
 /**
@@ -63,6 +64,7 @@ export const saveUserProfile = async (profile: UserProfile) => {
       if (profile.gender !== undefined) updatePayload.gender = profile.gender;
       if (profile.gender_detail !== undefined) updatePayload.gender_detail = profile.gender_detail;
       if (profile.location !== undefined) updatePayload.location = profile.location;
+      if (profile.sexual_orientation !== undefined) updatePayload.sexual_orientation = profile.sexual_orientation;
       if (hasPhoneInput) updatePayload.phone_number = normalizedPhone;
 
       result = await supabase
@@ -86,6 +88,7 @@ export const saveUserProfile = async (profile: UserProfile) => {
           gender: profile.gender ?? null,
           gender_detail: profile.gender_detail ?? null,
           location: profile.location ?? null,
+          sexual_orientation: profile.sexual_orientation ?? null,
         })
         .select()
         .single();

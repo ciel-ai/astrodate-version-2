@@ -12,13 +12,22 @@ import { withTimeout } from './network';
 export type DeckBand = 'high' | 'medium' | 'low';
 
 export type DiscoverPhoto = {
-  url: string;
+  /** Remote URL string or a local require() result (number in React Native). */
+  url: string | number;
   is_primary: boolean;
 };
 
 export type DiscoverPrompt = {
   question: string;
   answer: string;
+};
+
+export type PersonalityFactors = {
+  hobbies?: number | null;
+  personality_traits?: number | null;
+  relationship_goals?: number | null;
+  lifestyle?: number | null;
+  communication?: number | null;
 };
 
 export type DiscoverCardData = {
@@ -39,13 +48,37 @@ export type DiscoverCardData = {
   manglik_status: boolean | null;
   nadi_dosha: boolean | null;
   bhakoot_dosha: boolean | null;
-  /** AstroX-only synastry narrative (Section 3: "Full + synastry 'why you
-   *  match'") -- reuses compute-synastry's existing compatibility_summary,
-   *  null for every other tier and null when genuinely not yet computed. */
+  /** AstroX-only synastry narrative */
   why_you_match: string | null;
   photos: DiscoverPhoto[];
   prompts: DiscoverPrompt[];
   about: string | null;
+  /** Profile info shown in the About card */
+  vedic_sign?: string | null;
+  nakshatra?: string | null;
+  height_cm?: number | null;
+  looking_for?: string | null;
+  job_title?: string | null;
+  hometown?: string | null;
+  education?: string | null;
+  drinking?: string | null;
+  smoking?: string | null;
+  weed?: string | null;
+  religion?: string | null;
+  sexual_orientation?: string | null;
+  have_children?: string | null;
+  want_children?: string | null;
+  relationship_style?: string | null;
+  workout?: string | null;
+  diet?: string | null;
+  pets?: string | null;
+  languages?: string[] | null;
+  travel?: string | null;
+  relationship_status?: string | null;
+  interest?: string[] | null;
+  hobbies?: string[] | null;
+  introvert_extrovert?: string | null;
+  personality_factors?: PersonalityFactors | null;
 };
 
 export type DiscoverDeckMeta = {

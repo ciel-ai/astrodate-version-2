@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { useAuth } from './auth';
 import { getWhoLikedMe, markLikesSeen, type WhoLikedMeResponse } from '@/lib/likes';
@@ -30,7 +30,13 @@ export function LikesProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<WhoLikedMeResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const refresh = useCallback(async () => {
+    if (!userRef.current) return;
     setLoading(true);
     const result = await getWhoLikedMe();
     if (result) setData(result);
@@ -47,6 +53,7 @@ export function LikesProvider({ children }: { children: ReactNode }) {
   }, [user, refresh]);
 
   const markSeen = useCallback(async () => {
+    if (!userRef.current) return;
     setData((prev) => {
       if (!prev || prev.unseen_count === 0) return prev;
       return { ...prev, unseen_count: 0, likes: prev.likes.map((l) => ({ ...l, seen: true })) };

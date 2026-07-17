@@ -66,6 +66,12 @@ export default ({ config }) => ({
         color: '#7C3AED',
       },
     ],
+    [
+      'expo-audio',
+      {
+        microphonePermission: 'Astro date uses your microphone to record voice messages in chats.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

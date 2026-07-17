@@ -13,22 +13,34 @@ export interface ChipOption {
 interface ChipPickerSheetProps {
   title: string;
   options: ChipOption[];
-  selected: string;
+  selected: string | string[];
   onSelect: (value: string) => void;
+  isMultiSelect?: boolean;
+  onSelectMulti?: (value: string[]) => void;
   visible: boolean;
   onClose: () => void;
   isDark: boolean;
 }
 
-export function ChipPickerSheet({ title, options, selected, onSelect, visible, onClose, isDark }: ChipPickerSheetProps) {
+export function ChipPickerSheet({
+  title,
+  options,
+  selected,
+  onSelect,
+  isMultiSelect = false,
+  onSelectMulti,
+  visible,
+  onClose,
+  isDark,
+}: ChipPickerSheetProps) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <View style={[styles.content, { backgroundColor: isDark ? '#140E28' : '#FFFFFF' }]}>
           <View style={[styles.header, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#E9E3F8' }]}>
             <Text style={[styles.title, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>{title}</Text>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-              <Text style={styles.closeText}>Close</Text>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Done">
+              <Text style={styles.closeText}>{isMultiSelect ? 'Done' : 'Close'}</Text>
             </Pressable>
           </View>
 
@@ -38,12 +50,27 @@ export function ChipPickerSheet({ title, options, selected, onSelect, visible, o
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.list}
             renderItem={({ item }) => {
-              const isSelected = item.value === selected;
+              const isSelected = isMultiSelect && Array.isArray(selected)
+                ? selected.includes(item.value)
+                : item.value === selected;
+
+              const handlePress = () => {
+                if (isMultiSelect && onSelectMulti && Array.isArray(selected)) {
+                  if (selected.includes(item.value)) {
+                    onSelectMulti(selected.filter((v) => v !== item.value));
+                  } else {
+                    onSelectMulti([...selected, item.value]);
+                  }
+                } else {
+                  onSelect(item.value);
+                }
+              };
+
               return (
                 <TouchableOpacity
                   id={`chip-option-${item.value}`}
                   style={[styles.item, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3ECFF' }]}
-                  onPress={() => onSelect(item.value)}
+                  onPress={handlePress}
                 >
                   <Text
                     style={[

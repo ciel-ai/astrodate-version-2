@@ -20,6 +20,16 @@ export interface ProfileData {
   education: string;
   drinking: string;
   smoking: string;
+  weed: string;
+  religion: string;
+  sexualOrientation: string;
+  haveChildren: string;
+  wantChildren: string;
+  relationshipStyle: string;
+  workout: string;
+  diet: string;
+  pets: string;
+  travel: string;
 
   height: string;
   /** section1_qns.looking_for is a single TEXT column (single-select), not an
@@ -52,6 +62,16 @@ const EMPTY_PROFILE: ProfileData = {
   education: '',
   drinking: '',
   smoking: '',
+  weed: '',
+  religion: '',
+  sexualOrientation: '',
+  haveChildren: '',
+  wantChildren: '',
+  relationshipStyle: '',
+  workout: '',
+  diet: '',
+  pets: '',
+  travel: '',
   height: '',
   lookingFor: '',
   hobbies: [],
@@ -147,6 +167,16 @@ export function useProfileData() {
         education: onboarding?.education ?? '',
         drinking: onboarding?.drinking ?? '',
         smoking: onboarding?.smoking ?? '',
+        weed: onboarding?.weed ?? '',
+        religion: onboarding?.religion ?? '',
+        sexualOrientation: profileRow?.sexual_orientation ?? '',
+        haveChildren: onboarding?.have_children ?? '',
+        wantChildren: onboarding?.want_children ?? '',
+        relationshipStyle: onboarding?.relationship_style ?? '',
+        workout: onboarding?.workout ?? '',
+        diet: onboarding?.diet ?? '',
+        pets: onboarding?.pets ?? '',
+        travel: onboarding?.travel ?? '',
 
         height: section1?.height ?? '',
         lookingFor: section1?.looking_for ?? '',

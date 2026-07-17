@@ -20,6 +20,12 @@ import { supabase } from '@/lib/supabase';
 
 const SERIF = 'Baskerville-Old-Face';
 
+const BASE_GENDER_LABEL: Record<string, string> = {
+  male: 'Man',
+  female: 'Woman',
+  nonBinary: 'Beyond Binary',
+};
+
 export default function ProfilePreviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -75,11 +81,7 @@ export default function ProfilePreviewScreen() {
   // no longer requires picking one. gender (the broad category) is always set,
   // so fall back to it rather than leaving Identity stuck on the placeholder
   // for anyone who skipped the detail step.
-  const BASE_GENDER_LABEL: Record<string, string> = {
-    male: 'Man',
-    female: 'Woman',
-    nonBinary: 'Beyond Binary',
-  };
+
 
   useEffect(() => {
     async function loadData() {

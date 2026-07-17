@@ -10,7 +10,18 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChipPickerSheet, type ChipOption } from './chip-picker-sheet';
 
-export type BasicInfoField = 'height' | 'education' | 'drinking' | 'smoking';
+export type BasicInfoField =
+  | 'height'
+  | 'education'
+  | 'drinking'
+  | 'smoking'
+  | 'weed'
+  | 'religion'
+  | 'workout'
+  | 'diet'
+  | 'pets'
+  | 'languages'
+  | 'travel';
 
 const HEIGHT_OPTIONS: ChipOption[] = [
   { label: '<150 cm', value: '<150' },
@@ -21,22 +32,54 @@ const HEIGHT_OPTIONS: ChipOption[] = [
 const EDUCATION_OPTIONS: ChipOption[] = ['High School', 'Bachelor', 'Master', 'PhD', 'Other'].map((v) => ({ label: v, value: v }));
 const DRINKING_OPTIONS: ChipOption[] = ['Never', 'Sometimes', 'Often', 'Socially'].map((v) => ({ label: v, value: v }));
 const SMOKING_OPTIONS: ChipOption[] = ['Never', 'Sometimes', 'Regularly', 'Trying to quit'].map((v) => ({ label: v, value: v }));
+const WEED_OPTIONS: ChipOption[] = ['Never', 'Sometimes', 'Regularly'].map((v) => ({ label: v, value: v }));
+const RELIGION_OPTIONS: ChipOption[] = [
+  'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Jewish', 'Atheist', 'Spiritual', 'Other'
+].map((v) => ({ label: v, value: v }));
+const WORKOUT_OPTIONS: ChipOption[] = [
+  'Daily', '4–6 times/week', '2–3 times/week', 'Occasionally', 'Rarely', 'Never'
+].map((v) => ({ label: v, value: v }));
+const DIET_OPTIONS: ChipOption[] = [
+  'Vegetarian', 'Vegan', 'Eggetarian', 'Non-vegetarian', 'Pescatarian', 'Keto', 'Jain', 'Halal', 'No preference'
+].map((v) => ({ label: v, value: v }));
+const PETS_OPTIONS: ChipOption[] = [
+  'Dog lover', 'Cat lover', 'Have dogs', 'Have cats', 'None', 'Other', 'Open to pets'
+].map((v) => ({ label: v, value: v }));
+const LANGUAGE_OPTIONS: ChipOption[] = [
+  'English', 'Tamil', 'Hindi', 'Telugu', 'Malayalam', 'Kannada', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'French', 'German', 'Spanish', 'Japanese', 'Chinese', 'Korean', 'Other'
+].map((v) => ({ label: v, value: v }));
+const TRAVEL_OPTIONS: ChipOption[] = [
+  'Love traveling', 'Sometimes', 'Rarely', 'Homebody'
+].map((v) => ({ label: v, value: v }));
 
-const ROWS: { field: BasicInfoField; icon: string; label: string; options: ChipOption[]; title: string }[] = [
+const ROWS: { field: BasicInfoField; icon: string; label: string; options: ChipOption[]; title: string; isMultiSelect?: boolean }[] = [
   { field: 'height', icon: '📏', label: 'Height', options: HEIGHT_OPTIONS, title: 'Select Height' },
   { field: 'education', icon: '🎓', label: 'Education', options: EDUCATION_OPTIONS, title: 'Select Education' },
   { field: 'drinking', icon: '🍷', label: 'Drinking', options: DRINKING_OPTIONS, title: 'Select Drinking' },
   { field: 'smoking', icon: '🚬', label: 'Smoking', options: SMOKING_OPTIONS, title: 'Select Smoking' },
+  { field: 'weed', icon: '🌿', label: 'Weed', options: WEED_OPTIONS, title: 'Select Weed' },
+  { field: 'religion', icon: '🙏', label: 'Religion', options: RELIGION_OPTIONS, title: 'Select Religion' },
+  { field: 'workout', icon: '💪', label: 'Workout', options: WORKOUT_OPTIONS, title: 'Select Workout' },
+  { field: 'diet', icon: '🥗', label: 'Diet', options: DIET_OPTIONS, title: 'Select Diet' },
+  { field: 'pets', icon: '🐶', label: 'Pets', options: PETS_OPTIONS, title: 'Select Pets' },
+  { field: 'languages', icon: '🌍', label: 'Languages Spoken', options: LANGUAGE_OPTIONS, title: 'Select Languages', isMultiSelect: true },
+  { field: 'travel', icon: '✈️', label: 'Travel', options: TRAVEL_OPTIONS, title: 'Select Travel' },
 ];
 
 interface BasicInfoCardProps {
-  values: Record<BasicInfoField, string>;
+  values: Record<BasicInfoField, any>;
   isDark: boolean;
-  onSaveField: (field: BasicInfoField, value: string) => Promise<{ success: boolean; error?: string }>;
+  onSaveField: (field: BasicInfoField, value: any) => Promise<{ success: boolean; error?: string }>;
 }
 
-function displayLabel(field: BasicInfoField, options: ChipOption[], value: string): string {
+function displayLabel(field: BasicInfoField, options: ChipOption[], value: any): string {
   if (field === 'height') return options.find((o) => o.value === value)?.label ?? 'Not set';
+  if (field === 'languages') {
+    if (Array.isArray(value) && value.length > 0) {
+      return value.map((v) => options.find((o) => o.value === v)?.label ?? v).join(', ');
+    }
+    return 'Not set';
+  }
   return value || 'Not set';
 }
 
@@ -59,6 +102,15 @@ export function BasicInfoCard({ values, isDark, onSaveField }: BasicInfoCardProp
     const result = await onSaveField(field, value);
     setSavingField(null);
     setOpenField(null);
+    if (!result.success) {
+      Alert.alert('Save Failed', result.error || `Could not save ${field}.`);
+    }
+  };
+
+  const handleSelectMulti = async (field: BasicInfoField, value: string[]) => {
+    setSavingField(field);
+    const result = await onSaveField(field, value);
+    setSavingField(null);
     if (!result.success) {
       Alert.alert('Save Failed', result.error || `Could not save ${field}.`);
     }
@@ -87,7 +139,7 @@ export function BasicInfoCard({ values, isDark, onSaveField }: BasicInfoCardProp
             {savingField === row.field ? (
               <ActivityIndicator size="small" color="#A855F7" />
             ) : (
-              <Text style={[styles.rowValue, { color: T.accent }]}>
+              <Text style={[styles.rowValue, { color: T.accent }]} numberOfLines={1} ellipsizeMode="tail">
                 {displayLabel(row.field, row.options, values[row.field])}
               </Text>
             )}
@@ -102,6 +154,8 @@ export function BasicInfoCard({ values, isDark, onSaveField }: BasicInfoCardProp
           options={activeRow.options}
           selected={values[activeRow.field]}
           onSelect={(value) => handleSelect(activeRow.field, value)}
+          isMultiSelect={activeRow.isMultiSelect}
+          onSelectMulti={(arr) => handleSelectMulti(activeRow.field, arr)}
           visible={openField !== null}
           onClose={() => setOpenField(null)}
           isDark={isDark}

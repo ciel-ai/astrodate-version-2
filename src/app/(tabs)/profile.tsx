@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Glitters from '@/components/glitters';
 import { AboutMeCard } from '@/components/profile/about-me-card';
 import { BasicInfoCard, type BasicInfoField } from '@/components/profile/basic-info-card';
+import { RelationshipPreferencesCard, type RelationshipPreferencesField } from '@/components/profile/relationship-preferences-card';
 import { CosmicIdentityCard } from '@/components/profile/cosmic-identity-card';
 import { HeroCard } from '@/components/profile/hero-card';
 import { MembershipCard } from '@/components/profile/membership-card';
@@ -35,6 +36,7 @@ import { useSubscriptionStatus } from '@/context/subscription';
 import { useProfileData } from '@/hooks/use-profile-data';
 import { saveOnboardingResponses } from '@/lib/onboarding-responses';
 import { saveSection1Height } from '@/lib/section1-responses';
+import { saveUserProfile } from '@/lib/user-profile';
 import { useAppTheme } from '@/lib/theme-context';
 
 export default function ProfileScreen() {
@@ -55,11 +57,31 @@ export default function ProfileScreen() {
     return result;
   };
 
-  const handleSaveBasicInfoField = async (field: BasicInfoField, value: string) => {
+  const handleSaveBasicInfoField = async (field: BasicInfoField, value: any) => {
     const result =
       field === 'height'
         ? await saveSection1Height(value)
         : await saveOnboardingResponses({ [field]: value });
+    if (result.success) await refetch();
+    return result;
+  };
+
+  const handleSaveRelationshipPreferenceField = async (
+    field: RelationshipPreferencesField,
+    value: string
+  ) => {
+    let result;
+    if (field === 'sexualOrientation') {
+      result = await saveUserProfile({ sexual_orientation: value });
+    } else {
+      const dbField =
+        field === 'haveChildren'
+          ? 'have_children'
+          : field === 'wantChildren'
+          ? 'want_children'
+          : 'relationship_style';
+      result = await saveOnboardingResponses({ [dbField]: value });
+    }
     if (result.success) await refetch();
     return result;
   };
@@ -145,9 +167,26 @@ export default function ProfileScreen() {
                 education: profile.education,
                 drinking: profile.drinking,
                 smoking: profile.smoking,
+                weed: profile.weed,
+                religion: profile.religion,
+                workout: profile.workout,
+                diet: profile.diet,
+                pets: profile.pets,
+                languages: profile.languages,
+                travel: profile.travel,
               }}
               isDark={isDark}
               onSaveField={handleSaveBasicInfoField}
+            />
+            <RelationshipPreferencesCard
+              values={{
+                sexualOrientation: profile.sexualOrientation,
+                haveChildren: profile.haveChildren,
+                wantChildren: profile.wantChildren,
+                relationshipStyle: profile.relationshipStyle,
+              }}
+              isDark={isDark}
+              onSaveField={handleSaveRelationshipPreferenceField}
             />
             <PhotoGridCard photos={profile.photos} isDark={isDark} onChanged={refetch} />
           </>
