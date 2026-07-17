@@ -48,18 +48,28 @@ type LikeCardProps = {
   isPaid: boolean;
   /** Account-level: whether the lifetime free reveal is still available at all. */
   freeRevealAvailable: boolean;
+  /** Astro+ only: reveal slots left this billing period. null on free/AstroX (nothing to spend). */
+  subscriptionRevealsRemaining: number | null;
   onSpendFreeReveal: (userId: string) => void;
+  onSpendSubscriptionReveal: (userId: string) => void;
   onLikeBack: (userId: string) => void;
   onOpenPaywall: (reason: string) => void;
+  /** Report/block menu -- only offered once the profile is actually visible
+   *  (locked cards show neither photo nor name, so there's nothing to
+   *  meaningfully report yet). */
+  onOpenMenu?: (userId: string, name: string | null) => void;
 };
 
 export function LikeCard({
   item,
   isPaid,
   freeRevealAvailable,
+  subscriptionRevealsRemaining,
   onSpendFreeReveal,
+  onSpendSubscriptionReveal,
   onLikeBack,
   onOpenPaywall,
+  onOpenMenu,
 }: LikeCardProps) {
   const [busy, setBusy] = useState(false);
   const locked = !item.is_visible;
@@ -82,7 +92,15 @@ export function LikeCard({
     setBusy(false);
   };
 
+  const handleSubscriptionRevealPress = async () => {
+    if (busy) return;
+    setBusy(true);
+    await onSpendSubscriptionReveal(item.user_id);
+    setBusy(false);
+  };
+
   const showFreePeekTag = item.reveal_source === 'free_reveal' && !isPaid;
+  const showSubscriptionRevealPill = locked && subscriptionRevealsRemaining != null && subscriptionRevealsRemaining > 0;
 
   return (
     <View style={styles.card}>
@@ -130,12 +148,32 @@ export function LikeCard({
             <Text style={styles.freeRevealText}>Use your free reveal</Text>
           </Pressable>
         )}
+
+        {showSubscriptionRevealPill && (
+          <Pressable
+            onPress={handleSubscriptionRevealPress}
+            disabled={busy}
+            style={({ pressed }) => [styles.freeRevealPill, pressed && styles.freeRevealPillPressed]}
+          >
+            <Text style={styles.freeRevealText}>Reveal ({subscriptionRevealsRemaining} left)</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {locked ? 'Someone liked you' : item.full_name}
         </Text>
+        {!locked && onOpenMenu && (
+          <Pressable
+            onPress={() => onOpenMenu(item.user_id, item.full_name)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Report or block ${item.full_name ?? 'this person'}`}
+          >
+            <Text style={styles.menuDots}>⋯</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -228,6 +266,14 @@ const styles = StyleSheet.create({
   freeRevealPillPressed: { opacity: 0.85 },
   freeRevealText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
 
-  info: { paddingHorizontal: 12, paddingVertical: 10 },
-  name: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  info: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  name: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', flexShrink: 1 },
+  menuDots: { color: 'rgba(255,255,255,0.55)', fontSize: 18, fontWeight: '800', paddingHorizontal: 4 },
 });

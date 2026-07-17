@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { syncLocationIfGranted } from '@/lib/location';
-import { syncPushTokenIfGranted } from '@/lib/push-notifications';
+import { revokePushTokenForThisDevice, syncPushTokenIfGranted } from '@/lib/push-notifications';
 import { withTimeout } from '@/lib/network';
 
 type AuthContextType = {
@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      await revokePushTokenForThisDevice();
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Error signing out:', err);

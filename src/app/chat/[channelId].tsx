@@ -146,7 +146,10 @@ export default function ChatThreadScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [channelId, user, debouncedMarkRead]);
+    // See context/chats.tsx: keyed on user.id, not the user object, so a token refresh
+    // (new session/user reference, same id) doesn't tear down and race-rebuild this channel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, user?.id, debouncedMarkRead]);
 
   // Realtime websockets commonly drop when the app backgrounds -- reload +
   // resubscribe on foreground return (same AppState pattern as ChatsProvider
@@ -184,8 +187,7 @@ export default function ChatThreadScreen() {
 
     if (!result.success) {
       if (result.blocked) {
-        setMessages((prev) => prev.filter((m) => m.id !== id));
-        Alert.alert('Message blocked', result.reason);
+        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'blocked' } : m)));
       } else {
         setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'failed' } : m)));
       }
@@ -205,8 +207,7 @@ export default function ChatThreadScreen() {
 
     if (!result.success) {
       if (result.blocked) {
-        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-        Alert.alert('Message blocked', result.reason);
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, status: 'blocked' } : m)));
       } else {
         setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, status: 'failed' } : m)));
       }

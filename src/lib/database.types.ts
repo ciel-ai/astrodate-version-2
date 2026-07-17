@@ -317,6 +317,27 @@ export type Database = {
         }
         Relationships: []
       }
+      moderation_blocklist_terms: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          severity: string
+          term: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          severity: string
+          term: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          severity?: string
+          term?: string
+        }
+        Relationships: []
+      }
       notification_delivery_logs: {
         Row: {
           attempt_count: number
@@ -710,30 +731,7 @@ export type Database = {
         }
         Relationships: []
       }
-      swipe_actions: {
-        Row: {
-          action_type: string | null
-          created_at: string | null
-          id: string
-          swiped_id: string | null
-          swiper_id: string | null
-        }
-        Insert: {
-          action_type?: string | null
-          created_at?: string | null
-          id?: string
-          swiped_id?: string | null
-          swiper_id?: string | null
-        }
-        Update: {
-          action_type?: string | null
-          created_at?: string | null
-          id?: string
-          swiped_id?: string | null
-          swiper_id?: string | null
-        }
-        Relationships: []
-      }
+
       synastry_cache: {
         Row: {
           astro_score: number
@@ -1820,6 +1818,15 @@ export type Database = {
           unread_count: number
         }[]
       }
+      get_my_blocked_users: {
+        Args: never
+        Returns: {
+          blocked_at: string
+          full_name: string
+          photo_url: string
+          user_id: string
+        }[]
+      }
       get_my_daily_pick: { Args: never; Returns: Json }
       get_my_membership: { Args: never; Returns: Json }
       get_my_sent_likes: { Args: never; Returns: Json }
@@ -2609,6 +2616,7 @@ export type Database = {
         Args: { entitlement_id: string }
         Returns: boolean
       }
+      unblock_user: { Args: { p_blocked_id: string }; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
       update_notification_preferences: {
         Args: {

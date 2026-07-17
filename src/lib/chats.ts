@@ -172,13 +172,23 @@ export async function sendMessage(
 
     if (error) {
       console.warn('[chats] sendMessage insert failed:', error.message);
-      return { success: false, blocked: false, reason: error.message };
+      const isDbBlocked = error.message?.includes('Message blocked');
+      return {
+        success: false,
+        blocked: isDbBlocked, // Set blocked: true for DB blocklist rejections
+        reason: isDbBlocked ? 'Message violates community guidelines.' : error.message,
+      };
     }
 
     return { success: true, moderationStatus };
   } catch (err: any) {
     console.warn('[chats] sendMessage exception:', err?.message ?? err);
-    return { success: false, blocked: false, reason: err?.message ?? 'Failed to send message' };
+    const isDbBlocked = err?.message?.includes('Message blocked');
+    return {
+      success: false,
+      blocked: isDbBlocked,
+      reason: isDbBlocked ? 'Message violates community guidelines.' : (err?.message ?? 'Failed to send message'),
+    };
   }
 }
 
@@ -239,7 +249,7 @@ export async function blockAndLeave(userId: string): Promise<boolean> {
 
 export async function reportUser(
   reportedUserId: string,
-  channelId: string,
+  channelId: string | null,
   category: string,
   subcategory?: string
 ): Promise<boolean> {
@@ -270,6 +280,51 @@ export async function reportUser(
     return true;
   } catch (err: any) {
     console.warn('[chats] reportUser exception (non-fatal):', err?.message ?? err);
+    return false;
+  }
+}
+
+export type BlockedUser = {
+  user_id: string;
+  full_name: string | null;
+  photo_url: string | null;
+  blocked_at: string;
+};
+
+/** Lists everyone the current user has blocked, most recent first (see
+ *  get_my_blocked_users(), 20260716140000_blocked_users_management.sql). */
+export async function getMyBlockedUsers(): Promise<BlockedUser[] | null> {
+  try {
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase.rpc('get_my_blocked_users')),
+      15000,
+      'getMyBlockedUsers timed out'
+    );
+    if (error) {
+      console.warn('[chats] getMyBlockedUsers failed:', error.message);
+      return null;
+    }
+    return (data as BlockedUser[]) ?? [];
+  } catch (err: any) {
+    console.warn('[chats] getMyBlockedUsers exception (non-fatal):', err?.message ?? err);
+    return null;
+  }
+}
+
+export async function unblockUser(userId: string): Promise<boolean> {
+  try {
+    const { error } = await withTimeout(
+      Promise.resolve(supabase.rpc('unblock_user', { p_blocked_id: userId })),
+      15000,
+      'unblockUser timed out'
+    );
+    if (error) {
+      console.warn('[chats] unblockUser failed:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.warn('[chats] unblockUser exception (non-fatal):', err?.message ?? err);
     return false;
   }
 }

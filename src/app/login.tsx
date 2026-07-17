@@ -251,46 +251,6 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          {/* OR divider */}
-          <View style={styles.orRow}>
-            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
-            <Text style={[styles.orText, { color: isDark ? '#9A93B5' : '#5C5478' }]}>or</Text>
-            <View style={[styles.orLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(75,0,130,0.10)' }]} />
-          </View>
-
-          {/* Continue with Apple */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.socialBtn, 
-              { 
-                backgroundColor: isDark ? '#FFFFFF' : '#000000',
-                borderColor: isDark ? '#FFFFFF' : '#000000'
-              }, 
-              pressed && styles.socialPressed
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Apple"
-          >
-            <Text style={styles.appleIcon}></Text>
-            <Text style={[styles.appleBtnText, { color: isDark ? '#000000' : '#FFFFFF' }]}>Continue with Apple</Text>
-          </Pressable>
-
-          {/* Continue with Google */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.socialBtn, 
-              { 
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255, 255, 255, 0.85)',
-                borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(75,0,130,0.15)'
-              }, 
-              pressed && styles.socialPressed
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Google"
-          >
-            <Text style={[styles.googleIcon, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>G</Text>
-            <Text style={[styles.googleBtnText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Continue with Google</Text>
-          </Pressable>
 
           <Text style={[styles.footerText, { color: isDark ? '#9A93B5' : '#5C5478' }]}>
             {"Don't have an account? "}
@@ -475,45 +435,6 @@ const styles = StyleSheet.create({
   otpSparkle: { color: '#FFFFFF', fontSize: 15, marginRight: 8 },
   otpText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
 
-  // ── OR divider ──
-  orRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.18)' },
-  orText: { color: '#9A93B5', fontSize: 13, marginHorizontal: 12 },
-
-  // ── Social buttons ──
-  socialBtn: {
-    height: 54,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  socialPressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
-
-  appleBtnBg: {
-    backgroundColor: '#141018',
-    borderColor: 'rgba(255,255,255,0.14)',
-  },
-  appleIcon: { color: '#FFFFFF', fontSize: 22, marginRight: 12 },
-  appleBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-
-  googleBtnBg: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  googleIcon: {
-    color: '#4285F4',
-    fontSize: 18,
-    fontWeight: '800',
-    marginRight: 12,
-  },
-  googleBtnText: { color: '#111', fontSize: 15, fontWeight: '700' },
 
   // ── Footer ──
   footerText: {

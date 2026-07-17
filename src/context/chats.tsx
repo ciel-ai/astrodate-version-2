@@ -86,7 +86,14 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, refresh]);
+    // Keyed on user.id, not the user object: auth emits a fresh session/user reference on
+    // every token refresh, and depending on the whole object tears down + rebuilds this
+    // channel each time. Because removeChannel() is async, a rebuild that starts before the
+    // previous leave finishes has supabase.channel() dedupe onto the still-joining old
+    // instance, and .on() then throws "cannot add postgres_changes callbacks ... after
+    // subscribe()".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, refresh]);
 
   // Realtime websockets commonly drop when the app backgrounds -- refresh on
   // foreground return (same AppState pattern already used in context/auth.tsx

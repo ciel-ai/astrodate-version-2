@@ -11,11 +11,18 @@ export default ({ config }) => ({
   ios: {
     icon: './assets/images/icon.png',
     bundleIdentifier: 'com.ciel.ai.astrodate',
+    infoPlist: {
+      // Standard HTTPS/TLS only (Supabase, RevenueCat, AstrologyAPI) — no
+      // custom or proprietary encryption, so this is a deliberate exemption
+      // answer rather than leaving Apple to ask it per-build.
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
       backgroundColor: '#0d0a1e',
-      foregroundImage: './assets/images/icon.png',
+      foregroundImage: './assets/images/android-icon-foreground.png',
+      monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
     package: 'com.ciel.ai.astrodate',
@@ -43,6 +50,13 @@ export default ({ config }) => ({
           'Astro date uses your location to show you people nearby and how far away they are. Your exact location is never shown to other users.',
         isAndroidBackgroundLocationEnabled: false,
         isIosBackgroundLocationEnabled: false,
+      },
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'Astro date uses your photo library so you can choose profile photos to show other users.',
       },
     ],
     'expo-secure-store',

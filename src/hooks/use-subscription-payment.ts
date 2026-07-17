@@ -20,6 +20,9 @@ export interface UseSubscriptionPaymentReturn {
   startPayment: (planSlug: RevenueCatPlanSlug) => Promise<void>;
   resetPayment: () => void;
   restorePurchases: () => Promise<boolean>;
+  packages: any[];
+  loadingPackages: boolean;
+  packagesError: string | null;
 }
 
 let _rcConfigured = false;
@@ -90,12 +93,59 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
   const { refetch: refetchMembership } = useSubscriptionStatus();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const fetchOfferings = async () => {
+      try {
+        setLoadingPackages(true);
+        setPackagesError(null);
+        await ensureRevenueCatConfigured();
+
+        if (!_rcActive) {
+          if (active) {
+            setPackages([]);
+            setLoadingPackages(false);
+          }
+          return;
+        }
+
+        const offerings = await Purchases.getOfferings();
+        if (offerings.current) {
+          if (active) {
+            setPackages(offerings.current.availablePackages);
+          }
+        } else {
+          const allPackages = Object.values(offerings.all).flatMap((o) => o.availablePackages);
+          if (active) {
+            setPackages(allPackages);
+          }
+        }
+      } catch (err: any) {
+        console.warn('[RevenueCat] failed to load offerings on mount:', err);
+        if (active) {
+          setPackagesError('Failed to load store pricing.');
+        }
+      } finally {
+        if (active) {
+          setLoadingPackages(false);
+        }
+      }
+    };
+    fetchOfferings();
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -208,5 +258,14 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
     setPaymentError(null);
   }, []);
 
-  return { paymentStatus, paymentError, startPayment, resetPayment, restorePurchases };
+  return {
+    paymentStatus,
+    paymentError,
+    startPayment,
+    resetPayment,
+    restorePurchases,
+    packages,
+    loadingPackages,
+    packagesError,
+  };
 }

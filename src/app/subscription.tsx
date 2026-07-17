@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscriptionStatus } from '@/context/subscription';
 import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
-import type { RevenueCatPlanSlug } from '@/lib/iap-products';
+import { REVENUECAT_PRODUCT_IDS, type RevenueCatPlanSlug } from '@/lib/iap-products';
 
 type PlanCard = {
   slug: RevenueCatPlanSlug;
@@ -23,6 +23,13 @@ type PlanCard = {
 // (supabase/migrations/20260630120200_subscriptions.sql) — prices shown here
 // are fallbacks; the store charges whatever price is configured against each
 // product ID in App Store Connect / Google Play Console.
+//
+// Only bullets backed by an actual enforced RPC/gate are listed here. Several
+// plan_catalog.features keys (advanced_filters, dealbreakers, incognito_mode,
+// full_synastry_report, deep_synastry, ai_match_reading, weekly_boost,
+// priority_likes, skip_the_line) are not read by any RPC or component today.
+// Don't add them back to this copy until they're actually implemented —
+// listing unenforced features here is a false-advertising / refund risk.
 const PLANS: PlanCard[] = [
   {
     slug: 'astro_plus',
@@ -34,11 +41,11 @@ const PLANS: PlanCard[] = [
     borderColor: 'rgba(168, 85, 247, 0.4)',
     popular: true,
     features: [
-      '30 likes per day',
+      '40 likes per day',
       'See 5 profiles who liked you',
-      'Advanced filters & dealbreakers',
       '3 super likes per week',
       '1 rewind per day',
+      'Bigger daily deck with more high-compatibility matches',
     ],
   },
   {
@@ -52,10 +59,9 @@ const PLANS: PlanCard[] = [
     features: [
       'Unlimited likes',
       'See everyone who liked you',
-      'Full synastry report + deep dosha analysis',
-      'AI-powered match readings',
       '5 super likes per week, unlimited rewinds',
-      'Weekly profile boost',
+      'Largest daily deck, weighted toward top matches',
+      'Your #1 match pinned every day',
     ],
   },
 ];
@@ -63,7 +69,16 @@ const PLANS: PlanCard[] = [
 export default function SubscriptionScreen() {
   const insets = useSafeAreaInsets();
   const { membership } = useSubscriptionStatus();
-  const { paymentStatus, paymentError, startPayment, resetPayment, restorePurchases } = useSubscriptionPayment();
+  const {
+    paymentStatus,
+    paymentError,
+    startPayment,
+    resetPayment,
+    restorePurchases,
+    packages,
+    loadingPackages,
+    packagesError,
+  } = useSubscriptionPayment();
 
   useEffect(() => {
     if (paymentStatus === 'active') {
@@ -74,6 +89,8 @@ export default function SubscriptionScreen() {
 
   const isBusy = paymentStatus === 'purchasing';
   const currentPlanSlug = membership?.plan_slug ?? 'free';
+
+  const showFallbackMsg = !loadingPackages && packages.length === 0;
 
   return (
     <View style={styles.container}>
@@ -95,56 +112,84 @@ export default function SubscriptionScreen() {
           </View>
         )}
 
-        {paymentStatus === 'failed' && paymentError && (
+        {(paymentError || packagesError) && (
           <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{paymentError}</Text>
+            <Text style={styles.errorText}>{paymentError || packagesError}</Text>
           </View>
         )}
 
-        {PLANS.map((plan) => {
-          const isCurrentPlan = currentPlanSlug === plan.slug;
-          return (
-            <View key={plan.slug} style={[styles.card, { borderColor: plan.borderColor }]}>
-              {plan.popular && (
-                <View style={[styles.popularTag, { backgroundColor: plan.accentColor }]}>
-                  <Text style={styles.popularTagText}>MOST POPULAR</Text>
-                </View>
-              )}
-              <Text style={[styles.planBadge, { color: plan.accentColor }]}>{plan.badge}</Text>
-              <Text style={styles.planPrice}>{plan.price}</Text>
-              <Text style={styles.planTagline}>{plan.tagline}</Text>
+        {showFallbackMsg && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>In-app purchases are temporarily unavailable. Please try again later.</Text>
+          </View>
+        )}
 
-              <View style={styles.featureList}>
-                {plan.features.map((feature) => (
-                  <View key={feature} style={styles.featureRow}>
-                    <Text style={[styles.featureCheck, { color: plan.accentColor }]}>✓</Text>
-                    <Text style={styles.featureText}>{feature}</Text>
+        {loadingPackages ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#A855F7" />
+            <Text style={styles.loadingText}>Loading store pricing...</Text>
+          </View>
+        ) : (
+          PLANS.map((plan) => {
+            const isCurrentPlan = currentPlanSlug === plan.slug;
+            const matchedPackage = packages.find(
+              (pkg) => pkg.product.identifier === REVENUECAT_PRODUCT_IDS[plan.slug]
+            );
+
+            // If a specific plan's package is not available from the store, treat it as unavailable
+            const isPlanUnavailable = !matchedPackage;
+
+            return (
+              <View key={plan.slug} style={[styles.card, { borderColor: plan.borderColor }, isPlanUnavailable && styles.cardUnavailable]}>
+                {plan.popular && !isPlanUnavailable && (
+                  <View style={[styles.popularTag, { backgroundColor: plan.accentColor }]}>
+                    <Text style={styles.popularTagText}>MOST POPULAR</Text>
                   </View>
-                ))}
-              </View>
-
-              <Pressable
-                disabled={isBusy || isCurrentPlan}
-                onPress={() => {
-                  resetPayment();
-                  void startPayment(plan.slug);
-                }}
-                style={({ pressed }) => [
-                  styles.cta,
-                  { backgroundColor: plan.accentColor },
-                  (pressed || isBusy) && styles.ctaPressed,
-                  isCurrentPlan && styles.ctaDisabled,
-                ]}
-              >
-                {isBusy ? (
-                  <ActivityIndicator color="#1A1030" />
-                ) : (
-                  <Text style={styles.ctaText}>{isCurrentPlan ? 'Current plan' : `Get ${plan.name}`}</Text>
                 )}
-              </Pressable>
-            </View>
-          );
-        })}
+                <Text style={[styles.planBadge, { color: plan.accentColor }]}>{plan.badge}</Text>
+                
+                {isPlanUnavailable ? (
+                  <Text style={styles.planPrice}>Unavailable</Text>
+                ) : (
+                  <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                )}
+                
+                <Text style={styles.planTagline}>{plan.tagline}</Text>
+
+                <View style={styles.featureList}>
+                  {plan.features.map((feature) => (
+                    <View key={feature} style={styles.featureRow}>
+                      <Text style={[styles.featureCheck, { color: plan.accentColor }]}>✓</Text>
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Pressable
+                  disabled={isBusy || isCurrentPlan || isPlanUnavailable}
+                  onPress={() => {
+                    resetPayment();
+                    void startPayment(plan.slug);
+                  }}
+                  style={({ pressed }) => [
+                    styles.cta,
+                    { backgroundColor: plan.accentColor },
+                    (pressed || isBusy) && styles.ctaPressed,
+                    (isCurrentPlan || isPlanUnavailable) && styles.ctaDisabled,
+                  ]}
+                >
+                  {isBusy ? (
+                    <ActivityIndicator color="#1A1030" />
+                  ) : (
+                    <Text style={styles.ctaText}>
+                      {isCurrentPlan ? 'Current plan' : isPlanUnavailable ? 'Plan unavailable' : `Get ${plan.name}`}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            );
+          })
+        )}
 
         <Pressable
           disabled={isBusy}
@@ -156,6 +201,30 @@ export default function SubscriptionScreen() {
         >
           <Text style={styles.restoreText}>Restore purchases</Text>
         </Pressable>
+
+        {/* Legal links required by Apple Guideline 3.1.2 */}
+        <View style={styles.legalLinksRow}>
+          <Pressable onPress={() => router.push('/terms')}>
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </Pressable>
+          <Text style={styles.legalDivider}>|</Text>
+          <Pressable onPress={() => router.push('/privacy')}>
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </Pressable>
+        </View>
+
+        {/* Subscription Auto-renewing disclosures required by Apple Guideline 3.1.2 */}
+        <View style={styles.disclosureContainer}>
+          <Text style={styles.disclosureText}>
+            Payment will be charged to your iTunes Account at confirmation of purchase.
+          </Text>
+          <Text style={styles.disclosureText}>
+            Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.
+          </Text>
+          <Text style={styles.disclosureText}>
+            You can manage your subscriptions and turn off auto-renewal by going to your Account Settings on the App Store after purchase.
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -191,13 +260,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
   },
-  errorText: { color: '#F87171', fontSize: 13, lineHeight: 18 },
+  errorText: { color: '#F87171', fontSize: 13, lineHeight: 18, textAlign: 'center' },
   card: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderRadius: 20,
     padding: 20,
     gap: 4,
+  },
+  cardUnavailable: {
+    opacity: 0.5,
   },
   popularTag: {
     position: 'absolute',
@@ -220,4 +292,47 @@ const styles = StyleSheet.create({
   ctaDisabled: { opacity: 0.4 },
   ctaText: { color: '#1A1030', fontSize: 15, fontWeight: '800' },
   restoreText: { color: '#8B8D99', fontSize: 14, textAlign: 'center', marginTop: 4, textDecorationLine: 'underline' },
+  
+  // Loading Packages style
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#B0A8C4',
+    fontSize: 14,
+  },
+
+  // Legal Links
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  legalLink: {
+    color: '#8B8D99',
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
+    color: '#4A4C5A',
+    fontSize: 13,
+  },
+
+  // Disclosures
+  disclosureContainer: {
+    marginTop: 20,
+    paddingHorizontal: 8,
+    gap: 8,
+  },
+  disclosureText: {
+    color: '#6B6885',
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
 });

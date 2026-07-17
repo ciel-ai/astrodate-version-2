@@ -30,7 +30,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const data = await getMembershipOrFree();
     setMembership(data);
     setIsLoading(false);
-  }, [user]);
+    // Keyed on user.id, not the user object -- see the realtime effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -58,7 +60,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, fetchMembership]);
+    // See context/chats.tsx: keyed on user.id, not the user object, to avoid tearing
+    // down/rebuilding this channel on every token refresh (which races the async
+    // removeChannel and can throw).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, fetchMembership]);
 
   return (
     <SubscriptionContext.Provider value={{ membership, isLoading, refetch: fetchMembership }}>

@@ -1,0 +1,61 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@supabase/functions-js@*": "2.110.0",
+    "jsr:@supabase/supabase-js@2": "2.110.0"
+  },
+  "jsr": {
+    "@supabase/functions-js@2.110.0": {
+      "integrity": "e7a3ce2b6fcb91462079634655b872980e3596971bc07e77cf8ccc5a6fc09803"
+    },
+    "@supabase/supabase-js@2.110.0": {
+      "integrity": "6eadc04222c1d17bb35ab8f2127662e8e3f4efafff6983ac2cc9498cce6c01e0"
+    }
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@expo/ui@~56.0.20",
+        "npm:@react-native-async-storage/async-storage@2.2.0",
+        "npm:@supabase/supabase-js@^2.108.2",
+        "npm:@types/react@~19.2.2",
+        "npm:eslint-config-expo@~56.0.4",
+        "npm:eslint@9",
+        "npm:expo-blur@~56.0.3",
+        "npm:expo-constants@~56.0.18",
+        "npm:expo-crypto@~56.0.4",
+        "npm:expo-dev-client@~56.0.22",
+        "npm:expo-device@~56.0.4",
+        "npm:expo-font@~56.0.7",
+        "npm:expo-glass-effect@~56.0.4",
+        "npm:expo-image-picker@~56.0.19",
+        "npm:expo-image@~56.0.11",
+        "npm:expo-linear-gradient@~56.0.4",
+        "npm:expo-linking@~56.0.15",
+        "npm:expo-location@~56.0.19",
+        "npm:expo-notifications@~56.0.20",
+        "npm:expo-router@~56.2.13",
+        "npm:expo-secure-store@~56.0.4",
+        "npm:expo-splash-screen@~56.0.12",
+        "npm:expo-status-bar@~56.0.4",
+        "npm:expo-symbols@~56.0.6",
+        "npm:expo-system-ui@~56.0.5",
+        "npm:expo-web-browser@~56.0.5",
+        "npm:expo@~56.0.14",
+        "npm:react-dom@19.2.3",
+        "npm:react-native-gesture-handler@~2.31.1",
+        "npm:react-native-purchases@^10.4.2",
+        "npm:react-native-reanimated@4.3.1",
+        "npm:react-native-safe-area-context@5.7",
+        "npm:react-native-screens@4.25.2",
+        "npm:react-native-svg@15.15.4",
+        "npm:react-native-web@0.21",
+        "npm:react-native-webview@13.16.1",
+        "npm:react-native-worklets@0.8.3",
+        "npm:react-native@0.85.3",
+        "npm:react@19.2.3",
+        "npm:typescript@~6.0.3"
+      ]
+    }
+  }
+}

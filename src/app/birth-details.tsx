@@ -136,6 +136,18 @@ export default function BirthDetailsScreen() {
       return;
     }
 
+    const today = new Date();
+    const birthDate = new Date(yNum, tempMonth - 1, dNum);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const hasHadBirthdayThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    if (!hasHadBirthdayThisYear) age -= 1;
+    if (age < 18) {
+      Alert.alert('Must Be 18 or Older', 'You must be at least 18 years old to use Astro date.');
+      return;
+    }
+
     setDay(tempDay.padStart(2, '0'));
     setMonth(tempMonth);
     setYear(tempYear);
@@ -461,9 +473,14 @@ export default function BirthDetailsScreen() {
 
               <View style={styles.hintContainer}>
                 <Text style={styles.hintIcon}>ℹ️</Text>
-                <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
-                  Your exact birth time helps us generate accurate astrological insights
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280' }]}>
+                    Exact time is required for your Moon sign, Nakshatra, and precise Vedic compatibility scores.
+                  </Text>
+                  <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280', marginTop: 4, opacity: 0.8 }]}>
+                    <Text style={{ fontWeight: '600' }}>Don't know it?</Text> Try checking your birth certificate, hospital records, or asking family.
+                  </Text>
+                </View>
               </View>
             </View>
 

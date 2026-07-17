@@ -142,12 +142,14 @@ export default function PrivacyScreen() {
           <Text style={styles.paragraph}>
             The App uses the following third-party services, each governed by their own privacy policies:
           </Text>
-          <Text style={styles.bullet}>• Google Play Services</Text>
-          <Text style={styles.bullet}>• Razorpay — used as our payment gateway for processing transactions</Text>
+          <Text style={styles.bullet}>• Google Play Services and Apple App Store Services</Text>
+          <Text style={styles.bullet}>• RevenueCat — processes and manages in-app subscription purchases made through the Apple App Store and Google Play Store</Text>
+          <Text style={styles.bullet}>• Google Gemini — automatically screens messages between matched users for harassment, spam, and other safety violations before they are delivered</Text>
+          <Text style={styles.bullet}>• AstrologyAPI.com — calculates birth charts, planetary positions, and compatibility scores from the birth date, time, and place you provide</Text>
           <Text style={styles.bullet}>• Supabase — used for cloud storage, database, and backend hosting</Text>
           <Text style={styles.bullet}>• Analytics providers — to be confirmed in a future update</Text>
           <Text style={styles.paragraph}>
-            Payment gateway integrations beyond Razorpay, and additional analytics or service providers, may be introduced in future updates. This section will be updated accordingly when such changes are made, and users will be notified through the App or by email.
+            Additional payment, analytics, or service providers may be introduced in future updates. This section will be updated accordingly when such changes are made, and users will be notified through the App or by email.
           </Text>
 
           <Text style={styles.sectionTitle}>Data Retention</Text>

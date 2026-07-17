@@ -5,7 +5,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLikes } from '@/context/likes';
-import { getMySentLikes, likeBack, spendFreeReveal, type SentLikeData } from '@/lib/likes';
+import { getMySentLikes, likeBack, spendFreeReveal, spendSubscriptionReveal, type SentLikeData } from '@/lib/likes';
+import { blockAndLeave, reportUser } from '@/lib/chats';
 import { LikeCard } from '@/components/likes/like-card';
 import { SentLikeCard } from '@/components/likes/sent-like-card';
 import { SortControl } from '@/components/likes/sort-control';
@@ -81,6 +82,58 @@ export default function LikesScreen() {
     await refresh();
   };
 
+  const handleSpendSubscriptionReveal = async (userId: string) => {
+    const result = await spendSubscriptionReveal(userId);
+    if (result && !result.success) {
+      Alert.alert("Couldn't reveal", "You're out of reveals for this billing period, or this profile is no longer available.");
+    }
+    await refresh();
+  };
+
+  const submitReport = async (userId: string, category: string) => {
+    const ok = await reportUser(userId, null, category);
+    Alert.alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
+  };
+
+  const handleOpenMenu = (userId: string, name: string | null) => {
+    const targetName = name ?? 'this person';
+    Alert.alert(targetName, undefined, [
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Report reason', undefined, [
+            { text: 'Inappropriate content', onPress: () => submitReport(userId, 'inappropriate_content') },
+            { text: 'Spam', onPress: () => submitReport(userId, 'spam') },
+            { text: 'Fake profile', onPress: () => submitReport(userId, 'fake_profile') },
+            { text: 'Other', onPress: () => submitReport(userId, 'other') },
+            { text: 'Cancel', style: 'cancel' },
+          ]),
+      },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Block this person?', "You won't see each other anymore.", [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Block',
+              style: 'destructive',
+              onPress: async () => {
+                const ok = await blockAndLeave(userId);
+                if (ok) {
+                  await refresh();
+                } else {
+                  Alert.alert("Couldn't block", 'Please check your connection and try again.');
+                }
+              },
+            },
+          ]),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -131,9 +184,12 @@ export default function LikesScreen() {
                       item={item}
                       isPaid={data?.is_paid ?? false}
                       freeRevealAvailable={data?.free_reveal_available ?? false}
+                      subscriptionRevealsRemaining={data?.subscription_reveals_remaining ?? null}
                       onSpendFreeReveal={handleSpendFreeReveal}
+                      onSpendSubscriptionReveal={handleSpendSubscriptionReveal}
                       onLikeBack={handleLikeBack}
                       onOpenPaywall={openPaywall}
+                      onOpenMenu={handleOpenMenu}
                     />
                   </View>
                 ))}

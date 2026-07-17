@@ -8,7 +8,7 @@ import { formatRelativeTime, type Message } from '@/lib/chats';
  *  Messages that arrived from the server (initial load, realtime, or a
  *  confirmed send) simply have no `status`, which renders identically to
  *  'sent'. */
-export type DisplayMessage = Message & { status?: 'sending' | 'sent' | 'failed' };
+export type DisplayMessage = Message & { status?: 'sending' | 'sent' | 'failed' | 'blocked' };
 
 interface MessageBubbleProps {
   message: DisplayMessage;
@@ -23,6 +23,7 @@ interface MessageBubbleProps {
 
 function MessageBubbleImpl({ message, isMine, showTimestamp, onRetry }: MessageBubbleProps) {
   const isFailed = message.status === 'failed';
+  const isBlocked = message.status === 'blocked';
   const isSending = message.status === 'sending';
   const isFlagged = message.moderation_status === 'SPAM' || message.moderation_status === 'HARASSMENT';
 
@@ -41,6 +42,7 @@ function MessageBubbleImpl({ message, isMine, showTimestamp, onRetry }: MessageB
             isMine ? styles.bubbleMine : styles.bubbleTheirs,
             isSending && styles.bubbleSending,
             isFailed && styles.bubbleFailed,
+            isBlocked && styles.bubbleBlocked,
           ]}
         >
           <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs]}>
@@ -50,6 +52,7 @@ function MessageBubbleImpl({ message, isMine, showTimestamp, onRetry }: MessageB
 
         {isSending && <ActivityIndicator size="small" color="#8B8D99" style={styles.statusIcon} />}
         {isFailed && <Text style={styles.retryText}>Tap to retry</Text>}
+        {isBlocked && <Text style={styles.blockedText}>Blocked</Text>}
       </View>
 
       {isFlagged && isMine && (
@@ -95,6 +98,7 @@ const styles = StyleSheet.create({
   },
   bubbleSending: { opacity: 0.6 },
   bubbleFailed: { borderWidth: 1, borderColor: '#FF5C5C', opacity: 0.75 },
+  bubbleBlocked: { borderWidth: 1, borderColor: '#FF5C5C', opacity: 0.5 },
 
   text: { fontSize: 15, lineHeight: 20 },
   textMine: { color: '#FFFFFF' },
@@ -102,6 +106,7 @@ const styles = StyleSheet.create({
 
   statusIcon: { marginLeft: 6, marginBottom: 4 },
   retryText: { color: '#FF5C5C', fontSize: 11, fontWeight: '700', marginLeft: 8, marginBottom: 4 },
+  blockedText: { color: '#FF5C5C', fontSize: 11, fontWeight: '700', marginLeft: 8, marginBottom: 4, opacity: 0.8 },
   flaggedNote: {
     color: '#6B6478',
     fontSize: 10,

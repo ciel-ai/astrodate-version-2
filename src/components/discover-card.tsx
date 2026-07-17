@@ -15,7 +15,7 @@
  * Glass; it renders as a plain View elsewhere, so the rgba/border styling
  * below doubles as the fallback look on Android and older iOS.
  */
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Circle } from 'react-native-svg';
 import { GlassView } from 'expo-glass-effect';
@@ -74,9 +74,13 @@ interface DiscoverCardProps {
    *  distinguishes "locked behind a paywall" from "genuinely not computed
    *  yet" (which only applies to paid tiers, see the caption fallback below). */
   tier: string;
+  /** Opens the report/block menu for this profile -- omitted (no button
+   *  rendered) rather than defaulting to a no-op, so a missing wire-up fails
+   *  loudly in review instead of silently shipping a dead button. */
+  onOpenMenu?: () => void;
 }
 
-export function DiscoverCard({ card, tier }: DiscoverCardProps) {
+export function DiscoverCard({ card, tier, onOpenMenu }: DiscoverCardProps) {
   const name = card.full_name ?? 'Someone new';
   const initials = name.slice(0, 2).toUpperCase();
   const zodiac = card.western_sign ?? null;
@@ -123,6 +127,18 @@ export function DiscoverCard({ card, tier }: DiscoverCardProps) {
             {[zodiac, card.distance_label].filter(Boolean).join(' · ')}
           </Text>
         </View>
+
+        {onOpenMenu && (
+          <Pressable
+            onPress={onOpenMenu}
+            style={[styles.menuButton, card.is_top_match_of_day && styles.menuButtonBelowBadge]}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`Report or block ${name}`}
+          >
+            <Text style={styles.menuButtonText}>⋯</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Compatibility breakdown -- Section 3: Free sees total score only
@@ -281,6 +297,20 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   topMatchText: { color: '#1A1023', fontSize: 11, fontWeight: '800' },
+
+  menuButton: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(9, 3, 28, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuButtonBelowBadge: { top: 54 },
+  menuButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', lineHeight: 18 },
 
   // ── Compatibility ──
   statsSection: { marginTop: 12 },

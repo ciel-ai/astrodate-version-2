@@ -27,6 +27,9 @@ export type LikeCardData = {
 export type WhoLikedMeResponse = {
   is_paid: boolean;
   plan_slug: string;
+  /** Remaining reveal slots for the caller's current billing period (Astro+
+   *  only). null on unlimited plans (AstroX) and free, where it's moot. */
+  subscription_reveals_remaining: number | null;
   count: number;
   unseen_count: number;
   free_reveal_used: boolean;
@@ -104,6 +107,32 @@ export async function spendFreeReveal(likerUserId: string): Promise<SpendFreeRev
     return data as SpendFreeRevealResult;
   } catch (err: any) {
     console.warn('[likes] spendFreeReveal exception (non-fatal):', err?.message ?? err);
+    return null;
+  }
+}
+
+export type SpendSubscriptionRevealResult =
+  | { success: true; reveals_remaining: number }
+  | { success: false; reason: string };
+
+/** Spends one of the caller's Astro+ per-period reveal slots on the given
+ *  locked profile. Not applicable to AstroX (already unlimited) or free. */
+export async function spendSubscriptionReveal(likerUserId: string): Promise<SpendSubscriptionRevealResult | null> {
+  try {
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase.rpc('spend_subscription_reveal', { p_liker_id: likerUserId })),
+      15000,
+      'spendSubscriptionReveal timed out'
+    );
+
+    if (error) {
+      console.warn('[likes] spend_subscription_reveal failed:', error.message);
+      return { success: false, reason: error.message };
+    }
+
+    return data as SpendSubscriptionRevealResult;
+  } catch (err: any) {
+    console.warn('[likes] spendSubscriptionReveal exception (non-fatal):', err?.message ?? err);
     return null;
   }
 }

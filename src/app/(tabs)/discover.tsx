@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DiscoverCard } from '@/components/discover-card';
 import { DiscoverActionBar } from '@/components/discover-action-bar';
 import { useAuth } from '@/context/auth';
+import { useChats } from '@/context/chats';
 import {
   getDiscoverDeck,
   getRewindsRemaining,
@@ -15,6 +16,7 @@ import {
   type DiscoverCardData,
   type DiscoverDeckMeta,
 } from '@/lib/discover';
+import { blockAndLeave, getMyBlockedUsers, reportUser } from '@/lib/chats';
 
 function openPaywall(reason: string) {
   router.push({ pathname: '/paywall', params: { reason } } as any);
@@ -23,6 +25,7 @@ function openPaywall(reason: string) {
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { conversations } = useChats();
   const [cards, setCards] = useState<DiscoverCardData[] | null>(null);
   const [meta, setMeta] = useState<DiscoverDeckMeta | null>(null);
   const [tier, setTier] = useState<string>('free');
@@ -63,6 +66,41 @@ export default function DiscoverScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDeck();
   }, [loadDeck]);
+
+  // Tab screens stay mounted when you switch away (see (tabs)/_layout.tsx),
+  // so the plain mount-only effect above never re-runs -- a card already
+  // sitting in `cards` from earlier in the session keeps showing even after
+  // that person gets blocked (from Chats/Likes/Settings) or matched (a
+  // like-back on the Likes tab) somewhere else. Every other data screen
+  // (chats, likes, blocked-accounts) already refetches on focus; Discover
+  // needs the equivalent, but a full loadDeck() reset would also discard
+  // in-session swipe position and reshuffle the remainder (it's randomized
+  // per call) for people who are still perfectly valid. Instead, prune only
+  // the now-invalid (blocked or matched) entries out of the array already in
+  // memory, using the two things that changed underneath it: the blocked
+  // list and `useChats()`'s conversation list (already kept fresh by its own
+  // realtime/focus/AppState listeners -- reusing it here needs no extra RPC).
+  const pruneStaleCards = useCallback(async () => {
+    if (cards === null) return; // initial load handles this case
+    const blocked = await getMyBlockedUsers();
+    const staleIds = new Set<string>(conversations.map((c) => c.other_user_id));
+    for (const b of blocked ?? []) staleIds.add(b.user_id);
+    if (staleIds.size === 0) return;
+
+    setCards((prev) => {
+      if (!prev) return prev;
+      const filtered = prev.filter((c) => !staleIds.has(c.user_id));
+      if (filtered.length === prev.length) return prev;
+      setIndex((i) => Math.max(0, i - prev.slice(0, i).filter((c) => staleIds.has(c.user_id)).length));
+      return filtered;
+    });
+  }, [cards, conversations]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void pruneStaleCards();
+    }, [pruneStaleCards])
+  );
 
   const currentCard = cards?.[index] ?? null;
 
@@ -172,6 +210,52 @@ export default function DiscoverScreen() {
     }
   }, [swiping, rewindLocked, index, loadDeck]);
 
+  const submitReport = useCallback(async (targetId: string, category: string) => {
+    const ok = await reportUser(targetId, null, category);
+    Alert.alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
+  }, []);
+
+  const handleOpenMenu = useCallback(() => {
+    if (!currentCard) return;
+    const targetId = currentCard.user_id;
+    const targetName = currentCard.full_name ?? 'this person';
+    Alert.alert(targetName, undefined, [
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Report reason', undefined, [
+            { text: 'Inappropriate content', onPress: () => submitReport(targetId, 'inappropriate_content') },
+            { text: 'Spam', onPress: () => submitReport(targetId, 'spam') },
+            { text: 'Fake profile', onPress: () => submitReport(targetId, 'fake_profile') },
+            { text: 'Other', onPress: () => submitReport(targetId, 'other') },
+            { text: 'Cancel', style: 'cancel' },
+          ]),
+      },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Block this person?', "You won't see each other anymore.", [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Block',
+              style: 'destructive',
+              onPress: async () => {
+                const ok = await blockAndLeave(targetId);
+                if (ok) {
+                  setIndex((i) => i + 1);
+                } else {
+                  Alert.alert("Couldn't block", 'Please check your connection and try again.');
+                }
+              },
+            },
+          ]),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [currentCard, submitReport]);
+
   let body: React.ReactNode;
 
   if (loadError) {
@@ -222,7 +306,7 @@ export default function DiscoverScreen() {
   } else if (currentCard) {
     body = (
       <>
-        <DiscoverCard card={currentCard} tier={tier} />
+        <DiscoverCard card={currentCard} tier={tier} onOpenMenu={handleOpenMenu} />
       </>
     );
   } else if (meta && meta.more_high_locked_count > 0) {

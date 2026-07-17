@@ -373,6 +373,26 @@ export default function SettingsScreen() {
 
             <View style={styles.divider} />
 
+            {/* Blocked accounts */}
+            <Pressable
+              id="btn-settings-blocked-accounts"
+              onPress={() => router.push('/blocked-accounts')}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.rowLeft}>
+                <Text style={styles.rowIcon}>🛡️</Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Blocked Accounts</Text>
+                  <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
+                    See and manage who you've blocked.
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+
+            <View style={styles.divider} />
+
             {/* Privacy Policy link */}
             <Pressable
               id="btn-privacy-policy"

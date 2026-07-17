@@ -99,6 +99,38 @@ export async function syncPushTokenIfGranted(): Promise<boolean> {
 }
 
 /**
+ * Deactivates THIS device's push token, called right before sign-out. Only
+ * this device's token, not every token the user has (see the file-level
+ * comment: multi-device is deliberate, both devices should keep getting
+ * notified while both stay signed in) -- so a shared/reused device stops
+ * receiving a signed-out account's notifications without logging out other
+ * devices that account is still active on. Must run BEFORE
+ * supabase.auth.signOut(): revoke_push_token is auth.uid()-scoped and has no
+ * JWT to work with once the session is gone. Best-effort -- a failure here
+ * should never block sign-out itself.
+ */
+export async function revokePushTokenForThisDevice(): Promise<void> {
+  if (!Notifications) return;
+  try {
+    const { granted } = await Notifications.getPermissionsAsync();
+    if (!granted) return;
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined
+    );
+
+    await withTimeout(
+      Promise.resolve(supabase.rpc('revoke_push_token', { p_expo_push_token: expoPushToken })),
+      10000,
+      'revoke_push_token timed out'
+    );
+  } catch (err) {
+    console.warn('[push] revokePushTokenForThisDevice error (non-fatal):', err);
+  }
+}
+
+/**
  * Explicit opt-in: shows the OS permission prompt (only actually shown the
  * first time -- the OS no-ops on repeat calls once a user has decided).
  * Returns 'registered' | 'denied' | 'error'.
