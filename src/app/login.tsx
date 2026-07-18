@@ -91,7 +91,7 @@ export default function LoginScreen() {
 
       if (checkError) throw checkError;
 
-      if (!existing || existing.length === 0) {
+      if (!existing) {
         Alert.alert(
           'No Account Found',
           "We couldn't find an account with this phone number. Please sign up instead.",

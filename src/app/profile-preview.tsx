@@ -140,7 +140,12 @@ export default function ProfilePreviewScreen() {
     return <View style={{ flex: 1, backgroundColor: isDark ? '#09031C' : '#F0E6FF' }} />;
   }
 
-  const handleContinue = () => router.push('/sign-back-in');
+  // sign-back-in (Google/Apple account linking) is UI-only for now -- no real
+  // auth SDK wired up yet, see src/app/sign-back-in.tsx. Skipping straight to
+  // onboarding until that's actually implemented, same destination its own
+  // "No thanks" skip button already goes to -- don't show reviewers or users
+  // a screen whose buttons fake success without doing anything.
+  const handleContinue = () => router.push('/onboarding-ques-01');
 
   // Theme tokens
   const T = {

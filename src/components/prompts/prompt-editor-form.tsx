@@ -7,6 +7,8 @@
  */
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Platform,
@@ -21,6 +23,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import type { PromptSlotId, PromptSlots } from '@/lib/user-prompts';
 import { PROMPT_SLOTS } from '@/lib/user-prompts';
+import { optimizePromptAnswer } from '@/lib/prompt-optimizer';
 
 export const PROMPT_QUESTIONS = [
   'My greatest strength is...',
@@ -55,6 +58,7 @@ interface PromptEditorFormProps {
 export function PromptEditorForm({ slots, onChange, isDark }: PromptEditorFormProps) {
   const [activeSlot, setActiveSlot] = useState<PromptSlotId | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [optimizingSlot, setOptimizingSlot] = useState<PromptSlotId | null>(null);
 
   const openPicker = (slot: PromptSlotId) => {
     setActiveSlot(slot);
@@ -70,6 +74,23 @@ export function PromptEditorForm({ slots, onChange, isDark }: PromptEditorFormPr
 
   const setAnswer = (slotId: PromptSlotId, answer: string) => {
     onChange({ ...slots, [slotId]: { ...slots[slotId], answer } });
+  };
+
+  const handleOptimize = async (slotId: PromptSlotId) => {
+    const slotData = slots[slotId];
+    if (!slotData.answer.trim() || optimizingSlot) return;
+
+    setOptimizingSlot(slotId);
+    const result = await optimizePromptAnswer(slotData.question, slotData.answer);
+    setOptimizingSlot(null);
+
+    if (result.success) {
+      setAnswer(slotId, result.optimized);
+    } else if (result.reason === 'quota_exceeded') {
+      Alert.alert("You're out of optimizes for today", 'Try again tomorrow, or just edit it yourself for now.');
+    } else {
+      Alert.alert('Optimize failed', 'Something went wrong polishing your answer. Please try again.');
+    }
   };
 
   return (
@@ -128,6 +149,27 @@ export function PromptEditorForm({ slots, onChange, isDark }: PromptEditorFormPr
                   multiline
                   maxLength={300}
                 />
+
+                {slotData.answer.trim().length > 0 && (
+                  <Pressable
+                    id={`btn-prompt-${slotId}-optimize`}
+                    onPress={() => handleOptimize(slotId)}
+                    disabled={optimizingSlot === slotId}
+                    style={({ pressed }) => [
+                      styles.optimizeBtn,
+                      { borderColor: isDark ? 'rgba(168, 85, 247, 0.35)' : 'rgba(124, 58, 237, 0.25)' },
+                      pressed && styles.optimizeBtnPressed,
+                    ]}
+                  >
+                    {optimizingSlot === slotId ? (
+                      <ActivityIndicator size="small" color={isDark ? '#D4B8FF' : '#7C3AED'} />
+                    ) : (
+                      <Text style={[styles.optimizeBtnText, { color: isDark ? '#D4B8FF' : '#7C3AED' }]}>
+                        ✨ Optimize
+                      </Text>
+                    )}
+                  </Pressable>
+                )}
               </View>
             ) : null}
           </View>
@@ -192,6 +234,19 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: 14, fontWeight: '500', flex: 1, marginRight: 10 },
   answerContainer: { borderRadius: 16, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 12, minHeight: 80 },
   answerInput: { fontSize: 14.5, lineHeight: 20, paddingTop: 0, textAlignVertical: 'top' },
+  optimizeBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optimizeBtnPressed: { opacity: 0.7 },
+  optimizeBtnText: { fontSize: 12, fontWeight: '700' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '60%', width: '100%', paddingTop: 20 },

@@ -396,6 +396,7 @@ export default function DiscoverScreen() {
         tier={currentTier}
         isFlipped={isCosmicOpen}
         onFlipChange={setIsCosmicOpen}
+        onOpenMenu={handleOpenMenu}
         extraDetails={currentCard}
       />
     );

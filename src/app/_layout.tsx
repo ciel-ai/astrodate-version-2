@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/react-native';
 import { DarkTheme as NavDarkTheme, DefaultTheme as NavDefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
 import { KeyboardProvider } from '@/lib/keyboard-controller';
 import { AppThemeProvider, useAppTheme } from '@/lib/theme-context';
@@ -7,6 +8,11 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/context/auth';
 import { SubscriptionProvider } from '@/context/subscription';
 import { registerNotificationTapHandler } from '@/lib/push-notifications';
+import { initSentry } from '@/lib/sentry';
+
+// Must run before the rest of the app renders so crashes during first render
+// are still captured.
+initSentry();
 
 function RootLayout() {
   const { theme } = useAppTheme();
@@ -96,10 +102,12 @@ function RootLayout() {
   );
 }
 
-export default function LayoutWrapper() {
+function LayoutWrapper() {
   return (
     <AppThemeProvider>
       <RootLayout />
     </AppThemeProvider>
   );
 }
+
+export default Sentry.wrap(LayoutWrapper);

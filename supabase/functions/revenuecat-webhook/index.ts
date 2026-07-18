@@ -29,6 +29,21 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { activateSubscription, normalisePlanSlug, setSubscriptionStatus } from "../_shared/subscription-sync.ts";
 
+// Constant-time string compare (defense-in-depth -- HTTPS already removes any
+// practical timing side-channel here, but this costs nothing). Walks the
+// longer of the two byte arrays so the loop length never itself leaks which
+// input was shorter.
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  const len = Math.max(aBytes.length, bBytes.length);
+  let diff = aBytes.length ^ bBytes.length;
+  for (let i = 0; i < len; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
+}
+
 type RevenueCatEventType =
   | "INITIAL_PURCHASE"
   | "RENEWAL"
@@ -81,7 +96,7 @@ Deno.serve(async (req: Request) => {
 
     // RevenueCat sends: Authorization: <the secret configured in its dashboard>
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader || authHeader !== webhookSecret) {
+    if (!authHeader || !timingSafeEqual(authHeader, webhookSecret)) {
       console.warn("revenuecat-webhook: invalid or missing Authorization header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,

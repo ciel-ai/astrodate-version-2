@@ -72,6 +72,17 @@ export default ({ config }) => ({
         microphonePermission: 'Astro date uses your microphone to record voice messages in chats.',
       },
     ],
+    // Missing SENTRY_ORG/SENTRY_PROJECT (no Sentry project created yet) is
+    // fine -- the plugin warns and falls back to those env vars at build
+    // time rather than failing; see .env.example.
+    [
+      '@sentry/react-native/expo',
+      {
+        url: 'https://sentry.io/',
+        ...(process.env.SENTRY_ORG ? { organization: process.env.SENTRY_ORG } : {}),
+        ...(process.env.SENTRY_PROJECT ? { project: process.env.SENTRY_PROJECT } : {}),
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

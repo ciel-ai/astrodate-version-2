@@ -72,7 +72,11 @@ export default function SettingsScreen() {
     marketing_enabled: false,
     engagement_enabled: true,
   });
-  const [notifLoading, setNotifLoading] = useState(true);
+  // Lazy initializer (not an effect) so there's no synchronous setState call
+  // to trigger react-hooks/set-state-in-effect: a user already known absent
+  // at mount starts non-loading, everyone else starts loading until the
+  // fetch below resolves.
+  const [notifLoading, setNotifLoading] = useState(() => Boolean(user?.id));
 
   // Read current permission state on mount
   useEffect(() => {
@@ -87,10 +91,7 @@ export default function SettingsScreen() {
   // user_id) already lets a signed-in user read their own row directly, no
   // RPC needed for the read side.
   useEffect(() => {
-    if (!user?.id) {
-      setNotifLoading(false);
-      return;
-    }
+    if (!user?.id) return;
     supabase
       .from('user_notification_preferences')
       .select('new_matches_enabled, new_messages_enabled, marketing_enabled, engagement_enabled')
@@ -384,7 +385,7 @@ export default function SettingsScreen() {
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Blocked Accounts</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
-                    See and manage who you've blocked.
+                    See and manage who you&apos;ve blocked.
                   </Text>
                 </View>
               </View>

@@ -37,6 +37,9 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
     userRef.current = user;
   }, [user]);
 
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const channelOpRef = useRef<Promise<void>>(Promise.resolve());
+
   const refresh = useCallback(async () => {
     if (!userRef.current) return;
     setLoading(true);
@@ -66,16 +69,24 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
     const userId = user.id;
     const channelName = `chats-list-${userId}`;
     let active = true;
-    let channel: any = null;
 
-    const setup = async () => {
-      const existing = supabase.getChannels().find(c => c.topic === channelName);
-      if (existing) {
-        await supabase.removeChannel(existing);
+    // Every setup/teardown for this effect is chained onto channelOpRef,
+    // never run standalone. Two independent `setup()` calls racing on the
+    // same channelName is exactly what used to throw "cannot add
+    // postgres_changes callbacks ... after subscribe()": supabase.channel()
+    // dedupes by topic, so a rebuild starting before the previous leave
+    // finished would get handed back the still-joining old channel and then
+    // call .on() on an already-subscribed instance. Chaining onto a single
+    // promise makes every op wait for the previous one to fully finish
+    // first, regardless of how many times this effect fires.
+    channelOpRef.current = channelOpRef.current.then(async () => {
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
       if (!active) return;
 
-      channel = supabase
+      channelRef.current = supabase
         .channel(channelName)
         .on(
           'postgres_changes',
@@ -99,22 +110,20 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
           }
         )
         .subscribe();
-    };
-
-    void setup();
+    });
 
     return () => {
       active = false;
-      if (channel) {
-        void supabase.removeChannel(channel);
-      }
+      channelOpRef.current = channelOpRef.current.then(async () => {
+        if (channelRef.current) {
+          await supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+      });
     };
     // Keyed on user.id, not the user object: auth emits a fresh session/user reference on
-    // every token refresh, and depending on the whole object tears down + rebuilds this
-    // channel each time. Because removeChannel() is async, a rebuild that starts before the
-    // previous leave finishes has supabase.channel() dedupe onto the still-joining old
-    // instance, and .on() then throws "cannot add postgres_changes callbacks ... after
-    // subscribe()".
+    // every token refresh, and depending on the whole object would tear down + rebuild this
+    // channel on every refresh instead of only on actual login/logout.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, refresh]);
 

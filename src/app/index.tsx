@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   Image,
   ImageBackground,
@@ -14,6 +15,8 @@ import { useFonts } from 'expo-font';
 import { ThemedText } from '@/components/themed-text';
 import Glitters from '@/components/glitters';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/context/auth';
+import { getOnboardingResumeRoute, type OnboardingResumeRoute } from '@/lib/user-profile';
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
@@ -32,12 +35,38 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { width: screenW, height: screenH } = useWindowDimensions();
+  const { session, loading: authLoading } = useAuth();
 
   const [fontsLoaded] = useFonts({
     'Baskerville-Old-Face': require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
   });
 
-  if (!fontsLoaded) {
+  // A returning signed-in user should never see the "Get Started" splash --
+  // resolve where they belong (mid-onboarding step or Discover) and redirect
+  // there, same resume logic verify-otp.tsx uses right after login.
+  const [resumeRoute, setResumeRoute] = useState<OnboardingResumeRoute | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    getOnboardingResumeRoute()
+      .then((route) => {
+        if (!cancelled) setResumeRoute(route);
+      })
+      .catch((err) => {
+        console.warn('getOnboardingResumeRoute failed, falling back to /onboarding:', err);
+        if (!cancelled) setResumeRoute('/onboarding');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    if (resumeRoute) router.replace(resumeRoute);
+  }, [resumeRoute, router]);
+
+  if (!fontsLoaded || authLoading || (session && !resumeRoute)) {
     return <View style={{ flex: 1, backgroundColor: isDark ? '#0A051B' : '#FFFFFF' }} />;
   }
 

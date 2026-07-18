@@ -1550,19 +1550,11 @@ export type Database = {
       cancel_my_subscription: { Args: never; Returns: undefined }
       check_auth_user_exists: {
         Args: { input_phone: string }
-        Returns: {
-          created_at: string
-          phone: string
-          user_id: string
-        }[]
+        Returns: boolean
       }
       check_phone_exists: {
         Args: { p_phone: string }
-        Returns: {
-          created_at: string
-          phone: string
-          user_id: string
-        }[]
+        Returns: boolean
       }
       claim_notification_delivery_logs: {
         Args: { p_limit?: number }

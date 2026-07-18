@@ -1,5 +1,0 @@
--- Placeholder for a migration applied directly to the remote database
--- (version 20260714140000) that was not committed to this repo. Its real SQL
--- lives on the remote and is already applied; this empty file only exists so
--- the Supabase CLI's migration-history check lets other migrations push.
--- Back-fill the real contents with `supabase db pull` when convenient.

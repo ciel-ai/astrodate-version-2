@@ -96,7 +96,7 @@ export default function CreateAccountScreen() {
 
       if (checkError) throw checkError;
 
-      if (existing && existing.length > 0) {
+      if (existing) {
         Alert.alert(
           'Account Already Exists',
           'An account with this phone number already exists. Please log in instead.',
