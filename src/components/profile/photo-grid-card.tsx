@@ -15,7 +15,7 @@
  * values is correct regardless of what those values are.
  */
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
 import { MAX_PHOTOS, MIN_REQUIRED_PHOTOS, deleteUserPhoto, setPrimaryPhoto, swapPhotoOrder, uploadUserPhoto, type UserPhoto } from '@/lib/user-photos';
 
 function getImagePicker(): typeof import('expo-image-picker') | null {
@@ -36,6 +36,9 @@ interface PhotoGridCardProps {
 export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps) {
   const [uploading, setUploading] = useState(false);
   const [busyPhotoId, setBusyPhotoId] = useState<string | null>(null);
+  const { width: screenWidth } = Dimensions.get('window');
+  const gap = 8;
+  const tileWidth = Math.floor((screenWidth - 84 - (2 * gap)) / 3);
 
   const T = {
     card: isDark ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)',
@@ -62,7 +65,8 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.8,
+        aspect: [1, 1],
+        quality: 1,
         base64: true,
       });
       if (pickerResult.canceled || !pickerResult.assets?.length) return;
@@ -146,9 +150,9 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
         </Text>
       </View>
 
-      <View style={styles.grid}>
+      <View style={[styles.grid, { gap: gap }]}>
         {photos.map((photo, index) => (
-          <View key={photo.id} style={styles.tile}>
+          <View key={photo.id} style={[styles.tile, { width: tileWidth }]}>
             <Pressable
               id={`btn-photo-set-primary-${photo.id}`}
               onPress={() => handleSetPrimary(photo)}
@@ -216,7 +220,7 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
         ))}
 
         {Array.from({ length: emptySlotCount }).map((_, i) => (
-          <View key={`empty-${i}`} style={styles.tile}>
+          <View key={`empty-${i}`} style={[styles.tile, { width: tileWidth }]}>
             <Pressable
               id={`btn-photo-add-${i}`}
               style={[styles.emptySlot, { backgroundColor: T.emptyBg, borderColor: T.emptyBorder }]}
@@ -254,8 +258,8 @@ const styles = StyleSheet.create({
   header: { fontSize: 11, fontWeight: '700', letterSpacing: 1.2 },
   count: { fontSize: 11, fontWeight: '600' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tile: { width: '31%', aspectRatio: 0.75 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  tile: { aspectRatio: 1 },
 
   photoWrapper: { flex: 1, borderRadius: 12, overflow: 'hidden', position: 'relative' },
   photoImage: { width: '100%', height: '100%', resizeMode: 'cover' },

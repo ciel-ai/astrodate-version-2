@@ -30,18 +30,31 @@ import { withTimeout } from './network';
 
 const pushAvailable = !isRunningInExpoGo();
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Notifications = pushAvailable ? (require('expo-notifications') as typeof import('expo-notifications')) : null;
+let Notifications: typeof import('expo-notifications') | null = null;
+
+if (pushAvailable) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    Notifications = require('expo-notifications');
+  } catch (err) {
+    console.warn('[push-notifications] expo-notifications could not be imported:', err);
+  }
+}
 
 if (Notifications) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (err) {
+    console.warn('[push-notifications] Failed to initialize setNotificationHandler:', err);
+    Notifications = null; // Disable push notifications downstream
+  }
 }
 
 async function ensureAndroidChannel(): Promise<void> {

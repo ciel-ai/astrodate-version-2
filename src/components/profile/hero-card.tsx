@@ -15,9 +15,10 @@ interface HeroCardProps {
   membership: MembershipSummary | null;
   isDark: boolean;
   onGetVerified: () => void;
+  onEditPhoto?: () => void;
 }
 
-export function HeroCard({ profile, isDark, onGetVerified }: HeroCardProps) {
+export function HeroCard({ profile, isDark, onGetVerified, onEditPhoto }: HeroCardProps) {
   const primaryPhoto = profile.photos.find((p) => p.is_primary) ?? profile.photos[0] ?? null;
   const initials = profile.fullName
     .split(' ')
@@ -34,14 +35,26 @@ export function HeroCard({ profile, isDark, onGetVerified }: HeroCardProps) {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.avatarWrap}>
-        {primaryPhoto ? (
-          <Image source={{ uri: primaryPhoto.photo_url }} style={styles.avatarImage} />
-        ) : (
-          <View style={[styles.avatarFallback, { backgroundColor: T.avatarBg }]}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
-          </View>
-        )}
+      <View style={styles.avatarContainer}>
+        <View style={styles.avatarWrap}>
+          {primaryPhoto ? (
+            <Image source={{ uri: primaryPhoto.photo_url }} style={styles.avatarImage} />
+          ) : (
+            <View style={[styles.avatarFallback, { backgroundColor: T.avatarBg }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          )}
+        </View>
+
+        <Pressable
+          id="btn-edit-avatar-photo"
+          style={({ pressed }) => [styles.editPencilBtn, pressed && styles.pressed]}
+          onPress={onEditPhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile photo"
+        >
+          <Text style={styles.editPencilIcon}>✏️</Text>
+        </Pressable>
       </View>
 
       <Text style={[styles.name, { color: T.text }]} numberOfLines={1}>
@@ -120,4 +133,34 @@ const styles = StyleSheet.create({
   getVerifiedPill: { backgroundColor: 'rgba(96, 165, 250, 0.12)', borderColor: 'rgba(96, 165, 250, 0.30)' },
   getVerifiedText: { fontSize: 12.5, fontWeight: '700', color: '#60A5FA' },
   pressed: { opacity: 0.85 },
+  avatarContainer: {
+    position: 'relative',
+    width: 92,
+    height: 92,
+    overflow: 'visible',
+    zIndex: 10,
+  },
+  editPencilBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#A855F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF', // White border to pop out clearly against dark avatar/bg
+    zIndex: 99,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
+      android: { elevation: 6 },
+    }),
+  },
+  editPencilIcon: {
+    fontSize: 13,
+    color: '#FFF',
+    lineHeight: Platform.OS === 'ios' ? 16 : 18,
+  },
 });

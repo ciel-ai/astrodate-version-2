@@ -91,7 +91,8 @@ export default function UploadPhotosScreen() {
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        quality: 0.8,
+        aspect: [1, 1],
+        quality: 1,
         base64: true,
       });
 
