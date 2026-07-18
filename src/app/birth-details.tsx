@@ -478,7 +478,7 @@ export default function BirthDetailsScreen() {
                     Exact time is required for your Moon sign, Nakshatra, and precise Vedic compatibility scores.
                   </Text>
                   <Text style={[styles.hintText, { color: isDark ? '#9A93B5' : '#6B7280', marginTop: 4, opacity: 0.8 }]}>
-                    <Text style={{ fontWeight: '600' }}>Don't know it?</Text> Try checking your birth certificate, hospital records, or asking family.
+                    <Text style={{ fontWeight: '600' }}>Don&apos;t know it?</Text> Try checking your birth certificate, hospital records, or asking family.
                   </Text>
                 </View>
               </View>

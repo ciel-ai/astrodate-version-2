@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Pressable, StyleSheet, Text, View,
   ScrollView, Dimensions, Modal, Platform,
@@ -9,7 +9,161 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 
+import { getSynastryDetail, type AshtakootaDetail, type KootaDetail } from '@/lib/synastry';
+
+// Display label + decorative emoji per real koota key (compute-synastry
+// stores the raw astrologyapi.com response shape: vashya/maitri/gan/bhakut,
+// not the fuller "Graha Maitri"/"Gana"/"Bhakoot" names used in copy).
+const KOOTA_DISPLAY: { key: keyof AshtakootaDetail; label: string; emoji: string }[] = [
+  { key: 'varna', label: 'Varna', emoji: '⚖️' },
+  { key: 'vashya', label: 'Vashya', emoji: '🪄' },
+  { key: 'tara', label: 'Tara', emoji: '☀️' },
+  { key: 'yoni', label: 'Yoni', emoji: '🐆' },
+  { key: 'maitri', label: 'Graha Maitri', emoji: '🤝' },
+  { key: 'gan', label: 'Gana', emoji: '🧜' },
+  { key: 'bhakut', label: 'Bhakoot', emoji: '🔄' },
+  { key: 'nadi', label: 'Nadi', emoji: '🧬' },
+];
+
+function kootaStars(koota?: KootaDetail): string {
+  if (!koota || !koota.total_points) return '☆☆☆☆☆';
+  const ratio = Math.max(0, Math.min(1, koota.received_points / koota.total_points));
+  const filled = Math.round(ratio * 5 * 2) / 2; // allow half-stars
+  let stars = '';
+  for (let i = 1; i <= 5; i++) {
+    if (filled >= i) stars += '★';
+    else if (filled >= i - 0.5) stars += '½';
+    else stars += '☆';
+  }
+  return stars;
+}
+
+// Icon per real badge name (compute-synastry's buildBadges) with a fallback
+// for any future badge the UI doesn't know about yet.
+const BADGE_ICON: Record<string, string> = {
+  'Cosmic Soulmates': '💫',
+  'Harmonious Souls': '✦',
+  'Nadi Match': '💗',
+  'Gana Match': '⭐',
+  'Vashya Bond': '🪄',
+};
+
+// Same score bands as compute-synastry's buildSummary, so the label here
+// stays consistent with the "why you match" narrative shown elsewhere.
+function ashtakootaTierLabel(score: number): string {
+  if (score >= 32) return 'Exceptional\nMatch';
+  if (score >= 27) return 'Strong\nMatch';
+  if (score >= 24) return 'Good\nMatch';
+  if (score >= 18) return 'Compatible\nMatch';
+  return 'Karmic\nMatch';
+}
+
+// Traditional meaning of each koota, used to explain *why* a strong score
+// matters rather than just stating a number. Nadi/Bhakoot are deliberately
+// excluded here -- their dosha status is already surfaced via the
+// nadiDosha/bhakootDosha params (which account for dosha-cancellation rules
+// the raw koota ratio doesn't), so those two get their own bullet below
+// instead of being double-counted against this list.
+const KOOTA_MEANING: Partial<Record<keyof AshtakootaDetail, string>> = {
+  varna: 'a sign of spiritual and ego compatibility',
+  vashya: 'a sign of mutual attraction and influence',
+  tara: 'a sign of shared well-being and destiny',
+  yoni: 'a sign of natural physical chemistry',
+  maitri: 'a sign of mental and intellectual compatibility',
+  gan: 'a sign of compatible temperaments',
+};
+
+const PERSONALITY_FACTOR_TEXT: Record<string, string> = {
+  relationship_goals: "You're both looking for the same kind of relationship",
+  communication: 'Your communication styles are unusually well matched',
+  hobbies: 'Your shared interests and hobbies line up unusually well',
+  lifestyle: 'Your day-to-day lifestyles are well aligned',
+  personality_traits: 'Your core personality traits are a strong match',
+};
+
+type WhyBullet = { text: string; strength: number };
+
+/**
+ * Builds "why you matched" bullets purely from real per-pair astrology +
+ * personality data -- no AI/LLM call, no invented content. Only ever claims
+ * something that's actually true for this pair (near-full koota match,
+ * a genuinely clear dosha, a high-scoring personality factor); pairs with no
+ * strong signal anywhere get fewer bullets rather than padded filler.
+ */
+function buildWhyYouMatchBullets(params: {
+  ashtakootaDetail: AshtakootaDetail | null;
+  manglikStatus?: string;
+  nadiDosha?: string;
+  bhakootDosha?: string;
+  factors: Record<string, number | null> | null;
+}): WhyBullet[] {
+  const { ashtakootaDetail, manglikStatus, nadiDosha, bhakootDosha, factors } = params;
+  const bullets: WhyBullet[] = [];
+
+  if (ashtakootaDetail) {
+    (Object.keys(KOOTA_MEANING) as (keyof AshtakootaDetail)[]).forEach((key) => {
+      const koota = ashtakootaDetail[key];
+      if (!koota || !koota.total_points) return;
+      const ratio = koota.received_points / koota.total_points;
+      if (ratio >= 0.9) {
+        const label = KOOTA_DISPLAY.find((k) => k.key === key)?.label ?? key;
+        bullets.push({
+          text: `${label} Koota is a strong match — ${KOOTA_MEANING[key]}.`,
+          strength: 80 + ratio * 20,
+        });
+      }
+    });
+  }
+
+  if (nadiDosha === 'no') {
+    bullets.push({
+      text: 'No Nadi Dosha between your charts — traditionally the most important sign for long-term health and family harmony.',
+      strength: 100,
+    });
+  }
+  if (bhakootDosha === 'no') {
+    bullets.push({
+      text: 'No Bhakoot Dosha — a strong indicator for emotional and financial harmony together.',
+      strength: 95,
+    });
+  }
+  if (manglikStatus === 'no') {
+    bullets.push({
+      text: 'No Manglik conflict between your charts — removes a common source of astrological friction.',
+      strength: 90,
+    });
+  }
+
+  if (factors) {
+    let best: { key: string; val: number } | null = null;
+    for (const [key, val] of Object.entries(factors)) {
+      if (val != null && PERSONALITY_FACTOR_TEXT[key] && (!best || val > best.val)) {
+        best = { key, val };
+      }
+    }
+    if (best && best.val >= 80) {
+      bullets.push({ text: `${PERSONALITY_FACTOR_TEXT[best.key]} (${Math.round(best.val)}% match).`, strength: best.val });
+    }
+  }
+
+  return bullets.sort((a, b) => b.strength - a.strength).slice(0, 5);
+}
+
 const { width: SW } = Dimensions.get('window');
+
+// Best-effort emoji for common interests/hobbies — arbitrary free-text
+// values fall back to a generic sparkle rather than guessing wrong.
+const INTEREST_EMOJI: Record<string, string> = {
+  movies: '🍿', travel: '✈️', coffee: '☕', investing: '📈', dogs: '🐾',
+  cats: '🐱', music: '🎵', reading: '📚', books: '📚', cooking: '🍳',
+  dancing: '💃', photography: '📷', hiking: '🥾', gaming: '🎮', yoga: '🧘',
+  art: '🎨', fitness: '🏋️', gym: '🏋️', food: '🍽️', sports: '⚽',
+  meditation: '🧘', trekking: '🥾', running: '🏃', swimming: '🏊',
+};
+
+function getInterestEmoji(label: string): string {
+  return INTEREST_EMOJI[label.trim().toLowerCase()] ?? '✨';
+}
 
 export default function AstroXFeaturesScreen() {
   const insets = useSafeAreaInsets();
@@ -25,6 +179,8 @@ export default function AstroXFeaturesScreen() {
     nadiDosha,
     bhakootDosha,
     factors,
+    interest,
+    hobbies,
   } = useLocalSearchParams<{
     userId?: string;
     fullName?: string;
@@ -37,6 +193,8 @@ export default function AstroXFeaturesScreen() {
     nadiDosha?: string;
     bhakootDosha?: string;
     factors?: string;
+    interest?: string;
+    hobbies?: string;
   }>();
 
   const parsedFactors = useMemo(() => {
@@ -46,6 +204,53 @@ export default function AstroXFeaturesScreen() {
       return null;
     }
   }, [factors]);
+
+  // Real interests/hobbies from the deck profile — replaces the old fixed
+  // 5-item placeholder list. Deduped, capped for layout, title reflects
+  // whatever count actually came back (this is the other person's list, not
+  // a computed mutual overlap, so it's labeled "Interests" not "Shared").
+  const interestItems = useMemo(() => {
+    const parseList = (raw?: string) => {
+      try {
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0) : [];
+      } catch {
+        return [];
+      }
+    };
+    const combined = [...parseList(interest), ...parseList(hobbies)];
+    return Array.from(new Set(combined)).slice(0, 6);
+  }, [interest, hobbies]);
+
+  // Real Ashtakoota breakdown + badges, fetched on-demand from
+  // synastry_cache_details (already computed by compute-synastry -- this
+  // screen previously showed fixed placeholder numbers here). Null means
+  // "not computed for this pair yet" -- the relevant cards hide rather than
+  // show zeros.
+  const [synastryDetail, setSynastryDetail] = useState<{ ashtakoota_score: number | null; ashtakoota_detail: AshtakootaDetail | null; badges: string[] } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) return;
+    getSynastryDetail(userId).then((detail) => {
+      if (!cancelled) setSynastryDetail(detail);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const whyYouMatchBullets = useMemo(
+    () =>
+      buildWhyYouMatchBullets({
+        ashtakootaDetail: synastryDetail?.ashtakoota_detail ?? null,
+        manglikStatus,
+        nadiDosha,
+        bhakootDosha,
+        factors: parsedFactors,
+      }),
+    [synastryDetail, manglikStatus, nadiDosha, bhakootDosha, parsedFactors]
+  );
 
   // Compute personality % from the factor breakdown (same weighted formula as the DB).
   // Weights mirror get_personality_compatibility:
@@ -193,36 +398,35 @@ export default function AstroXFeaturesScreen() {
           </View>
         </Pressable>
 
-        {/* ── CARD 2: Why You Matched (full width, image + list) ── */}
-        <LinearGradient
-          colors={['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)']}
-          style={styles.fullCard}
-        >
-          <View style={styles.splitRow}>
-            {/* Left — 3D heart image */}
-            <View style={styles.cardImageBox}>
-              <Text style={styles.bigEmoji}>💜</Text>
-            </View>
+        {/* ── CARD 2: Why You Matched — real astrology/personality signals,
+             not fixed dating-app copy. Hidden if this pair has no strong
+             signal anywhere rather than padded with filler. ── */}
+        {whyYouMatchBullets.length > 0 && (
+          <LinearGradient
+            colors={['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)']}
+            style={styles.fullCard}
+          >
+            <View style={styles.splitRow}>
+              {/* Left — 3D heart image */}
+              <View style={styles.cardImageBox}>
+                <Text style={styles.bigEmoji}>💜</Text>
+              </View>
 
-            {/* Right — content */}
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>✨ Why you matched</Text>
-              {['You both love travelling',
-                'Both enjoy movies and coffee',
-                'Looking for a long-term relationship',
-                'Similar communication style',
-                'High emotional compatibility',
-              ].map((item, i) => (
-                <View key={i} style={styles.checkRow}>
-                  <View style={styles.checkBubble}>
-                    <Text style={styles.checkMark}>✓</Text>
+              {/* Right — content */}
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>✨ Why you matched</Text>
+                {whyYouMatchBullets.map((bullet) => (
+                  <View key={bullet.text} style={styles.checkRow}>
+                    <View style={styles.checkBubble}>
+                      <Text style={styles.checkMark}>✓</Text>
+                    </View>
+                    <Text style={styles.checkText}>{bullet.text}</Text>
                   </View>
-                  <Text style={styles.checkText}>{item}</Text>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        )}
 
         {/* ── HORIZONTAL SCROLL: Ashtakoota, Indian Astrology, Personality Score ── */}
         <ScrollView
@@ -231,45 +435,37 @@ export default function AstroXFeaturesScreen() {
           contentContainerStyle={styles.bottomScroll}
         >
 
-          {/* Ashtakoota */}
-          <LinearGradient
-            colors={['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)']}
-            style={[styles.smallCard, { justifyContent: 'space-between' }]}
-          >
-            <View>
-              <Text style={styles.smallCardTitle}>⚡ Ashtakoota (36/36)</Text>
+          {/* Ashtakoota — real score/breakdown from synastry_cache_details;
+              hidden entirely until it's actually been computed for this pair */}
+          {synastryDetail?.ashtakoota_score != null && (
+            <LinearGradient
+              colors={['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)']}
+              style={[styles.smallCard, { justifyContent: 'space-between' }]}
+            >
+              <View>
+                <Text style={styles.smallCardTitle}>⚡ Ashtakoota (36/36)</Text>
 
-              {/* Ring + Score row */}
-              <View style={styles.ashtaMainRow}>
-                {/* Glowing double ring */}
-                <View style={styles.ashtaRingOuter}>
-                  <View style={styles.ashtaBigRing}>
-                    <Text style={styles.ashtaBigScore}>28 / 36</Text>
-                    <Text style={styles.ashtaBigLabel}>Excellent{`\n`}Match</Text>
+                {/* Ring + Score row */}
+                <View style={styles.ashtaMainRow}>
+                  {/* Glowing double ring */}
+                  <View style={styles.ashtaRingOuter}>
+                    <View style={styles.ashtaBigRing}>
+                      <Text style={styles.ashtaBigScore}>{synastryDetail.ashtakoota_score} / 36</Text>
+                      <Text style={styles.ashtaBigLabel}>{ashtakootaTierLabel(synastryDetail.ashtakoota_score)}</Text>
+                    </View>
                   </View>
                 </View>
-
-                {/* Score box */}
-                <View style={styles.ashtaHexWrap}>
-                  <LinearGradient
-                    colors={['rgba(50,20,100,0.95)', 'rgba(25,8,60,0.99)']}
-                    style={styles.ashtaHex}
-                  >
-                    <Text style={styles.ashtaHexNum}>9</Text>
-                  </LinearGradient>
-                  <Text style={styles.ashtaHexLabel}>Score</Text>
-                </View>
               </View>
-            </View>
 
-            {/* Full-width button — pinned to bottom */}
-            <Pressable
-              style={styles.cardFullBtn}
-              onPress={() => setShowAshtaModal(true)}
-            >
-              <Text style={styles.cardFullBtnText}>View full Ashtakoota  →</Text>
-            </Pressable>
-          </LinearGradient>
+              {/* Full-width button — pinned to bottom */}
+              <Pressable
+                style={styles.cardFullBtn}
+                onPress={() => setShowAshtaModal(true)}
+              >
+                <Text style={styles.cardFullBtnText}>View full Ashtakoota  →</Text>
+              </Pressable>
+            </LinearGradient>
+          )}
 
           {/* Indian Astrology */}
           <LinearGradient
@@ -331,73 +527,76 @@ export default function AstroXFeaturesScreen() {
 
         </ScrollView>
 
-        {/* ── CARD 3: Synastry Badges ── */}
-        <LinearGradient
-          colors={['rgba(20,10,50,0.85)', 'rgba(10,5,25,0.95)']}
-          style={styles.fullCard}
-        >
-          <View style={styles.synastryRow}>
-            {/* Left: Shield visual */}
-            <View style={styles.shieldContainer}>
-              {/* Shield Shape */}
-              <LinearGradient
-                colors={['#6D28D9', '#1E1B4B']}
-                style={styles.shieldShape}
-              >
-                {/* Inner border line for shield depth */}
-                <View style={styles.shieldInner}>
-                  <Text style={styles.shieldStar}>✦</Text>
+        {/* ── CARD 3: Synastry Badges — real, score-driven badges from
+             compute-synastry's buildBadges(); hidden if this pair earned none ── */}
+        {!!synastryDetail?.badges.length && (
+          <LinearGradient
+            colors={['rgba(20,10,50,0.85)', 'rgba(10,5,25,0.95)']}
+            style={styles.fullCard}
+          >
+            <View style={styles.synastryRow}>
+              {/* Left: Shield visual */}
+              <View style={styles.shieldContainer}>
+                {/* Shield Shape */}
+                <LinearGradient
+                  colors={['#6D28D9', '#1E1B4B']}
+                  style={styles.shieldShape}
+                >
+                  {/* Inner border line for shield depth */}
+                  <View style={styles.shieldInner}>
+                    <Text style={styles.shieldStar}>✦</Text>
+                  </View>
+                </LinearGradient>
+                {/* Orbit Ring with sparkling dot */}
+                <View style={styles.shieldOrbit}>
+                  <View style={styles.orbitGlowDot} />
                 </View>
-              </LinearGradient>
-              {/* Orbit Ring with sparkling dot */}
-              <View style={styles.shieldOrbit}>
-                <View style={styles.orbitGlowDot} />
+              </View>
+
+              {/* Right: Content */}
+              <View style={styles.synastryRightStacked}>
+                <View>
+                  <Text style={styles.synastryTitleText} numberOfLines={1}>✨ Synastry Badges</Text>
+                  <Text style={styles.synastrySubText} numberOfLines={1}>
+                    {synastryDetail.badges.length} special cosmic connection{synastryDetail.badges.length === 1 ? '' : 's'}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.synastryBtnAlignRight}
+                  onPress={() => setShowBadgesModal(true)}
+                >
+                  <Text style={styles.synastryBtnText}>View all badges  →</Text>
+                </Pressable>
               </View>
             </View>
+          </LinearGradient>
+        )}
 
-            {/* Right: Content */}
-            <View style={styles.synastryRightStacked}>
-              <View>
-                <Text style={styles.synastryTitleText} numberOfLines={1}>✨ Synastry Badges</Text>
-                <Text style={styles.synastrySubText} numberOfLines={1}>Special cosmic connections</Text>
-              </View>
-
-              <Pressable
-                style={styles.synastryBtnAlignRight}
-                onPress={() => setShowBadgesModal(true)}
-              >
-                <Text style={styles.synastryBtnText}>View all badges  →</Text>
-              </Pressable>
+        {/* ── CARD 4: Interests (full width) ── */}
+        {interestItems.length > 0 && (
+          <LinearGradient
+            colors={['rgba(30,15,60,0.7)', 'rgba(15,10,30,0.95)']}
+            style={styles.fullCard}
+          >
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>💜 Interests</Text>
+              <Text style={styles.infoIcon}>ⓘ</Text>
             </View>
-          </View>
-        </LinearGradient>
+            <Text style={styles.interestSub}>
+              {interestItems.length} thing{interestItems.length === 1 ? '' : 's'} {fullName || 'they'} {interestItems.length === 1 ? 'is' : 'are'} into
+            </Text>
 
-        {/* ── CARD 4: Shared Interests (full width) ── */}
-        <LinearGradient
-          colors={['rgba(30,15,60,0.7)', 'rgba(15,10,30,0.95)']}
-          style={styles.fullCard}
-        >
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>💜 Shared Interests</Text>
-            <Text style={styles.infoIcon}>ⓘ</Text>
-          </View>
-          <Text style={styles.interestSub}>5 Things you both like</Text>
-
-          <View style={styles.interestRow}>
-            {[
-              { emoji: '🍿', label: 'Movies' },
-              { emoji: '✈️', label: 'Travel' },
-              { emoji: '☕', label: 'Coffee' },
-              { emoji: '📈', label: 'Investing' },
-              { emoji: '🐾', label: 'Dogs' },
-            ].map((item, i) => (
-              <View key={i} style={styles.interestItem}>
-                <Text style={styles.interestEmoji}>{item.emoji}</Text>
-                <Text style={styles.interestLabel}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
+            <View style={styles.interestRow}>
+              {interestItems.map((label) => (
+                <View key={label} style={styles.interestItem}>
+                  <Text style={styles.interestEmoji}>{getInterestEmoji(label)}</Text>
+                  <Text style={styles.interestLabel} numberOfLines={2}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          </LinearGradient>
+        )}
 
       </ScrollView>
 
@@ -484,32 +683,40 @@ export default function AstroXFeaturesScreen() {
               <Text style={styles.modalTitle}>✨ Synastry Badges</Text>
             </View>
 
-            {/* Badge pills wrap row */}
+            {/* Badge pills wrap row — real badges, cycling the 3 pill styles */}
             <View style={styles.synastrybadgeRowModal}>
-
-              {/* Harmonious Souls — dark pill, purple sparkle */}
-              <View style={styles.synBadgeDark}>
-                <Text style={styles.synBadgeIcon}>✦</Text>
-                <Text style={styles.synBadgeDarkText}>Harmonious Souls</Text>
-              </View>
-
-              {/* Nadi Match — pink pill */}
-              <LinearGradient
-                colors={['#9B2060', '#C2185B']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.synBadgePink}
-              >
-                <Text style={styles.synBadgeIcon}>💗</Text>
-                <Text style={styles.synBadgeLightText}>Nadi Match</Text>
-              </LinearGradient>
-
-              {/* Gana Match — dark pill, gold star border */}
-              <View style={styles.synBadgeGold}>
-                <Text style={styles.synBadgeGoldIcon}>⭐</Text>
-                <Text style={styles.synBadgeGoldText}>Gana Match</Text>
-              </View>
-
+              {(synastryDetail?.badges ?? []).map((badge, i) => {
+                const icon = BADGE_ICON[badge] ?? '✦';
+                const variant = i % 3;
+                if (variant === 1) {
+                  return (
+                    <LinearGradient
+                      key={badge}
+                      colors={['#9B2060', '#C2185B']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.synBadgePink}
+                    >
+                      <Text style={styles.synBadgeIcon}>{icon}</Text>
+                      <Text style={styles.synBadgeLightText}>{badge}</Text>
+                    </LinearGradient>
+                  );
+                }
+                if (variant === 2) {
+                  return (
+                    <View key={badge} style={styles.synBadgeGold}>
+                      <Text style={styles.synBadgeGoldIcon}>{icon}</Text>
+                      <Text style={styles.synBadgeGoldText}>{badge}</Text>
+                    </View>
+                  );
+                }
+                return (
+                  <View key={badge} style={styles.synBadgeDark}>
+                    <Text style={styles.synBadgeIcon}>{icon}</Text>
+                    <Text style={styles.synBadgeDarkText}>{badge}</Text>
+                  </View>
+                );
+              })}
             </View>
 
           </Pressable>
@@ -535,74 +742,30 @@ export default function AstroXFeaturesScreen() {
               <Text style={styles.modalInfoIcon}>ⓘ</Text>
             </View>
 
-            {/* Grid of 8 parameters */}
+            {/* Grid of 8 parameters — real received_points/total_points from
+                synastry_cache_details.ashtakoota_detail, converted to stars */}
             <View style={styles.ashtaGrid}>
-              
-              {/* Row 1 */}
               <View style={styles.ashtaGridRow}>
-                {/* Varna */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Varna</Text>
-                  <Text style={styles.ashtaItemEmoji}>⚖️</Text>
-                  <Text style={styles.ashtaStars}>★★★★★</Text>
-                </View>
-
-                {/* Vashya */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Vashya</Text>
-                  <Text style={styles.ashtaItemEmoji}>🪄</Text>
-                  <Text style={styles.ashtaStars}>★★★½☆</Text>
-                </View>
-
-                {/* Tara */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Tara</Text>
-                  <Text style={styles.ashtaItemEmoji}>☀️</Text>
-                  <Text style={styles.ashtaStars}>★★★★★</Text>
-                </View>
-
-                {/* Yoni */}
-                <View style={styles.ashtaGridItemLast}>
-                  <Text style={styles.ashtaItemName}>Yoni</Text>
-                  <Text style={styles.ashtaItemEmoji}>🐆</Text>
-                  <Text style={styles.ashtaStars}>★★★★½</Text>
-                </View>
+                {KOOTA_DISPLAY.slice(0, 4).map(({ key, label, emoji }, i) => (
+                  <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
+                    <Text style={styles.ashtaItemName}>{label}</Text>
+                    <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
+                    <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
+                  </View>
+                ))}
               </View>
 
-              {/* Border Divider line */}
               <View style={styles.ashtaGridDivider} />
 
-              {/* Row 2 */}
               <View style={styles.ashtaGridRow}>
-                {/* Graha Maitri */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Graha Maitri</Text>
-                  <Text style={styles.ashtaItemEmoji}>🤝</Text>
-                  <Text style={styles.ashtaStars}>★★★★★</Text>
-                </View>
-
-                {/* Gana */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Gana</Text>
-                  <Text style={styles.ashtaItemEmoji}>🧜</Text>
-                  <Text style={styles.ashtaStars}>★★★½☆</Text>
-                </View>
-
-                {/* Bhakoot */}
-                <View style={styles.ashtaGridItem}>
-                  <Text style={styles.ashtaItemName}>Bhakoot</Text>
-                  <Text style={styles.ashtaItemEmoji}>🔄</Text>
-                  <Text style={styles.ashtaStars}>★★★★☆</Text>
-                </View>
-
-                {/* Nadi */}
-                <View style={styles.ashtaGridItemLast}>
-                  <Text style={styles.ashtaItemName}>Nadi</Text>
-                  <Text style={styles.ashtaItemEmoji}>🧬</Text>
-                  <Text style={styles.ashtaStars}>★★★★★</Text>
-                </View>
+                {KOOTA_DISPLAY.slice(4, 8).map(({ key, label, emoji }, i) => (
+                  <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
+                    <Text style={styles.ashtaItemName}>{label}</Text>
+                    <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
+                    <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
+                  </View>
+                ))}
               </View>
-
             </View>
 
           </Pressable>
@@ -1179,18 +1342,6 @@ const styles = StyleSheet.create({
   },
   ashtaBigScore: { color: '#fff', fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
   ashtaBigLabel: { color: '#C4B5FD', fontSize: 8, fontWeight: '700', textAlign: 'center', marginTop: 2 },
-  ashtaHexWrap: { alignItems: 'center', gap: 5 },
-  ashtaHex: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(124,58,237,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ashtaHexNum: { color: '#A78BFA', fontSize: 24, fontWeight: '900' },
-  ashtaHexLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
 
   // Shared full-width card button
   cardFullBtn: {

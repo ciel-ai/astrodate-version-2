@@ -31,6 +31,26 @@ function json(payload: unknown, status = 200): Response {
   });
 }
 
+// Best-effort outage record so a Gemini failure is visible instead of only
+// discoverable by grepping function logs. Never allowed to affect the
+// response -- moderation must still fail open to SAFE even if this write
+// itself fails (e.g. table momentarily unreachable).
+async function logModerationOutage(
+  supabaseUrl: string,
+  serviceKey: string,
+  reason: string,
+  detail?: string,
+): Promise<void> {
+  try {
+    const serviceClient = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+    });
+    await serviceClient.from("moderation_outages").insert({ reason, detail });
+  } catch (err) {
+    console.error("moderate-message: failed to log moderation outage", err);
+  }
+}
+
 const GEMINI_MODEL = "gemini-2.0-flash";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
@@ -100,6 +120,7 @@ Deno.serve(async (req) => {
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
   if (!geminiApiKey) {
     console.error("moderate-message: GEMINI_API_KEY is not set -- failing open to SAFE");
+    await logModerationOutage(supabaseUrl, serviceKey, "missing_api_key");
     return json({ status: "SAFE", warning: "Moderation service unavailable" });
   }
 
@@ -119,6 +140,7 @@ Deno.serve(async (req) => {
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => "");
       console.error("moderate-message: Gemini API error", geminiRes.status, errText);
+      await logModerationOutage(supabaseUrl, serviceKey, "gemini_api_error", `status=${geminiRes.status} body=${errText.slice(0, 500)}`);
       return json({ status: "SAFE", warning: "Moderation service error" });
     }
 
@@ -131,6 +153,7 @@ Deno.serve(async (req) => {
     return json({ status });
   } catch (err) {
     console.error("moderate-message: exception, failing open to SAFE", err);
+    await logModerationOutage(supabaseUrl, serviceKey, "exception", err instanceof Error ? err.message : String(err));
     return json({ status: "SAFE", warning: "Moderation service error" });
   }
 });

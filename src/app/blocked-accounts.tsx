@@ -104,7 +104,7 @@ export default function BlockedAccountsScreen() {
             <Text style={styles.emptyIcon}>🛡️</Text>
             <Text style={[styles.emptyTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>No blocked accounts</Text>
             <Text style={[styles.emptyBody, { color: isDark ? '#7C7796' : '#6B7280' }]}>
-              People you block won't be able to see you or contact you, and you won't see them either.
+              People you block won&apos;t be able to see you or contact you, and you won&apos;t see them either.
             </Text>
           </View>
         ) : (

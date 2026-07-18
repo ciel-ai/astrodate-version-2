@@ -19,6 +19,7 @@ interface DiscoverCardProps {
   tier: string;
   isFlipped?: boolean;
   onFlipChange?: (flipped: boolean) => void;
+  onOpenMenu?: () => void;
   extraDetails?: {
     education?: string | null;
     drinking?: string | null;
@@ -101,6 +102,8 @@ function SwipeDiscover({ card }: { card: DiscoverCardData }) {
                 nadiDosha: card.nadi_dosha !== null ? (card.nadi_dosha ? 'yes' : 'no') : '',
                 bhakootDosha: card.bhakoot_dosha !== null ? (card.bhakoot_dosha ? 'yes' : 'no') : '',
                 factors: JSON.stringify(card.personality_factors || null),
+                interest: JSON.stringify(card.interest ?? []),
+                hobbies: JSON.stringify(card.hobbies ?? []),
               }
             });
             setTimeout(() => {
@@ -193,7 +196,7 @@ function cap(str: string | undefined | null) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, extraDetails }: DiscoverCardProps) {
+export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOpenMenu, extraDetails }: DiscoverCardProps) {
   const name = card.full_name ?? 'Someone';
   const age = card.age ?? '';
   const initials = name.slice(0, 2).toUpperCase();
@@ -288,6 +291,15 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, extr
               <Text style={styles.heroInitials}>{initials}</Text>
             )}
           </Pressable>
+
+          {/* Rendered after (so visually on top of) the full-cover flip
+              Pressable above -- captures its own taps without triggering
+              handleOpenCosmic underneath. */}
+          {onOpenMenu && (
+            <Pressable onPress={onOpenMenu} hitSlop={10} style={styles.menuButton}>
+              <Text style={styles.menuButtonIcon}>⋯</Text>
+            </Pressable>
+          )}
         </Animated.View>
 
         {/* Back face — cosmic card reveal */}
@@ -1037,6 +1049,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(9, 3, 28, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  menuButtonIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   modalScrim: {
     ...StyleSheet.absoluteFill,

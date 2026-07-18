@@ -30,7 +30,6 @@ import { withTimeout } from './network';
 
 const pushAvailable = !isRunningInExpoGo();
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Notifications = pushAvailable ? (require('expo-notifications') as typeof import('expo-notifications')) : null;
 
 if (Notifications) {
