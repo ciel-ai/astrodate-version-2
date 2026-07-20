@@ -89,8 +89,11 @@ export default ({ config }) => ({
       },
     ],
     // Missing SENTRY_ORG/SENTRY_PROJECT (no Sentry project created yet) is
-    // fine -- the plugin warns and falls back to those env vars at build
-    // time rather than failing; see .env.example.
+    // fine for local dev, but WILL fail a release Gradle build outright --
+    // sentry.gradle's source-map upload task errors with "An organization
+    // ID or slug is required" and takes the whole build down with it.
+    // eas.json sets SENTRY_DISABLE_AUTO_UPLOAD=true on every build profile
+    // to skip that task until a real Sentry project exists; see .env.example.
     [
       '@sentry/react-native/expo',
       {

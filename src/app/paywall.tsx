@@ -38,6 +38,10 @@ const COPY: Record<string, { title: string; body: string }> = {
     title: 'Get more super likes',
     body: 'Free gives you 1 a week, Astro+ gives you 3, AstroX gives you 5 — stand out to the matches you want most.',
   },
+  match_insights: {
+    title: 'Unlock full match insights',
+    body: 'See Manglik status, Nadi & Bhakoot dosha, your Ashtakoota breakdown, and a full personality compatibility report for every match.',
+  },
 };
 
 export default function PaywallScreen() {
