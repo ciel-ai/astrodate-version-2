@@ -4,6 +4,7 @@ import Purchases, { PURCHASES_ERROR_CODE } from 'react-native-purchases';
 import { useAuth } from '@/context/auth';
 import { useSubscriptionStatus } from '@/context/subscription';
 import {
+  matchesProductId,
   REVENUECAT_API_KEY_ANDROID,
   REVENUECAT_API_KEY_IOS,
   REVENUECAT_ENTITLEMENT_IDS,
@@ -183,7 +184,7 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
         }
 
         const selectedPackage = allPackages.find(
-          (candidate) => candidate.product.identifier === productId
+          (candidate) => matchesProductId(candidate.product.identifier, productId)
         );
 
         if (!selectedPackage) {

@@ -23,3 +23,12 @@ export const REVENUECAT_API_KEY_ANDROID =
   process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID ?? '';
 
 export type RevenueCatPlanSlug = keyof typeof REVENUECAT_PRODUCT_IDS;
+
+// On Android, RevenueCat identifies Play subscription products as
+// `productId:basePlanId` (e.g. `astro_plus_monthly:monthly`), not the bare
+// product ID — iOS has no base plans, so its identifier is always the bare
+// product ID. Compare against both forms so package lookups work on either
+// platform.
+export function matchesProductId(packageIdentifier: string, productId: string): boolean {
+  return packageIdentifier === productId || packageIdentifier.startsWith(`${productId}:`);
+}

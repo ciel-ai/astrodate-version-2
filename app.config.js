@@ -4,6 +4,16 @@ export default ({ config }) => ({
   name: 'astro-date',
   slug: 'astro-date',
   version: '1.0.0',
+  // 'fingerprint' computes compatibility from the actual native code/config
+  // hash, so an OTA update (`eas update`) only reaches builds it's actually
+  // compatible with -- safer than a manually-bumped version string given
+  // this app has several native config plugins (RevenueCat, Sentry, etc.).
+  runtimeVersion: {
+    policy: 'fingerprint',
+  },
+  updates: {
+    url: 'https://u.expo.dev/815421e2-6735-481b-93e0-2e59e59282ff',
+  },
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'astrodate',
@@ -38,6 +48,7 @@ export default ({ config }) => ({
   },
   plugins: [
     'expo-router',
+    'expo-asset',
     [
       'expo-splash-screen',
       {
