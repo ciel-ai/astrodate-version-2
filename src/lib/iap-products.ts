@@ -2,8 +2,8 @@
 // App Store Connect / Google Play Console AND attached to these products in
 // the RevenueCat dashboard (Products tab).
 export const REVENUECAT_PRODUCT_IDS = {
-  astro_plus: 'astrodate_astroplus_monthly',
-  astro_x: 'astrodate_astrox_monthly',
+  astro_plus: 'astro_plus_monthly',
+  astro_x: 'astro_x_monthly',
 } as const;
 
 // RevenueCat entitlement identifiers — configured in the RevenueCat dashboard

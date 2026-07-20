@@ -10,7 +10,12 @@ export default ({ config }) => ({
   userInterfaceStyle: 'automatic',
   ios: {
     icon: './assets/images/icon.png',
-    bundleIdentifier: 'com.ciel.ai.astrodate',
+    bundleIdentifier: 'com.ciel.astrodate',
+    // Every screen in this app is phone-oriented (fixed portrait, no tablet
+    // layout anywhere) -- explicit false rather than relying on Expo's
+    // implicit default, so App Store Connect only offers iPhone screenshot
+    // slots and the binary's Info.plist UIDeviceFamily excludes iPad.
+    supportsTablet: false,
     infoPlist: {
       // Standard HTTPS/TLS only (Supabase, RevenueCat, AstrologyAPI) — no
       // custom or proprietary encryption, so this is a deliberate exemption
@@ -25,7 +30,7 @@ export default ({ config }) => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    package: 'com.ciel.ai.astrodate',
+    package: 'com.ciel.astrodate',
   },
   web: {
     output: 'static',
