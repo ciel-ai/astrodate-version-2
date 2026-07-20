@@ -25,7 +25,7 @@ export default ({ config }) => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    package: 'com.ciel.ai.astrodate',
+    package: 'com.ciel.astrodate',
   },
   web: {
     output: 'static',
