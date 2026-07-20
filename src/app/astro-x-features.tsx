@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Pressable, StyleSheet, Text, View,
   ScrollView, Dimensions, Modal, Platform, Animated, Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -10,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 
 import { getSynastryDetail, type AshtakootaDetail, type KootaDetail } from '@/lib/synastry';
+import { useSubscriptionStatus } from '@/context/subscription';
 
 // Display label + decorative emoji per real koota key (compute-synastry
 // stores the raw astrologyapi.com response shape: vashya/maitri/gan/bhakut,
@@ -167,6 +169,22 @@ function getInterestEmoji(label: string): string {
 
 export default function AstroXFeaturesScreen() {
   const insets = useSafeAreaInsets();
+  const { membership, isLoading: membershipLoading } = useSubscriptionStatus();
+  const planSlug = membership?.plan_slug ?? 'free';
+
+  // This screen's whole point is paid-only match insights (Manglik/dosha,
+  // personality breakdown, Ashtakoota, why-you-matched) -- the backend
+  // already nulls all of that out for Free tier, but showing this screen's
+  // normal layout anyway just displays misleading fallback copy instead of
+  // real data (e.g. Manglik defaulting to "(Mild)" for "no data", not an
+  // actual mild reading). Redirect to the existing paywall instead, same
+  // pattern used everywhere else in this app for gated screens.
+  useEffect(() => {
+    if (!membershipLoading && planSlug === 'free') {
+      router.replace({ pathname: '/paywall', params: { reason: 'match_insights' } });
+    }
+  }, [membershipLoading, planSlug]);
+
   const {
     userId,
     fullName,
@@ -363,6 +381,18 @@ export default function AstroXFeaturesScreen() {
     outputRange: ['360deg', '0deg'],
   });
 
+  // While membership is loading, or once we know it's Free (redirect effect
+  // above is about to fire), render nothing rather than a flash of paid
+  // content or misleading fallback copy.
+  if (membershipLoading || planSlug === 'free') {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <StatusBar style="light" />
+        <ActivityIndicator color="#A78BFA" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -380,12 +410,12 @@ export default function AstroXFeaturesScreen() {
           </View>
         </View>
         <LinearGradient
-          colors={['#D97706', '#F59E0B']}
+          colors={planSlug === 'astro_x' ? ['#D97706', '#F59E0B'] : ['#7C3AED', '#A855F7']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.premiumBadge}
         >
-          <Text style={styles.premiumText}>👑 AstroX</Text>
+          <Text style={styles.premiumText}>{planSlug === 'astro_x' ? '👑 AstroX' : '✦ Astro+'}</Text>
         </LinearGradient>
       </View>
 
@@ -990,19 +1020,24 @@ export default function AstroXFeaturesScreen() {
               <Text style={{ fontSize: 52 }}>🕉️</Text>
             </View>
 
-            {/* Manglik status */}
+            {/* Manglik status -- 'yes'/'no' are real computed results; an
+                empty/missing value means this pair's Manglik hasn't been
+                computed yet (e.g. incomplete birth details), NOT a real
+                "mild" reading, so it gets its own honest neutral state
+                instead of asserting a severity that doesn't exist in the
+                underlying data (which is boolean, not tiered). */}
             <View style={{
               marginHorizontal: 16,
               marginBottom: 16,
               padding: 14,
               borderRadius: 12,
-              backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+              backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
               borderWidth: 1,
-              borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)',
+              borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.12)',
               alignItems: 'center',
             }}>
-              <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : '#34D399', fontSize: 16, fontWeight: '700' }}>
-                {manglikStatus === 'yes' ? '⚠️  Manglik (Strong)' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : '⚠️  Manglik (Mild)'}
+              <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : manglikStatus === 'no' ? '#34D399' : 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' }}>
+                {manglikStatus === 'yes' ? '⚠️  Manglik' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : 'Not available yet'}
               </Text>
             </View>
 
@@ -1018,8 +1053,10 @@ export default function AstroXFeaturesScreen() {
                 <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
                 {nadiDosha === 'yes' ? (
                   <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-                ) : (
+                ) : nadiDosha === 'no' ? (
                   <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                ) : (
+                  <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
                 )}
               </View>
               {/* Bhakoot Dosha */}
@@ -1027,8 +1064,10 @@ export default function AstroXFeaturesScreen() {
                 <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
                 {bhakootDosha === 'yes' ? (
                   <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-                ) : (
+                ) : bhakootDosha === 'no' ? (
                   <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                ) : (
+                  <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
                 )}
               </View>
             </View>
