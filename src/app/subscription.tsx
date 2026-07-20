@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscriptionStatus } from '@/context/subscription';
 import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
-import { REVENUECAT_PRODUCT_IDS, type RevenueCatPlanSlug } from '@/lib/iap-products';
+import { matchesProductId, REVENUECAT_PRODUCT_IDS, type RevenueCatPlanSlug } from '@/lib/iap-products';
 
 type PlanCard = {
   slug: RevenueCatPlanSlug;
@@ -133,7 +133,7 @@ export default function SubscriptionScreen() {
           PLANS.map((plan) => {
             const isCurrentPlan = currentPlanSlug === plan.slug;
             const matchedPackage = packages.find(
-              (pkg) => pkg.product.identifier === REVENUECAT_PRODUCT_IDS[plan.slug]
+              (pkg) => matchesProductId(pkg.product.identifier, REVENUECAT_PRODUCT_IDS[plan.slug])
             );
 
             // If a specific plan's package is not available from the store, treat it as unavailable
