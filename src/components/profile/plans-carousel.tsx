@@ -22,6 +22,9 @@ interface PlansCarouselProps {
 // card on the page, one full card per swipe (Tinder-style single-card paging,
 // not a peek-preview carousel).
 const PAGE_MARGIN = 20;
+// Visible breathing room between cards -- factored into snapToInterval below
+// so paging still lands exactly on each card's left edge despite the gap.
+const CARD_GAP = 14;
 
 export function PlansCarousel({ isDark }: PlansCarouselProps) {
   const router = useRouter();
@@ -29,12 +32,14 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
   const cardWidth = screenWidth - PAGE_MARGIN * 2;
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const snapInterval = cardWidth + CARD_GAP;
+
   const handleMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const index = Math.round(e.nativeEvent.contentOffset.x / cardWidth);
+      const index = Math.round(e.nativeEvent.contentOffset.x / snapInterval);
       setActiveIndex(Math.max(0, Math.min(PLANS.length - 1, index)));
     },
-    [cardWidth]
+    [snapInterval]
   );
 
   const T = {
@@ -52,19 +57,24 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToInterval={cardWidth}
+        snapToInterval={snapInterval}
         onMomentumScrollEnd={handleMomentumEnd}
         style={{ marginHorizontal: -PAGE_MARGIN }}
         contentContainerStyle={{ paddingHorizontal: PAGE_MARGIN }}
       >
-        {PLANS.map((plan) => (
+        {PLANS.map((plan, index) => (
           <Pressable
             key={plan.slug}
             id={`btn-plan-carousel-${plan.slug}`}
             onPress={() => router.push('/subscription')}
             style={({ pressed }) => [
               styles.card,
-              { width: cardWidth, backgroundColor: T.card, borderColor: plan.borderColor },
+              {
+                width: cardWidth,
+                marginRight: index < PLANS.length - 1 ? CARD_GAP : 0,
+                backgroundColor: T.card,
+                borderColor: plan.borderColor,
+              },
               pressed && styles.pressed,
             ]}
             accessibilityRole="button"
