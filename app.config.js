@@ -88,12 +88,11 @@ export default ({ config }) => ({
         microphonePermission: 'Astro date uses your microphone to record voice messages in chats.',
       },
     ],
-    // Missing SENTRY_ORG/SENTRY_PROJECT (no Sentry project created yet) is
-    // fine for local dev, but WILL fail a release Gradle build outright --
-    // sentry.gradle's source-map upload task errors with "An organization
-    // ID or slug is required" and takes the whole build down with it.
-    // eas.json sets SENTRY_DISABLE_AUTO_UPLOAD=true on every build profile
-    // to skip that task until a real Sentry project exists; see .env.example.
+    // Real Sentry project now exists (org: ciel-ai, project: astrodate) with
+    // SENTRY_ORG/SENTRY_PROJECT/SENTRY_AUTH_TOKEN set as EAS env vars, so
+    // preview/production builds upload real source maps. development still
+    // sets SENTRY_DISABLE_AUTO_UPLOAD=true in eas.json -- dev-client builds
+    // don't need release source maps, no reason to add the upload step there.
     [
       '@sentry/react-native/expo',
       {
