@@ -122,24 +122,21 @@ export function LikeCard({
           </View>
         )}
 
-        {item.compatibility_score != null && (
-          <View style={styles.scoreBadgeWrap}>
-            <ScoreBadge score={item.compatibility_score} />
+        {(item.compatibility_score != null || isSuperLike || showFreePeekTag) && (
+          <View style={styles.topBadgeStack}>
+            {item.compatibility_score != null && <ScoreBadge score={item.compatibility_score} />}
+            {isSuperLike && (
+              <View style={styles.superLikeTag}>
+                <Text style={styles.superLikeText}>⭐ Super liked</Text>
+              </View>
+            )}
+            {showFreePeekTag && (
+              <View style={styles.freePeekTag}>
+                <Text style={styles.freePeekText}>✨ Free peek</Text>
+              </View>
+            )}
           </View>
         )}
-
-        <View style={styles.topRightBadges}>
-          {isSuperLike && (
-            <View style={styles.superLikeTag}>
-              <Text style={styles.superLikeText}>⭐ Super liked you</Text>
-            </View>
-          )}
-          {showFreePeekTag && (
-            <View style={styles.freePeekTag}>
-              <Text style={styles.freePeekText}>✨ Free peek</Text>
-            </View>
-          )}
-        </View>
 
         <Pressable
           onPress={handleHeartPress}
@@ -222,11 +219,23 @@ const styles = StyleSheet.create({
   },
   initialsFallback: { color: 'rgba(255,255,255,0.25)', fontSize: 44, fontWeight: '700' },
 
-  scoreBadgeWrap: { position: 'absolute', top: 10, left: 10 },
+  // All top badges (score/super-like/free-peek) stack in one top-left column
+  // instead of splitting into opposing corners -- this card renders at only
+  // 48% width in the Likes grid (see likes.tsx), too narrow for a left-anchored
+  // and a right-anchored badge group to coexist without overlapping.
+  topBadgeStack: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    alignItems: 'flex-start',
+    gap: 6,
+  },
   scoreChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    maxWidth: '100%',
     backgroundColor: 'rgba(9, 3, 28, 0.75)',
     borderRadius: 20,
     borderWidth: 1,
@@ -237,14 +246,8 @@ const styles = StyleSheet.create({
   scoreDot: { width: 7, height: 7, borderRadius: 4 },
   scoreText: { color: '#D4B8FF', fontSize: 11, fontWeight: '700' },
 
-  topRightBadges: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    alignItems: 'flex-end',
-    gap: 6,
-  },
   freePeekTag: {
+    maxWidth: '100%',
     backgroundColor: 'rgba(246, 185, 59, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(246, 185, 59, 0.45)',
@@ -255,6 +258,7 @@ const styles = StyleSheet.create({
   freePeekText: { color: '#F6B93B', fontSize: 10, fontWeight: '700' },
 
   superLikeTag: {
+    maxWidth: '100%',
     backgroundColor: 'rgba(74, 127, 255, 0.20)',
     borderWidth: 1,
     borderColor: 'rgba(74, 127, 255, 0.45)',
