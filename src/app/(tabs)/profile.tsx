@@ -32,6 +32,7 @@ import { RelationshipPreferencesCard, type RelationshipPreferencesField } from '
 import { CosmicIdentityCard } from '@/components/profile/cosmic-identity-card';
 import { HeroCard } from '@/components/profile/hero-card';
 import { MembershipCard } from '@/components/profile/membership-card';
+import { PlansCarousel } from '@/components/profile/plans-carousel';
 import { PhotoGridCard } from '@/components/profile/photo-grid-card';
 import { ProfileCompletionCard } from '@/components/profile/profile-completion-card';
 import { PromptsCard } from '@/components/profile/prompts-card';
@@ -260,7 +261,11 @@ export default function ProfileScreen() {
             {completionPercent < 100 ? (
               <ProfileCompletionCard percent={completionPercent} isDark={isDark} />
             ) : null}
-            <MembershipCard membership={membership} isDark={isDark} />
+            {membership?.is_active ? (
+              <MembershipCard membership={membership} isDark={isDark} />
+            ) : (
+              <PlansCarousel isDark={isDark} />
+            )}
             <CosmicIdentityCard profile={profile} />
           </>
         )}
