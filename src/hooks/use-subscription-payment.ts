@@ -51,9 +51,21 @@ export async function ensureRevenueCatConfigured() {
     return;
   }
 
-  Purchases.configure({ apiKey });
+  try {
+    Purchases.configure({ apiKey });
+    _rcActive = true;
+  } catch (err) {
+    // Expo Go can't load native modules at all -- react-native-purchases
+    // throws "native store is not available" for any real (non-Test Store)
+    // API key there. Same "IAP disabled, app still loads" fallback as the
+    // missing-key case above, just reached via a thrown error instead of an
+    // empty string. Without this catch, _rcConfigured never gets set (it's
+    // only set after configure() succeeds), so every remount retries and
+    // rethrows the identical error forever in Expo Go.
+    console.warn(`[RevenueCat] configure() failed — in-app purchases disabled:`, err);
+    _rcActive = false;
+  }
   _rcConfigured = true;
-  _rcActive = true;
 }
 
 function isPurchaseCancelled(error: unknown) {
