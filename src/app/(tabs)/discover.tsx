@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { DiscoverCard } from '@/components/discover-card';
 import { DiscoverActionBar } from '@/components/discover-action-bar';
@@ -18,101 +17,7 @@ import {
   type DiscoverDeckMeta,
 } from '@/lib/discover';
 import { blockAndLeave, getMyBlockedUsers, reportUser } from '@/lib/chats';
-
-// Mock Dinesh profile data — full realistic profile for UI preview & testing
-const DINESH_MOCK_CARD: DiscoverCardData = {
-  user_id: 'dinesh-mock-id',
-  full_name: 'Dinesh',
-  gender: 'Male',
-  age: 28,
-  location: 'Chennai, India',
-  score: 81,
-  band: 'high',
-  is_top_match_of_day: true,
-  western_sign: 'Pisces',
-  distance_label: 'Less than 1 km away',
-  fully_computed: true,
-  personality_score: 7.4,
-  indian_score: 28,
-  western_score: 36,
-  manglik_status: true,
-  nadi_dosha: false,
-  bhakoot_dosha: false,
-  why_you_match: 'Exceptional match across Western, Vedic & Personality astrology.',
-  vedic_sign: 'Meena (Pisces)',
-  nakshatra: 'Revati',
-  height_cm: 178,
-  looking_for: 'Long-term relationship',
-  job_title: 'Software Engineer',
-  hometown: 'Chennai',
-  photos: [
-    {
-      // Primary hero — local asset
-      url: require('@/assets/images/dinesh.png'),
-      is_primary: true,
-    },
-    {
-      url: require('@/assets/images/dinesh_2.png'),
-      is_primary: false,
-    },
-    {
-      url: require('@/assets/images/dinesh_3.png'),
-      is_primary: false,
-    },
-    {
-      url: require('@/assets/images/dinesh_4.png'),
-      is_primary: false,
-    },
-    {
-      url: require('@/assets/images/dinesh_5.png'),
-      is_primary: false,
-    },
-    {
-      url: require('@/assets/images/dinesh_6.png'),
-      is_primary: false,
-    },
-  ],
-  prompts: [
-    {
-      question: 'A boundary I have is...',
-      answer: 'Communication and honesty. Being upfront about what you want from the start saves everyone time and feelings.',
-    },
-    {
-      question: 'The way to my heart is...',
-      answer: 'Late-night conversations about the cosmos, sharing a good meal, and someone who actually remembers the small things I mention in passing.',
-    },
-    {
-      question: 'My love language is...',
-      answer: 'Quality time — I believe presence is the rarest and most meaningful gift you can give someone.',
-    },
-  ],
-  about: 'Software engineer by day, stargazer by night 🌌. I grew up in Chennai and I genuinely believe your birth chart says more about you than your Instagram does. I love trying new restaurants, getting lost on long drives, and deep conversations that go way past midnight. Looking for someone who is equally comfortable being spontaneous and staying in on a rainy Sunday. Pisces sun ♓, Scorpio moon 🦂 — make of that what you will.',
-  education: 'Post Graduate',
-  drinking: 'Socially',
-  smoking: 'Non-smoker',
-  weed: 'Never',
-  religion: 'Hindu',
-  sexual_orientation: 'Straight',
-  have_children: 'No',
-  want_children: 'Someday',
-  relationship_style: 'Monogamous',
-  workout: 'Daily',
-  diet: 'Vegetarian',
-  pets: 'Dog lover',
-  languages: ['English', 'Tamil'],
-  travel: 'Love traveling',
-  relationship_status: 'single',
-  interest: ['women'],
-  hobbies: ['Stargazing', 'Trekking', 'Long Drives', 'Foodie'],
-  introvert_extrovert: 'introvert',
-  personality_factors: {
-    relationship_goals: 100,
-    hobbies: 95,
-    lifestyle: 90,
-    personality_traits: 88,
-    communication: 85,
-  },
-};
+import { triggerIcebreakerGeneration } from '@/lib/icebreaker';
 
 function openPaywall(reason: string) {
   router.push({ pathname: '/paywall', params: { reason } } as any);
@@ -133,15 +38,7 @@ export default function DiscoverScreen() {
 
   const [isCosmicOpen, setIsCosmicOpen] = useState(false);
 
-  // Gated behind __DEV__ build-time flag. In production, this always evaluates to false.
-  const [useMockDinesh, setUseMockDinesh] = useState(!!__DEV__);
-
-  // Determine current card: Mock profile if dev toggle is on, otherwise live card
-  const currentCard = useMockDinesh ? DINESH_MOCK_CARD : (cards?.[index] ?? null);
-
-
-
-
+  const currentCard = cards?.[index] ?? null;
 
   const loadDeck = useCallback(async () => {
     if (!user) return;
@@ -206,11 +103,6 @@ export default function DiscoverScreen() {
     }, [pruneStaleCards])
   );
 
-  // (currentCard is declared above)
-
-  // If in mock dev mode, let the tier default to AstroX so we can preview the full screen
-  const currentTier = useMockDinesh ? 'astro_x' : tier;
-
   // Without this, scrolling down into one candidate's photos/prompts before
   // swiping leaves the next candidate's card rendered already scrolled to
   // that same depth, instead of starting at the top.
@@ -222,15 +114,6 @@ export default function DiscoverScreen() {
 
   const handleSwipe = useCallback(
     async (action: 'like' | 'pass' | 'super_like') => {
-      if (useMockDinesh) {
-        // Dev mode simulation
-        if (action === 'like') {
-          Alert.alert("It's a match!", `You and Dinesh liked each other.`);
-        }
-        Alert.alert('Dev Swipe Action', `Mock action: ${action}`);
-        return;
-      }
-
       if (!currentCard || swiping) return;
       setSwiping(true);
       const result = await recordSwipe(currentCard.user_id, action);
@@ -255,20 +138,21 @@ export default function DiscoverScreen() {
 
       if (result.matched) {
         Alert.alert("It's a match!", `You and ${currentCard.full_name ?? 'this person'} liked each other.`);
+        // Fire-and-forget: the chat screen reads whatever's in
+        // user_matches.icebreaker_text whenever it loads, so this never
+        // needs to block the swipe flow or be awaited here.
+        if (result.match_id) {
+          void triggerIcebreakerGeneration(result.match_id);
+        }
       }
 
       setIndex((i) => i + 1);
     },
-    [currentCard, swiping, useMockDinesh]
+    [currentCard, swiping]
   );
 
 
   const handleRewind = useCallback(async () => {
-    if (useMockDinesh) {
-      Alert.alert('Dev Action', 'Rewind triggered in mock mode');
-      return;
-    }
-
     if (swiping) return;
     if (rewindLocked) {
       openPaywall('rewind_not_available');
@@ -305,7 +189,7 @@ export default function DiscoverScreen() {
     } else {
       await loadDeck();
     }
-  }, [swiping, rewindLocked, index, loadDeck, useMockDinesh]);
+  }, [swiping, rewindLocked, index, loadDeck]);
 
   const submitReport = useCallback(async (targetId: string, category: string) => {
     const ok = await reportUser(targetId, null, category);
@@ -355,7 +239,7 @@ export default function DiscoverScreen() {
 
   let body: React.ReactNode;
 
-  if (loadError && !useMockDinesh) {
+  if (loadError) {
     body = (
       <View style={styles.stateBox}>
         <Text style={styles.stateTitle}>Couldn&apos;t load your deck</Text>
@@ -364,13 +248,13 @@ export default function DiscoverScreen() {
         </Pressable>
       </View>
     );
-  } else if (cards === null && !useMockDinesh) {
+  } else if (cards === null) {
     body = (
       <View style={styles.stateBox}>
         <ActivityIndicator color="#B57BFF" />
       </View>
     );
-  } else if ((limitReached || (!currentCard && meta?.swipes_exhausted)) && !useMockDinesh) {
+  } else if (limitReached || (!currentCard && meta?.swipes_exhausted)) {
     const lockedCount = meta?.more_high_locked_count ?? 0;
     body = (
       <View style={styles.stateBox}>
@@ -393,14 +277,14 @@ export default function DiscoverScreen() {
     body = (
       <DiscoverCard
         card={currentCard}
-        tier={currentTier}
+        tier={tier}
         isFlipped={isCosmicOpen}
         onFlipChange={setIsCosmicOpen}
         onOpenMenu={handleOpenMenu}
         extraDetails={currentCard}
       />
     );
-  } else if (meta && meta.more_high_locked_count > 0 && !useMockDinesh) {
+  } else if (meta && meta.more_high_locked_count > 0) {
     body = (
       <Pressable
         style={styles.lockedCard}
@@ -426,18 +310,6 @@ export default function DiscoverScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Development environment toggle for testing the Dinesh mockup */}
-      {!!__DEV__ && (
-        <Pressable
-          style={styles.devToggle}
-          onPress={() => setUseMockDinesh((prev) => !prev)}
-        >
-          <Text style={styles.devToggleText}>
-            {useMockDinesh ? '🔌 Switch to Live Feed' : '🧪 Preview Mock Dinesh'}
-          </Text>
-        </Pressable>
-      )}
-
       {/* Main header row */}
       <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerLeft}>
@@ -446,18 +318,8 @@ export default function DiscoverScreen() {
         </View>
 
         <View style={styles.headerRight}>
-          {/* Settings / Filter Button */}
-          <Pressable style={styles.filterButton} onPress={() => Alert.alert('Filters', 'Filter settings coming soon.')}>
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-              <Path
-                d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"
-                stroke="#FFFFFF"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </Pressable>
+          {/* Filter button removed -- it was a dead placeholder, its only
+              action was an Alert saying "coming soon". */}
 
           {/* AstroX Premium Badge */}
           <Pressable style={styles.astroXBadge} onPress={() => openPaywall('discover_header_astrox')}>
@@ -527,16 +389,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  filterButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
   astroXBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -557,27 +409,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  devToggle: {
-    position: 'absolute',
-    top: 110,
-    right: 16,
-    zIndex: 9999,
-    backgroundColor: '#7C3AED',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOpacity: 0.3, shadowRadius: 4 },
-      android: { elevation: 6 },
-    }),
-  },
-  devToggleText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-  },
   actionBarSpacer: { height: 100 },
   actionBarWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   stateBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 },
