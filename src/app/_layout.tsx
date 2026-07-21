@@ -9,6 +9,7 @@ import { AuthProvider } from '@/context/auth';
 import { SubscriptionProvider } from '@/context/subscription';
 import { registerNotificationTapHandler } from '@/lib/push-notifications';
 import { initSentry } from '@/lib/sentry';
+import { ThemedAlertHost } from '@/lib/themed-alert';
 
 // Must run before the rest of the app renders so crashes during first render
 // are still captured.
@@ -30,6 +31,7 @@ function RootLayout() {
         <KeyboardProvider>
         <NavThemeProvider value={theme === 'dark' ? NavDarkTheme : NavDefaultTheme}>
           <AnimatedSplashOverlay />
+          <ThemedAlertHost />
           <Stack
             screenOptions={{
               contentStyle: {
