@@ -47,6 +47,7 @@ import {
   type Message,
 } from '@/lib/chats';
 import { base64ToArrayBuffer } from '@/lib/user-photos';
+import { getIcebreakerForChannel } from '@/lib/icebreaker';
 import { MessageBubble, type DisplayMessage } from '@/components/chats/message-bubble';
 import { EmojiPicker } from '@/components/chats/emoji-picker';
 
@@ -116,6 +117,8 @@ export default function ChatThreadScreen() {
   const [inputText, setInputText] = useState('');
   const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [showStickerTray, setShowStickerTray] = useState(false);
+  const [icebreaker, setIcebreaker] = useState<string | null>(null);
+  const [icebreakerDismissed, setIcebreakerDismissed] = useState(false);
 
   // Call State
   const [activeCall, setActiveCall] = useState<{
@@ -174,6 +177,21 @@ export default function ChatThreadScreen() {
       }
     })();
   }, [channelId, otherUser]);
+
+  // Reads whatever generate-icebreaker already wrote to user_matches (see
+  // discover.tsx / likes.tsx match handlers) -- this screen never triggers
+  // generation itself, only displays it once it exists. Only worth fetching
+  // for a genuinely empty thread, since it's meant as a first-message nudge.
+  useEffect(() => {
+    if (messages.length > 0 || loadingInitial) return;
+    let cancelled = false;
+    getIcebreakerForChannel(channelId).then((text) => {
+      if (!cancelled && text) setIcebreaker(text);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [channelId, messages.length, loadingInitial]);
 
   const loadInitial = useCallback(async () => {
     setLoadingInitial(true);
@@ -915,7 +933,29 @@ export default function ChatThreadScreen() {
           ListFooterComponent={loadingMore ? <ActivityIndicator color="#8B8D99" style={{ marginVertical: 12 }} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyThreadWrap}>
-              <Text style={styles.emptyThreadText}>You matched! Say hello 👋</Text>
+              {icebreaker && !icebreakerDismissed ? (
+                <>
+                  <Text style={styles.icebreakerLabel}>✦ COSMIC ICEBREAKER ✦</Text>
+                  <Pressable
+                    onPress={() => setInputText(icebreaker)}
+                    style={styles.icebreakerChip}
+                  >
+                    <Text style={styles.icebreakerText}>&quot;{icebreaker}&quot;</Text>
+                    <View style={styles.icebreakerTapBtn}>
+                      <Text style={styles.icebreakerTapBtnText}>Tap to use this opener ✨</Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setIcebreakerDismissed(true)}
+                    hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
+                    style={styles.icebreakerDismiss}
+                  >
+                    <Text style={styles.icebreakerDismissText}>dismiss</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Text style={styles.emptyThreadText}>You matched! Say hello 👋</Text>
+              )}
             </View>
           }
           initialNumToRender={20}
@@ -1582,6 +1622,34 @@ const styles = StyleSheet.create({
 
   emptyThreadWrap: { padding: 40, alignItems: 'center', transform: [{ scaleY: -1 }] },
   emptyThreadText: { color: '#8B8D99', fontSize: 14 },
+
+  icebreakerLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 11, letterSpacing: 1, marginBottom: 10 },
+  icebreakerChip: {
+    backgroundColor: 'rgba(139,92,246,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,92,246,0.35)',
+    borderRadius: 16,
+    padding: 14,
+    maxWidth: 280,
+    alignItems: 'center',
+  },
+  icebreakerText: {
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  icebreakerTapBtn: {
+    marginTop: 10,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+  },
+  icebreakerTapBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  icebreakerDismiss: { marginTop: 8 },
+  icebreakerDismissText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 
   inputBar: {
     flexDirection: 'row',

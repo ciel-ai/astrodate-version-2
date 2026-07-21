@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLikes } from '@/context/likes';
 import { getMySentLikes, likeBack, spendFreeReveal, spendSubscriptionReveal, type SentLikeData } from '@/lib/likes';
 import { blockAndLeave, reportUser } from '@/lib/chats';
+import { triggerIcebreakerGeneration } from '@/lib/icebreaker';
 import { LikeCard } from '@/components/likes/like-card';
 import { SentLikeCard } from '@/components/likes/sent-like-card';
 import { SortControl } from '@/components/likes/sort-control';
@@ -28,12 +29,12 @@ export default function LikesScreen() {
   const [sentLikes, setSentLikes] = useState<SentLikeData[] | null>(null);
   const [sentLoading, setSentLoading] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      refresh().then(() => markSeen());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-  );
+  // Tracked via ref (not a useFocusEffect dep) so the focus effect below can
+  // read the current tab without re-subscribing on every tab switch.
+  const subTabRef = useRef<SubTab>('liked-you');
+  useEffect(() => {
+    subTabRef.current = subTab;
+  }, [subTab]);
 
   const loadSentLikes = useCallback(async () => {
     setSentLoading(true);
@@ -42,9 +43,26 @@ export default function LikesScreen() {
     setSentLoading(false);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      refresh().then(() => markSeen());
+      if (subTabRef.current === 'your-likes') {
+        loadSentLikes();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
   const handleSelectSubTab = (tab: SubTab) => {
     setSubTab(tab);
-    if (tab === 'your-likes' && sentLikes === null) {
+    // Refetch every time, not just the first time -- the previous
+    // `sentLikes === null` guard meant a like/super-like sent from Discover
+    // never showed up here if the user had already visited this tab once
+    // before (sentLikes was `[]`, never null again, so it stayed stale for
+    // the rest of the screen's lifetime). 'Liked you' doesn't have this
+    // problem since useFocusEffect refreshes it on every focus; this makes
+    // 'Your likes' just as fresh whenever it's actually opened.
+    if (tab === 'your-likes') {
       loadSentLikes();
     }
   };
@@ -72,6 +90,8 @@ export default function LikesScreen() {
     const otherName = likerProfile?.full_name ?? 'Someone';
     const otherPhoto = likerProfile?.photo_url ?? '';
     const newChannelId = result.channel_id;
+
+    void triggerIcebreakerGeneration(result.match_id);
 
     await refresh();
     Alert.alert("It's a match! ✨", 'Say hello — your chat is ready.', [
