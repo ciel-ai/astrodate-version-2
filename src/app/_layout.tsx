@@ -55,6 +55,8 @@ function RootLayout() {
             <Stack.Screen name="privacy" options={{ headerShown: false }} />
             {/* Settings */}
             <Stack.Screen name="settings" options={{ headerShown: false }} />
+            {/* Blocked accounts — reached from Settings > Privacy & Location */}
+            <Stack.Screen name="blocked-accounts" options={{ headerShown: false }} />
             {/* Address collection */}
             <Stack.Screen name="address" options={{ headerShown: false }} />
             {/* Enable device location for Discover radius filtering */}
