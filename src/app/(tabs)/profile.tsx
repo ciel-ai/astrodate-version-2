@@ -8,7 +8,7 @@
  * earlier phases; empty states were covered incrementally as each card was
  * built. This closes out the Profile Tab plan's 5 phases.
  */
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +21,7 @@ import {
   View,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -51,6 +51,21 @@ export default function ProfileScreen() {
   const { profile, loading, refreshing, refresh, refetch, completionPercent, error } = useProfileData();
   const isDark = theme === 'dark';
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Photos/prompts can also be edited via separate stacked routes
+  // (/upload-photos, /edit-prompts, both pushed below) rather than the
+  // inline editors on this screen -- those already call `refetch` directly
+  // via onChanged props, but returning from a *pushed route* needs its own
+  // trigger since this screen never unmounts (tabs stay mounted, see
+  // (tabs)/_layout.tsx). Uses `refresh` (the same silent refreshing state
+  // pull-to-refresh uses), not `refetch` (which flips the full-screen
+  // `loading` spinner and would flash on every return to this tab).
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
 
   const bgSource = isDark
     ? require('@/assets/images/onboard-bg.png')
@@ -240,7 +255,6 @@ export default function ProfileScreen() {
               profile={profile}
               membership={membership}
               isDark={isDark}
-              onGetVerified={() => router.push('/verification')}
               onEditPhoto={() => setShowEditModal(true)}
             />
             {completionPercent < 100 ? (
