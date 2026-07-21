@@ -13,6 +13,23 @@ import { getConversations, type ConversationSummary } from '@/lib/chats';
 // that happens to render the tab bar.
 // ---------------------------------------------------------------------------
 
+// Module-scope, not per-instance: guards against a race the old per-ref lock
+// couldn't cover -- a remount of ChatsProvider (Fast Refresh, or the (tabs)
+// layout unmounting/remounting on an auth transition) where the outgoing
+// instance's teardown and the incoming instance's setup both target the same
+// topic. supabase.channel() dedupes by topic, so if the two operations don't
+// serialize against each other -- regardless of which component instance
+// issued them -- the new instance's `.on()` can land on the still-joined
+// channel object the old instance left behind, throwing "cannot add
+// `postgres_changes` callbacks ... after `subscribe()`".
+const channelSetupLocks = new Map<string, Promise<void>>();
+
+function runExclusive(key: string, op: () => Promise<void>) {
+  const next = (channelSetupLocks.get(key) ?? Promise.resolve()).then(op).catch(() => {});
+  channelSetupLocks.set(key, next);
+  return next;
+}
+
 type ChatsContextValue = {
   conversations: ConversationSummary[];
   totalUnread: number;
@@ -36,9 +53,6 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
-
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const channelOpRef = useRef<Promise<void>>(Promise.resolve());
 
   const refresh = useCallback(async () => {
     if (!userRef.current) return;
@@ -68,25 +82,23 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const userId = user.id;
     const channelName = `chats-list-${userId}`;
+    const topic = `realtime:${channelName}`;
     let active = true;
 
-    // Every setup/teardown for this effect is chained onto channelOpRef,
-    // never run standalone. Two independent `setup()` calls racing on the
-    // same channelName is exactly what used to throw "cannot add
-    // postgres_changes callbacks ... after subscribe()": supabase.channel()
-    // dedupes by topic, so a rebuild starting before the previous leave
-    // finished would get handed back the still-joining old channel and then
-    // call .on() on an already-subscribed instance. Chaining onto a single
-    // promise makes every op wait for the previous one to fully finish
-    // first, regardless of how many times this effect fires.
-    channelOpRef.current = channelOpRef.current.then(async () => {
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+    // Always remove whatever channel object currently occupies this topic in
+    // the client's global registry -- not just one this effect run created --
+    // so a leftover from a different ChatsProvider instance (see the
+    // channelSetupLocks comment above) gets cleaned up too.
+    const removeExisting = async () => {
+      const stale = supabase.getChannels().find((c) => c.topic === topic);
+      if (stale) await supabase.removeChannel(stale);
+    };
+
+    void runExclusive(channelName, async () => {
+      await removeExisting();
       if (!active) return;
 
-      channelRef.current = supabase
+      supabase
         .channel(channelName)
         .on(
           'postgres_changes',
@@ -114,12 +126,7 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
-      channelOpRef.current = channelOpRef.current.then(async () => {
-        if (channelRef.current) {
-          await supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
-        }
-      });
+      void runExclusive(channelName, removeExisting);
     };
     // Keyed on user.id, not the user object: auth emits a fresh session/user reference on
     // every token refresh, and depending on the whole object would tear down + rebuild this

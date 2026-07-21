@@ -153,20 +153,6 @@ function buildWhyYouMatchBullets(params: {
 
 const { width: SW } = Dimensions.get('window');
 
-// Best-effort emoji for common interests/hobbies — arbitrary free-text
-// values fall back to a generic sparkle rather than guessing wrong.
-const INTEREST_EMOJI: Record<string, string> = {
-  movies: '🍿', travel: '✈️', coffee: '☕', investing: '📈', dogs: '🐾',
-  cats: '🐱', music: '🎵', reading: '📚', books: '📚', cooking: '🍳',
-  dancing: '💃', photography: '📷', hiking: '🥾', gaming: '🎮', yoga: '🧘',
-  art: '🎨', fitness: '🏋️', gym: '🏋️', food: '🍽️', sports: '⚽',
-  meditation: '🧘', trekking: '🥾', running: '🏃', swimming: '🏊',
-};
-
-function getInterestEmoji(label: string): string {
-  return INTEREST_EMOJI[label.trim().toLowerCase()] ?? '✨';
-}
-
 export default function AstroXFeaturesScreen() {
   const insets = useSafeAreaInsets();
   const { membership, isLoading: membershipLoading } = useSubscriptionStatus();
@@ -197,8 +183,6 @@ export default function AstroXFeaturesScreen() {
     nadiDosha,
     bhakootDosha,
     factors,
-    interest,
-    hobbies,
   } = useLocalSearchParams<{
     userId?: string;
     fullName?: string;
@@ -211,8 +195,6 @@ export default function AstroXFeaturesScreen() {
     nadiDosha?: string;
     bhakootDosha?: string;
     factors?: string;
-    interest?: string;
-    hobbies?: string;
   }>();
 
   const parsedFactors = useMemo(() => {
@@ -222,23 +204,6 @@ export default function AstroXFeaturesScreen() {
       return null;
     }
   }, [factors]);
-
-  // Real interests/hobbies from the deck profile — replaces the old fixed
-  // 5-item placeholder list. Deduped, capped for layout, title reflects
-  // whatever count actually came back (this is the other person's list, not
-  // a computed mutual overlap, so it's labeled "Interests" not "Shared").
-  const interestItems = useMemo(() => {
-    const parseList = (raw?: string) => {
-      try {
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0) : [];
-      } catch {
-        return [];
-      }
-    };
-    const combined = [...parseList(interest), ...parseList(hobbies)];
-    return Array.from(new Set(combined)).slice(0, 6);
-  }, [interest, hobbies]);
 
   // Real Ashtakoota breakdown + badges, fetched on-demand from
   // synastry_cache_details (already computed by compute-synastry -- this
@@ -479,6 +444,14 @@ export default function AstroXFeaturesScreen() {
 
               <View style={styles.bannerRight}>
                 <Text style={styles.bannerSmall}>Match Insights for {fullName || 'Someone'}</Text>
+                {/* This banner + the "Tap to reveal compatibility" modal it
+                    opens (Western/Vedic/Personality % rings) are shared
+                    Astro+/AstroX content -- not locked. Only the real
+                    personalized narrative sentence is AstroX-exclusive, and
+                    Astro+ already gets it as a plain generic fallback line
+                    here rather than a lock (unlike the "Why you matched"
+                    checklist card below, which the plan tier decision was to
+                    actually lock). */}
                 <Text style={styles.bannerBig}>
                   {whyYouMatch ? (
                     <Text style={styles.bannerBig}>{whyYouMatch}</Text>
@@ -493,7 +466,6 @@ export default function AstroXFeaturesScreen() {
                     </>
                   )}
                 </Text>
-
               </View>
             </View>
 
@@ -529,34 +501,43 @@ export default function AstroXFeaturesScreen() {
           </View>
         </Pressable>
 
-        {/* ── CARD 2: Why You Matched — real astrology/personality signals,
-             not fixed dating-app copy. Hidden if this pair has no strong
-             signal anywhere rather than padded with filler. ── */}
-        {whyYouMatchBullets.length > 0 && (
-          <LinearGradient
-            colors={['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)']}
-            style={styles.fullCard}
-          >
-            <View style={styles.splitRow}>
-              {/* Left — 3D heart image */}
-              <View style={styles.cardImageBox}>
-                <Text style={styles.bigEmoji}>💜</Text>
-              </View>
+        {/* ── CARD 2: Why You Matched — AstroX-exclusive. Astro+ gets a
+             locked teaser instead of the real checklist, same lock pattern
+             as the banner narrative / Ashtakoota grid above. Bullets are
+             still computed above (harmless -- pure client-side derivation
+             from data already sent), just not rendered for non-AstroX. ── */}
+        {planSlug === 'astro_x' ? (
+          whyYouMatchBullets.length > 0 && (
+            <LinearGradient
+              colors={['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)']}
+              style={styles.fullCard}
+            >
+              <View style={styles.splitRow}>
+                {/* Left — 3D heart image */}
+                <View style={styles.cardImageBox}>
+                  <Text style={styles.bigEmoji}>💜</Text>
+                </View>
 
-              {/* Right — content */}
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>✨ Why you matched</Text>
-                {whyYouMatchBullets.map((bullet) => (
-                  <View key={bullet.text} style={styles.checkRow}>
-                    <View style={styles.checkBubble}>
-                      <Text style={styles.checkMark}>✓</Text>
+                {/* Right — content */}
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>✨ Why you matched</Text>
+                  {whyYouMatchBullets.map((bullet) => (
+                    <View key={bullet.text} style={styles.checkRow}>
+                      <View style={styles.checkBubble}>
+                        <Text style={styles.checkMark}>✓</Text>
+                      </View>
+                      <Text style={styles.checkText}>{bullet.text}</Text>
                     </View>
-                    <Text style={styles.checkText}>{bullet.text}</Text>
-                  </View>
-                ))}
+                  ))}
+                </View>
               </View>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
+          )
+        ) : (
+          <View style={styles.fullCardLockBox}>
+            <Text style={styles.lockedNarrativeIcon}>🔒</Text>
+            <Text style={styles.ashtaLockText}>Unlock "Why you matched" with AstroX</Text>
+          </View>
         )}
 
         {/* ── HORIZONTAL SCROLL: Ashtakoota, Indian Astrology, Personality Score ── */}
@@ -683,31 +664,6 @@ export default function AstroXFeaturesScreen() {
           </LinearGradient>
         )}
 
-        {/* ── CARD 4: Interests (full width) ── */}
-        {interestItems.length > 0 && (
-          <LinearGradient
-            colors={['rgba(30,15,60,0.7)', 'rgba(15,10,30,0.95)']}
-            style={styles.fullCard}
-          >
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardTitle}>💜 Interests</Text>
-              <Text style={styles.infoIcon}>ⓘ</Text>
-            </View>
-            <Text style={styles.interestSub}>
-              {interestItems.length} thing{interestItems.length === 1 ? '' : 's'} {fullName || 'they'} {interestItems.length === 1 ? 'is' : 'are'} into
-            </Text>
-
-            <View style={styles.interestRow}>
-              {interestItems.map((label) => (
-                <View key={label} style={styles.interestItem}>
-                  <Text style={styles.interestEmoji}>{getInterestEmoji(label)}</Text>
-                  <Text style={styles.interestLabel} numberOfLines={2}>{label}</Text>
-                </View>
-              ))}
-            </View>
-          </LinearGradient>
-        )}
-
       </ScrollView>
 
       {/* ── COSMIC COMPATIBILITY MODAL ── */}
@@ -790,41 +746,53 @@ export default function AstroXFeaturesScreen() {
               <Text style={styles.modalTitle}>✨ Synastry Badges</Text>
             </View>
 
-            {/* Badge pills wrap row — real badges, cycling the 3 pill styles */}
-            <View style={styles.synastrybadgeRowModal}>
-              {(synastryDetail?.badges ?? []).map((badge, i) => {
-                const icon = BADGE_ICON[badge] ?? '✦';
-                const variant = i % 3;
-                if (variant === 1) {
+            {/* Badge pills wrap row — real badges, cycling the 3 pill styles.
+                The teaser count on the small card stays visible to Astro+
+                (it's harmless intrigue -- "2 special connections" without
+                saying which), but which badges they actually are is
+                AstroX-only, same not-rendered-at-all lock pattern as the
+                Ashtakoota grid below. */}
+            {planSlug === 'astro_x' ? (
+              <View style={styles.synastrybadgeRowModal}>
+                {(synastryDetail?.badges ?? []).map((badge, i) => {
+                  const icon = BADGE_ICON[badge] ?? '✦';
+                  const variant = i % 3;
+                  if (variant === 1) {
+                    return (
+                      <LinearGradient
+                        key={badge}
+                        colors={['#9B2060', '#C2185B']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.synBadgePink}
+                      >
+                        <Text style={styles.synBadgeIcon}>{icon}</Text>
+                        <Text style={styles.synBadgeLightText}>{badge}</Text>
+                      </LinearGradient>
+                    );
+                  }
+                  if (variant === 2) {
+                    return (
+                      <View key={badge} style={styles.synBadgeGold}>
+                        <Text style={styles.synBadgeGoldIcon}>{icon}</Text>
+                        <Text style={styles.synBadgeGoldText}>{badge}</Text>
+                      </View>
+                    );
+                  }
                   return (
-                    <LinearGradient
-                      key={badge}
-                      colors={['#9B2060', '#C2185B']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.synBadgePink}
-                    >
+                    <View key={badge} style={styles.synBadgeDark}>
                       <Text style={styles.synBadgeIcon}>{icon}</Text>
-                      <Text style={styles.synBadgeLightText}>{badge}</Text>
-                    </LinearGradient>
-                  );
-                }
-                if (variant === 2) {
-                  return (
-                    <View key={badge} style={styles.synBadgeGold}>
-                      <Text style={styles.synBadgeGoldIcon}>{icon}</Text>
-                      <Text style={styles.synBadgeGoldText}>{badge}</Text>
+                      <Text style={styles.synBadgeDarkText}>{badge}</Text>
                     </View>
                   );
-                }
-                return (
-                  <View key={badge} style={styles.synBadgeDark}>
-                    <Text style={styles.synBadgeIcon}>{icon}</Text>
-                    <Text style={styles.synBadgeDarkText}>{badge}</Text>
-                  </View>
-                );
-              })}
-            </View>
+                })}
+              </View>
+            ) : (
+              <View style={styles.ashtaLockBox}>
+                <Text style={styles.lockedNarrativeIcon}>🔒</Text>
+                <Text style={styles.ashtaLockText}>Unlock which badges you earned with AstroX</Text>
+              </View>
+            )}
 
           </Pressable>
         </Pressable>
@@ -850,30 +818,44 @@ export default function AstroXFeaturesScreen() {
             </View>
 
             {/* Grid of 8 parameters — real received_points/total_points from
-                synastry_cache_details.ashtakoota_detail, converted to stars */}
-            <View style={styles.ashtaGrid}>
-              <View style={styles.ashtaGridRow}>
-                {KOOTA_DISPLAY.slice(0, 4).map(({ key, label, emoji }, i) => (
-                  <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
-                    <Text style={styles.ashtaItemName}>{label}</Text>
-                    <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
-                    <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
-                  </View>
-                ))}
-              </View>
+                synastry_cache_details.ashtakoota_detail, converted to stars.
+                The headline score stays visible to Astro+ (shown on the small
+                card before this modal even opens) but the per-koota detail
+                grid is AstroX-only. Not rendered at all for Astro+ (rather
+                than rendered-and-covered) -- a translucent/blur cover can
+                fail silently (confirmed on-device: BlurView here rendered
+                with no visible blur, leaving the real stars readable), an
+                absent element can't. */}
+            {planSlug === 'astro_x' ? (
+              <View style={styles.ashtaGrid}>
+                <View style={styles.ashtaGridRow}>
+                  {KOOTA_DISPLAY.slice(0, 4).map(({ key, label, emoji }, i) => (
+                    <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
+                      <Text style={styles.ashtaItemName}>{label}</Text>
+                      <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
+                      <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
+                    </View>
+                  ))}
+                </View>
 
-              <View style={styles.ashtaGridDivider} />
+                <View style={styles.ashtaGridDivider} />
 
-              <View style={styles.ashtaGridRow}>
-                {KOOTA_DISPLAY.slice(4, 8).map(({ key, label, emoji }, i) => (
-                  <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
-                    <Text style={styles.ashtaItemName}>{label}</Text>
-                    <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
-                    <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
-                  </View>
-                ))}
+                <View style={styles.ashtaGridRow}>
+                  {KOOTA_DISPLAY.slice(4, 8).map(({ key, label, emoji }, i) => (
+                    <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
+                      <Text style={styles.ashtaItemName}>{label}</Text>
+                      <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
+                      <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={styles.ashtaLockBox}>
+                <Text style={styles.lockedNarrativeIcon}>🔒</Text>
+                <Text style={styles.ashtaLockText}>Unlock the full 8-koota breakdown with AstroX</Text>
+              </View>
+            )}
 
           </Pressable>
         </Pressable>
@@ -898,7 +880,16 @@ export default function AstroXFeaturesScreen() {
               <Text style={styles.modalInfoIcon}>ⓘ</Text>
             </View>
 
-            {/* Premium Factor Cards */}
+            {/* Premium Factor Cards -- the overall Personality Score % on
+                the small card stays visible to Astro+ (it's the same score
+                already shown in the shared Cosmic Compatibility modal), but
+                the per-factor breakdown here is AstroX-only. */}
+            {planSlug !== 'astro_x' ? (
+              <View style={styles.fullCardLockBox}>
+                <Text style={styles.lockedNarrativeIcon}>🔒</Text>
+                <Text style={styles.ashtaLockText}>Unlock the full personality breakdown with AstroX</Text>
+              </View>
+            ) : (
             <View style={{ marginTop: 8, marginBottom: 20, gap: 12 }}>
               {/* Relationship Goal Row */}
               <View style={styles.factorCard}>
@@ -990,6 +981,7 @@ export default function AstroXFeaturesScreen() {
                 </View>
               </View>
             </View>
+            )}
 
           </Pressable>
         </Pressable>
@@ -1020,57 +1012,65 @@ export default function AstroXFeaturesScreen() {
               <Text style={{ fontSize: 52 }}>🕉️</Text>
             </View>
 
-            {/* Manglik status -- 'yes'/'no' are real computed results; an
-                empty/missing value means this pair's Manglik hasn't been
-                computed yet (e.g. incomplete birth details), NOT a real
-                "mild" reading, so it gets its own honest neutral state
-                instead of asserting a severity that doesn't exist in the
-                underlying data (which is boolean, not tiered). */}
-            <View style={{
-              marginHorizontal: 16,
-              marginBottom: 16,
-              padding: 14,
-              borderRadius: 12,
-              backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
-              borderWidth: 1,
-              borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.12)',
-              alignItems: 'center',
-            }}>
-              <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : manglikStatus === 'no' ? '#34D399' : 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' }}>
-                {manglikStatus === 'yes' ? '⚠️  Manglik' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : 'Not available yet'}
-              </Text>
-            </View>
+            {/* Manglik status + dosha table -- AstroX-only. manglik_status/
+                nadi_dosha/bhakoot_dosha are gated free-vs-paid server-side
+                (available to Astro+), but per plan-tier decision this
+                screen's detailed report is locked to AstroX specifically,
+                same pattern as Ashtakoota/Personality/Synastry Badges above. */}
+            {planSlug === 'astro_x' ? (
+              <>
+                <View style={{
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  padding: 14,
+                  borderRadius: 12,
+                  backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+                  borderWidth: 1,
+                  borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.12)',
+                  alignItems: 'center',
+                }}>
+                  <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : manglikStatus === 'no' ? '#34D399' : 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' }}>
+                    {manglikStatus === 'yes' ? '⚠️  Manglik' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : 'Not available yet'}
+                  </Text>
+                </View>
 
-            {/* Dosha table */}
-            <View style={{ marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
-              {/* Header row */}
-              <View style={{ flexDirection: 'row', backgroundColor: 'rgba(30,10,70,0.95)', paddingVertical: 10, paddingHorizontal: 16 }}>
-                <Text style={{ color: '#fff', fontWeight: '700', flex: 1, fontSize: 13 }}>Dosha</Text>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Status</Text>
+                {/* Dosha table */}
+                <View style={{ marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
+                  {/* Header row */}
+                  <View style={{ flexDirection: 'row', backgroundColor: 'rgba(30,10,70,0.95)', paddingVertical: 10, paddingHorizontal: 16 }}>
+                    <Text style={{ color: '#fff', fontWeight: '700', flex: 1, fontSize: 13 }}>Dosha</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Status</Text>
+                  </View>
+                  {/* Nadi Dosha */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.7)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
+                    {nadiDosha === 'yes' ? (
+                      <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+                    ) : nadiDosha === 'no' ? (
+                      <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                    ) : (
+                      <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
+                    )}
+                  </View>
+                  {/* Bhakoot Dosha */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.5)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
+                    {bhakootDosha === 'yes' ? (
+                      <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
+                    ) : bhakootDosha === 'no' ? (
+                      <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
+                    ) : (
+                      <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
+                    )}
+                  </View>
+                </View>
+              </>
+            ) : (
+              <View style={[styles.fullCardLockBox, { marginHorizontal: 16 }]}>
+                <Text style={styles.lockedNarrativeIcon}>🔒</Text>
+                <Text style={styles.ashtaLockText}>Unlock Manglik &amp; dosha detail with AstroX</Text>
               </View>
-              {/* Nadi Dosha */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.7)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
-                {nadiDosha === 'yes' ? (
-                  <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-                ) : nadiDosha === 'no' ? (
-                  <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
-                ) : (
-                  <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
-                )}
-              </View>
-              {/* Bhakoot Dosha */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.5)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
-                <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
-                {bhakootDosha === 'yes' ? (
-                  <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
-                ) : bhakootDosha === 'no' ? (
-                  <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
-                ) : (
-                  <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
-                )}
-              </View>
-            </View>
+            )}
 
             <View style={{ height: 30 }} />
           </Pressable>
@@ -1283,6 +1283,7 @@ const styles = StyleSheet.create({
   orbitStar: { color: '#FDE68A', fontSize: 20, fontWeight: '900' },
   bannerRight: { flex: 1, paddingLeft: 6 },
   bannerSmall: { color: 'rgba(255,255,255,0.70)', fontSize: 10.5, marginBottom: 2, letterSpacing: 0.2 },
+  lockedNarrativeIcon: { fontSize: 12 },
   bannerBig: { color: '#fff', fontSize: 16.5, fontWeight: '800', lineHeight: 22 },
   tWestern: { color: '#C084FC', fontWeight: '800', fontSize: 16.5 },
   tVedic: { color: '#F472B6', fontWeight: '800', fontSize: 16.5 },
@@ -1310,6 +1311,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
   },
+  fullCardLockBox: {
+    borderRadius: 20,
+    padding: 17,
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(10,5,25,0.97)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
   splitRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1329,13 +1342,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 6,
   },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  infoIcon: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   chevron: { color: 'rgba(255,255,255,0.4)', fontSize: 24, marginLeft: 4 },
 
   // Checklist
@@ -1519,17 +1525,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Shared Interests
-  interestSub: { color: 'rgba(255,255,255,0.45)', fontSize: 11, marginBottom: 10 },
-  interestRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  interestItem: { alignItems: 'center', gap: 5 },
-  interestEmoji: { fontSize: 34 },
-  interestLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '600' },
-
   // Bottom scroll
   bottomScroll: {
     paddingRight: 14,
@@ -1673,6 +1668,25 @@ const styles = StyleSheet.create({
   ashtaGrid: {
     marginTop: 8,
     paddingBottom: 8,
+  },
+  ashtaLockBox: {
+    marginTop: 8,
+    minHeight: 160,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 30,
+    backgroundColor: 'rgba(10,5,25,0.97)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  ashtaLockText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   ashtaGridRow: {
     flexDirection: 'row',

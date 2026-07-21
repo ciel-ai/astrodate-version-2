@@ -102,8 +102,6 @@ function SwipeDiscover({ card }: { card: DiscoverCardData }) {
                 nadiDosha: card.nadi_dosha !== null ? (card.nadi_dosha ? 'yes' : 'no') : '',
                 bhakootDosha: card.bhakoot_dosha !== null ? (card.bhakoot_dosha ? 'yes' : 'no') : '',
                 factors: JSON.stringify(card.personality_factors || null),
-                interest: JSON.stringify(card.interest ?? []),
-                hobbies: JSON.stringify(card.hobbies ?? []),
               }
             });
             setTimeout(() => {
