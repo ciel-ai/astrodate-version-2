@@ -21,18 +21,19 @@ export function SentLikeCard({ item }: { item: SentLikeData }) {
           </View>
         )}
 
-        {item.compatibility_score != null && tier && (
-          <View style={styles.scoreBadgeWrap}>
-            <View style={styles.scoreChip}>
-              <View style={[styles.scoreDot, { backgroundColor: tier.color }]} />
-              <Text style={styles.scoreText}>{Math.round(item.compatibility_score)}% match</Text>
-            </View>
-          </View>
-        )}
-
-        {item.action_type === 'super_like' && (
-          <View style={styles.superLikeTag}>
-            <Text style={styles.superLikeText}>⭐ Super like</Text>
+        {(item.compatibility_score != null || item.action_type === 'super_like') && (
+          <View style={styles.topBadgeStack}>
+            {item.compatibility_score != null && tier && (
+              <View style={styles.scoreChip}>
+                <View style={[styles.scoreDot, { backgroundColor: tier.color }]} />
+                <Text style={styles.scoreText}>{Math.round(item.compatibility_score)}% match</Text>
+              </View>
+            )}
+            {item.action_type === 'super_like' && (
+              <View style={styles.superLikeTag}>
+                <Text style={styles.superLikeText}>⭐ Super like</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -76,11 +77,23 @@ const styles = StyleSheet.create({
   },
   initials: { color: 'rgba(255,255,255,0.25)', fontSize: 44, fontWeight: '700' },
 
-  scoreBadgeWrap: { position: 'absolute', top: 10, left: 10 },
+  // Score and super-like badges stack in one top-left column instead of
+  // opposing corners -- this card renders at 48% width in the Likes grid,
+  // too narrow for both to coexist without overlapping (same fix as
+  // like-card.tsx's topBadgeStack).
+  topBadgeStack: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    alignItems: 'flex-start',
+    gap: 6,
+  },
   scoreChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    maxWidth: '100%',
     backgroundColor: 'rgba(9, 3, 28, 0.75)',
     borderRadius: 20,
     borderWidth: 1,
@@ -92,9 +105,7 @@ const styles = StyleSheet.create({
   scoreText: { color: '#D4B8FF', fontSize: 11, fontWeight: '700' },
 
   superLikeTag: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
+    maxWidth: '100%',
     backgroundColor: 'rgba(74, 127, 255, 0.20)',
     borderWidth: 1,
     borderColor: 'rgba(74, 127, 255, 0.45)',
