@@ -258,7 +258,7 @@ export default function SettingsScreen() {
           {/* ── Account & Security ── */}
           <Text style={styles.sectionLabel}>ACCOUNT & SECURITY</Text>
           <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
-            <View style={styles.row}>
+            <View style={[styles.row, styles.rowTopAlign]}>
               <View style={styles.rowLeft}>
                 <Text style={styles.rowIcon}>📱</Text>
                 <View style={styles.rowText}>
@@ -266,7 +266,7 @@ export default function SettingsScreen() {
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>Your login credential — contact support to change it.</Text>
                 </View>
               </View>
-              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{phoneDisplay}</Text>
+              <Text style={[styles.rowValue, styles.rowValueTopAlign, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{phoneDisplay}</Text>
             </View>
 
             <View style={styles.divider} />
@@ -672,6 +672,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowPressed: { backgroundColor: 'rgba(255,255,255,0.04)' },
+  // Default `row` centers its children on the row's full height, which only
+  // looks right when both sides are single-line. Phone number's subtitle
+  // wraps to 2 lines, so centering left the value floating mid-way down
+  // instead of next to the title -- top-align just this row instead.
+  rowTopAlign: { alignItems: 'flex-start' },
+  rowValueTopAlign: { marginTop: 2 },
   rowLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 },
   rowIcon: { fontSize: 22, marginTop: 1 },
   rowText: { flex: 1 },
