@@ -2,7 +2,8 @@
  * Profile tab — Relationship & Preferences card
  */
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { ChipPickerSheet, type ChipOption } from './chip-picker-sheet';
 
 export type RelationshipPreferencesField =
@@ -121,7 +122,7 @@ export function RelationshipPreferencesCard({
     setSavingField(null);
     setOpenField(null);
     if (!result.success) {
-      Alert.alert('Save Failed', result.error || `Could not save ${field}.`);
+      alert('Save Failed', result.error || `Could not save ${field}.`);
     }
   };
 

@@ -13,7 +13,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Linking,
   Pressable,
@@ -23,6 +22,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -113,7 +113,7 @@ export default function SettingsScreen() {
     const { error } = await supabase.rpc('update_notification_preferences', { [rpcParam]: value });
     if (error) {
       setNotifPrefs((prev) => ({ ...prev, [key]: previous }));
-      Alert.alert('Error', 'Could not save that setting. Please try again.');
+      alert('Error', 'Could not save that setting. Please try again.');
     }
   };
 
@@ -128,13 +128,13 @@ export default function SettingsScreen() {
         // User is turning ON — show OS prompt + sync
         const result = await requestAndSyncLocation();
         if (result === 'denied') {
-          Alert.alert(
+          alert(
             'Permission Denied',
             'To enable location, please grant permission in your device Settings.',
           );
           setLocationEnabled(false);
         } else if (result === 'error') {
-          Alert.alert('Error', 'Could not save your location. Please try again.');
+          alert('Error', 'Could not save your location. Please try again.');
           setLocationEnabled(false);
         } else {
           setLocationEnabled(true);
@@ -143,7 +143,7 @@ export default function SettingsScreen() {
         // User is turning OFF — delete the stored point from the backend
         const ok = await disableLocationSharing();
         if (!ok) {
-          Alert.alert('Error', 'Could not disable location sharing. Please try again.');
+          alert('Error', 'Could not disable location sharing. Please try again.');
         } else {
           setLocationEnabled(false);
         }
@@ -154,7 +154,7 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign out?', "You'll need to sign back in to see your matches and chats.", [
+    alert('Sign out?', "You'll need to sign back in to see your matches and chats.", [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -173,7 +173,7 @@ export default function SettingsScreen() {
     const subscriptionNote = membership?.is_active
       ? ' This does not cancel your subscription — cancel it in the App Store/Play Store first, or you may keep being billed.'
       : '';
-    Alert.alert(
+    alert(
       'Delete account permanently?',
       `This removes your profile, photos, matches, and messages forever. This can't be undone.${subscriptionNote}`,
       [
@@ -186,7 +186,7 @@ export default function SettingsScreen() {
             const { data, error } = await supabase.functions.invoke('delete-account');
             if (error || !data?.success) {
               setDeleting(false);
-              Alert.alert(
+              alert(
                 'Something went wrong',
                 "We couldn't delete your account. Email us and we'll take care of it.",
                 [
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
     setRestoring(true);
     const restored = await restorePurchases();
     setRestoring(false);
-    Alert.alert(
+    alert(
       restored ? 'Purchases restored' : 'Nothing to restore',
       restored ? 'Your subscription is up to date.' : "We couldn't find an active purchase for this account."
     );

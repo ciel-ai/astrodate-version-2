@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -61,7 +61,7 @@ export default function FinishQuesScreen() {
     setSaving(false);
 
     if (!result.success) {
-      Alert.alert('Save Failed', result.error || 'Could not save prompts.');
+      alert('Save Failed', result.error || 'Could not save prompts.');
       return;
     }
     router.push('/(tabs)/discover');

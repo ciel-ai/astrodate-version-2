@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Modal,
   Platform,
@@ -14,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -118,11 +118,11 @@ export default function BirthDetailsScreen() {
     const yNum = parseInt(tempYear, 10);
 
     if (isNaN(dNum) || dNum < 1 || dNum > 31) {
-      Alert.alert('Invalid Day', 'Please enter a day between 1 and 31.');
+      alert('Invalid Day', 'Please enter a day between 1 and 31.');
       return;
     }
     if (isNaN(yNum) || yNum < 1920 || yNum > new Date().getFullYear()) {
-      Alert.alert('Invalid Year', `Please enter a year between 1920 and ${new Date().getFullYear()}.`);
+      alert('Invalid Year', `Please enter a year between 1920 and ${new Date().getFullYear()}.`);
       return;
     }
     // Day is only valid within the selected month (e.g. no Feb 30, no Apr 31).
@@ -132,7 +132,7 @@ export default function BirthDetailsScreen() {
     // roll an invalid date into the next month before that rejection happens.
     const daysInMonth = new Date(yNum, tempMonth, 0).getDate();
     if (dNum > daysInMonth) {
-      Alert.alert('Invalid Day', `${MONTHS[tempMonth - 1]} ${yNum} only has ${daysInMonth} days.`);
+      alert('Invalid Day', `${MONTHS[tempMonth - 1]} ${yNum} only has ${daysInMonth} days.`);
       return;
     }
 
@@ -144,7 +144,7 @@ export default function BirthDetailsScreen() {
       (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
     if (!hasHadBirthdayThisYear) age -= 1;
     if (age < 18) {
-      Alert.alert('Must Be 18 or Older', 'You must be at least 18 years old to use Astro date.');
+      alert('Must Be 18 or Older', 'You must be at least 18 years old to use Astro date.');
       return;
     }
 
@@ -159,11 +159,11 @@ export default function BirthDetailsScreen() {
     const mNum = parseInt(tempMinute, 10);
 
     if (isNaN(hNum) || hNum < 1 || hNum > 12) {
-      Alert.alert('Invalid Hour', 'Please enter hours between 1 and 12.');
+      alert('Invalid Hour', 'Please enter hours between 1 and 12.');
       return;
     }
     if (isNaN(mNum) || mNum < 0 || mNum > 59) {
-      Alert.alert('Invalid Minute', 'Please enter minutes between 0 and 59.');
+      alert('Invalid Minute', 'Please enter minutes between 0 and 59.');
       return;
     }
 
@@ -221,7 +221,7 @@ export default function BirthDetailsScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please grant location permissions to use current location.');
+        alert('Permission Denied', 'Please grant location permissions to use current location.');
         return;
       }
 
@@ -247,7 +247,7 @@ export default function BirthDetailsScreen() {
       }
     } catch (e) {
       console.warn('Geocoding failed:', e);
-      Alert.alert('Error', 'Could not fetch your current location coordinates.');
+      alert('Error', 'Could not fetch your current location coordinates.');
     } finally {
       setLocLoading(false);
     }
@@ -256,15 +256,15 @@ export default function BirthDetailsScreen() {
   // Submit flow
   const handleGenerateAstro = async () => {
     if (!day || !year) {
-      Alert.alert('Date Required', 'Please select your Date of Birth.');
+      alert('Date Required', 'Please select your Date of Birth.');
       return;
     }
     if (!hour || !minute) {
-      Alert.alert('Time Required', 'Please select your Time of Birth.');
+      alert('Time Required', 'Please select your Time of Birth.');
       return;
     }
     if (!placeOfBirth.trim()) {
-      Alert.alert('Place Required', 'Please enter your Place of Birth.');
+      alert('Place Required', 'Please enter your Place of Birth.');
       return;
     }
 
@@ -317,7 +317,7 @@ export default function BirthDetailsScreen() {
       }
 
       if (resolvedLat == null || resolvedLng == null) {
-        Alert.alert(
+        alert(
           'Place Not Found',
           'We could not locate that place. Try the full city name (e.g. "Tiruchirappalli" instead of "Trichy"), pick a suggestion from the list, or use your current location.'
         );
@@ -380,7 +380,7 @@ export default function BirthDetailsScreen() {
 
       router.push('/cosmic-identity');
     } catch (e: any) {
-      Alert.alert('Setup Failed', e.message || 'An unexpected error occurred while generating your astro details.');
+      alert('Setup Failed', e.message || 'An unexpected error occurred while generating your astro details.');
     } finally {
       setLoading(false);
     }

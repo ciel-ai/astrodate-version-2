@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   Platform,
@@ -14,6 +13,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -74,12 +74,12 @@ export default function CreateAccountScreen() {
     if (loading) return;
 
     if (!phone || phone.trim().length < selectedCountry.length) {
-      Alert.alert('Invalid Phone', `Please enter a valid phone number (${selectedCountry.length} digits).`);
+      alert('Invalid Phone', `Please enter a valid phone number (${selectedCountry.length} digits).`);
       return;
     }
 
     if (!agreed) {
-      Alert.alert('Terms of Service', 'Please agree to the Terms of Service and Privacy Policy to continue.');
+      alert('Terms of Service', 'Please agree to the Terms of Service and Privacy Policy to continue.');
       return;
     }
 
@@ -97,7 +97,7 @@ export default function CreateAccountScreen() {
       if (checkError) throw checkError;
 
       if (existing) {
-        Alert.alert(
+        alert(
           'Account Already Exists',
           'An account with this phone number already exists. Please log in instead.',
           [
@@ -113,7 +113,7 @@ export default function CreateAccountScreen() {
       });
 
       if (error) {
-        Alert.alert('Error', error.message);
+        alert('Error', error.message);
       } else {
         router.push({
           pathname: '/verify-otp',
@@ -121,7 +121,7 @@ export default function CreateAccountScreen() {
         });
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'An unexpected error occurred.');
+      alert('Error', err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 
 interface AboutMeCardProps {
   bio: string;
@@ -35,7 +36,7 @@ export function AboutMeCard({ bio, isDark, onSave }: AboutMeCardProps) {
     const result = await onSave(draft.trim());
     setSaving(false);
     if (!result.success) {
-      Alert.alert('Save Failed', result.error || 'Could not save your bio.');
+      alert('Save Failed', result.error || 'Could not save your bio.');
       return;
     }
     setEditing(false);

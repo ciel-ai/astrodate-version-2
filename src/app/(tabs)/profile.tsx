@@ -11,7 +11,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Pressable,
   RefreshControl,
@@ -21,6 +20,7 @@ import {
   View,
   Modal,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
       const ImagePicker = require('expo-image-picker');
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
+        alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
         return;
       }
 
@@ -128,14 +128,14 @@ export default function ProfileScreen() {
 
       const asset = pickerResult.assets[0];
       if (!asset.base64) {
-        Alert.alert('Error', 'Could not read image file data');
+        alert('Error', 'Could not read image file data');
         return;
       }
 
       // Check max photos limit
       const existing = await getUserPhotos();
       if (existing.success && (existing.data?.length ?? 0) >= 6) {
-        Alert.alert('Limit Reached', 'You can have at most 6 photos in your gallery. Remove one first.');
+        alert('Limit Reached', 'You can have at most 6 photos in your gallery. Remove one first.');
         return;
       }
 
@@ -150,7 +150,7 @@ export default function ProfileScreen() {
       });
 
       if (!result.success) {
-        Alert.alert('Upload Failed', result.error || 'An error occurred during upload.');
+        alert('Upload Failed', result.error || 'An error occurred during upload.');
         return;
       }
 
@@ -164,15 +164,15 @@ export default function ProfileScreen() {
       }
 
       await refetch();
-      Alert.alert('Success', 'Profile photo updated successfully!');
+      alert('Success', 'Profile photo updated successfully!');
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'An unexpected error occurred while uploading.');
+      alert('Error', 'An unexpected error occurred while uploading.');
     }
   };
 
   const handleEditPhoto = () => {
-    Alert.alert(
+    alert(
       'Profile Photo',
       'Choose an option to edit your profile picture',
       [

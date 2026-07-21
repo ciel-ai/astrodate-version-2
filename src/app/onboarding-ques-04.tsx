@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -12,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -76,7 +76,7 @@ export default function OnboardingQues4Screen() {
       .map(opt => opt.dbValue);
 
     if (dbSelections.length === 0) {
-      Alert.alert('Selection Required', 'Please select at least one hobby option.');
+      alert('Selection Required', 'Please select at least one hobby option.');
       return;
     }
 
@@ -97,7 +97,7 @@ export default function OnboardingQues4Screen() {
       // Proceed to Page 5 of 10
       router.push('/onboarding-ques-05');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your hobbies.');
+      alert('Save Failed', e.message || 'An unexpected error occurred while saving your hobbies.');
     } finally {
       setLoading(false);
     }

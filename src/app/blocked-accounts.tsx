@@ -8,7 +8,6 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   ImageBackground,
   Pressable,
@@ -16,6 +15,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -44,7 +44,7 @@ export default function BlockedAccountsScreen() {
   );
 
   const handleUnblock = (item: BlockedUser) => {
-    Alert.alert(
+    alert(
       `Unblock ${item.full_name ?? 'this person'}?`,
       "You'll be able to see each other again.",
       [
@@ -58,7 +58,7 @@ export default function BlockedAccountsScreen() {
             if (ok) {
               setBlocked((prev) => prev?.filter((b) => b.user_id !== item.user_id) ?? null);
             } else {
-              Alert.alert("Couldn't unblock", 'Please check your connection and try again.');
+              alert("Couldn't unblock", 'Please check your connection and try again.');
             }
           },
         },

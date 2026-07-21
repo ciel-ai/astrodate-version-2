@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Keyboard,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { KeyboardAvoidingView, useKeyboardState } from '@/lib/keyboard-controller';
 import { BlurView } from 'expo-blur';
 import { WebView } from 'react-native-webview';
@@ -666,7 +666,7 @@ export default function ChatThreadScreen() {
       void refreshChatsList();
       if (!result.success) {
         console.warn('[chat] media send failed:', result.reason);
-        Alert.alert("Couldn't send", result.reason);
+        alert("Couldn't send", result.reason);
         setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'failed' } : m)));
         return;
       }
@@ -675,7 +675,7 @@ export default function ChatThreadScreen() {
       );
     } catch (e: any) {
       console.warn('[chat] media read/upload threw:', e?.message ?? e);
-      Alert.alert("Couldn't send", e?.message ?? 'Failed to read the file.');
+      alert("Couldn't send", e?.message ?? 'Failed to read the file.');
       setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'failed' } : m)));
     }
   };
@@ -713,7 +713,7 @@ export default function ChatThreadScreen() {
     setShowEmojiTray(false);
     const ImagePicker = getImagePicker();
     if (!ImagePicker) {
-      Alert.alert('Unavailable', 'Please update the app to send photos.');
+      alert('Unavailable', 'Please update the app to send photos.');
       return;
     }
     const perm =
@@ -721,7 +721,7 @@ export default function ChatThreadScreen() {
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission needed', `Enable ${source === 'camera' ? 'camera' : 'photo'} access in Settings to continue.`);
+      alert('Permission needed', `Enable ${source === 'camera' ? 'camera' : 'photo'} access in Settings to continue.`);
       return;
     }
     const res =
@@ -731,7 +731,7 @@ export default function ChatThreadScreen() {
     if (res.canceled || !res.assets?.[0]) return;
     const asset = res.assets[0];
     if (!asset.base64) {
-      Alert.alert("Couldn't send", 'Could not read the selected image.');
+      alert("Couldn't send", 'Could not read the selected image.');
       return;
     }
     const ext = inferExt(asset.uri, 'jpg');
@@ -762,7 +762,7 @@ export default function ChatThreadScreen() {
       await startMediaSend('image', localUri, ext, contentType, getBytes);
     } catch (e: any) {
       console.warn('[chat] sendSticker threw:', e?.message ?? e);
-      Alert.alert("Couldn't send sticker", e?.message ?? 'Failed to process sticker asset.');
+      alert("Couldn't send sticker", e?.message ?? 'Failed to process sticker asset.');
     }
   };
 
@@ -771,7 +771,7 @@ export default function ChatThreadScreen() {
     setShowStickerTray(false);
     const perm = await requestRecordingPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Microphone needed', 'Enable microphone access to record voice messages.');
+      alert('Microphone needed', 'Enable microphone access to record voice messages.');
       return;
     }
     await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
@@ -797,7 +797,7 @@ export default function ChatThreadScreen() {
 
   const handleOpenMenu = () => {
     if (!otherUser) return;
-    Alert.alert(otherUser.name, undefined, [
+    alert(otherUser.name, undefined, [
       { text: 'Report', style: 'destructive', onPress: handleReport },
       { text: 'Block', style: 'destructive', onPress: handleBlock },
       { text: 'Cancel', style: 'cancel' },
@@ -806,7 +806,7 @@ export default function ChatThreadScreen() {
 
   const handleBlock = () => {
     if (!otherUser) return;
-    Alert.alert('Block this person?', `You won't see each other or be able to message anymore.`, [
+    alert('Block this person?', `You won't see each other or be able to message anymore.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Block',
@@ -817,7 +817,7 @@ export default function ChatThreadScreen() {
             await refreshChatsList();
             router.back();
           } else {
-            Alert.alert("Couldn't block", 'Please check your connection and try again.');
+            alert("Couldn't block", 'Please check your connection and try again.');
           }
         },
       },
@@ -826,7 +826,7 @@ export default function ChatThreadScreen() {
 
   const handleReport = () => {
     if (!otherUser) return;
-    Alert.alert('Report reason', undefined, [
+    alert('Report reason', undefined, [
       { text: 'Inappropriate content', onPress: () => submitReport('inappropriate_content') },
       { text: 'Spam', onPress: () => submitReport('spam') },
       { text: 'Harassment', onPress: () => submitReport('harassment') },
@@ -838,7 +838,7 @@ export default function ChatThreadScreen() {
   const submitReport = async (category: string) => {
     if (!otherUser) return;
     const ok = await reportUser(otherUser.id, channelId, category);
-    Alert.alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
+    alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
   };
 
   return (

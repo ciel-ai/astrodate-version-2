@@ -6,7 +6,8 @@
  * onboarding wizard into Discover.
  */
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,7 +48,7 @@ export default function EditPromptsScreen() {
     setSaving(false);
 
     if (!result.success) {
-      Alert.alert('Save Failed', result.error || 'Could not save prompts.');
+      alert('Save Failed', result.error || 'Could not save prompts.');
       return;
     }
     router.back();

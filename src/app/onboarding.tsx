@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -109,13 +109,13 @@ export default function OnboardingScreen() {
   const handleNext = async () => {
     if (step === 1) {
       if (!name.trim()) {
-        Alert.alert('Name Required', 'Please enter your name to continue.');
+        alert('Name Required', 'Please enter your name to continue.');
         return;
       }
       setStep(2);
     } else if (step === 2) {
       if (!gender) {
-        Alert.alert('Gender Required', 'Please select a gender option to continue.');
+        alert('Gender Required', 'Please select a gender option to continue.');
         return;
       }
 
@@ -153,7 +153,7 @@ export default function OnboardingScreen() {
         // 3. Proceed to address collection
         router.push('/address');
       } catch (err: any) {
-        Alert.alert('Setup Failed', err.message || 'An unexpected error occurred.');
+        alert('Setup Failed', err.message || 'An unexpected error occurred.');
       } finally {
         setLoading(false);
       }

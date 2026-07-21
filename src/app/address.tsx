@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -48,7 +48,7 @@ export default function AddressScreen() {
 
   const handleSave = async () => {
     if (!city.trim()) {
-      Alert.alert('Required', 'Please enter your city.');
+      alert('Required', 'Please enter your city.');
       return;
     }
 
@@ -58,7 +58,7 @@ export default function AddressScreen() {
       if (!result.success) throw new Error(result.error || 'Could not save your city');
       router.push('/enable-location' as any);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save address. Please try again.');
+      alert('Error', e.message || 'Could not save address. Please try again.');
     } finally {
       setLoading(false);
     }

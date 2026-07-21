@@ -4,7 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   Platform,
@@ -17,6 +16,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
@@ -73,7 +73,7 @@ export default function LoginScreen() {
     if (loading) return;
 
     if (!phone || phone.trim().length < selectedCountry.length) {
-      Alert.alert('Invalid Phone', `Please enter a valid phone number (${selectedCountry.length} digits).`);
+      alert('Invalid Phone', `Please enter a valid phone number (${selectedCountry.length} digits).`);
       return;
     }
 
@@ -92,7 +92,7 @@ export default function LoginScreen() {
       if (checkError) throw checkError;
 
       if (!existing) {
-        Alert.alert(
+        alert(
           'No Account Found',
           "We couldn't find an account with this phone number. Please sign up instead.",
           [
@@ -109,7 +109,7 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        Alert.alert('Error', error.message);
+        alert('Error', error.message);
       } else {
         router.push({
           pathname: '/verify-otp',
@@ -117,7 +117,7 @@ export default function LoginScreen() {
         });
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'An unexpected error occurred.');
+      alert('Error', err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }

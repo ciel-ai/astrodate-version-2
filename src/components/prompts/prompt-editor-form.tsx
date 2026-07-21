@@ -8,7 +8,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -19,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import Svg, { Path } from 'react-native-svg';
 
 import type { PromptSlotId, PromptSlots } from '@/lib/user-prompts';
@@ -87,9 +87,9 @@ export function PromptEditorForm({ slots, onChange, isDark }: PromptEditorFormPr
     if (result.success) {
       setAnswer(slotId, result.optimized);
     } else if (result.reason === 'quota_exceeded') {
-      Alert.alert("You're out of optimizes for today", 'Try again tomorrow, or just edit it yourself for now.');
+      alert("You're out of optimizes for today", 'Try again tomorrow, or just edit it yourself for now.');
     } else {
-      Alert.alert('Optimize failed', 'Something went wrong polishing your answer. Please try again.');
+      alert('Optimize failed', 'Something went wrong polishing your answer. Please try again.');
     }
   };
 

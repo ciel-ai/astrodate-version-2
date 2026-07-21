@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -11,6 +10,7 @@ import {
   View,
   Image,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -75,7 +75,7 @@ export default function UploadPhotosScreen() {
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
-        Alert.alert(
+        alert(
           'Photo picker unavailable',
           'This dev build is missing the image-picker module. Rebuild the app (npx expo run:android) to enable photo uploads.'
         );
@@ -84,7 +84,7 @@ export default function UploadPhotosScreen() {
 
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
+        alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
         return;
       }
 
@@ -108,19 +108,19 @@ export default function UploadPhotosScreen() {
       setUploadingIdx(null);
 
       if (!result.success) {
-        Alert.alert('Upload Failed', result.error || 'An error occurred during image upload.');
+        alert('Upload Failed', result.error || 'An error occurred during image upload.');
         return;
       }
 
       await loadUserPhotos();
     } catch (err: any) {
       setUploadingIdx(null);
-      Alert.alert('Upload Failed', err.message || 'An error occurred during image upload.');
+      alert('Upload Failed', err.message || 'An error occurred during image upload.');
     }
   };
 
   const handleDeletePhoto = (photo: UserPhoto) => {
-    Alert.alert(
+    alert(
       'Remove Photo',
       'Are you sure you want to delete this photo?',
       [
@@ -133,7 +133,7 @@ export default function UploadPhotosScreen() {
             const result = await deleteUserPhoto(photo);
             if (!result.success) {
               setLoading(false);
-              Alert.alert('Cannot Remove Photo', result.error || 'Failed to remove photo');
+              alert('Cannot Remove Photo', result.error || 'Failed to remove photo');
               return;
             }
             await loadUserPhotos();
@@ -145,7 +145,7 @@ export default function UploadPhotosScreen() {
 
   const handleContinue = () => {
     if (photos.length < 3) {
-      Alert.alert('Photos Required', 'Please upload at least 3 photos to proceed.');
+      alert('Photos Required', 'Please upload at least 3 photos to proceed.');
       return;
     }
     router.push('/finish-ques');

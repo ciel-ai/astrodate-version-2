@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -11,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -127,7 +127,7 @@ export default function OnboardingQues9Screen() {
 
   const handleNext = async () => {
     if (answeredCount < QUESTIONS.length) {
-      Alert.alert('Incomplete Questions', 'Please answer all 5 questions to continue.');
+      alert('Incomplete Questions', 'Please answer all 5 questions to continue.');
       return;
     }
 
@@ -155,7 +155,7 @@ export default function OnboardingQues9Screen() {
       // Proceed to Page 10 of 10
       router.push('/onboarding-ques-10');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
+      alert('Save Failed', e.message || 'An unexpected error occurred while saving your details.');
     } finally {
       setLoading(false);
     }

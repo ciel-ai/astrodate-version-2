@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -12,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,7 @@ export default function OnboardingQues3Screen() {
 
   const handleNext = async () => {
     if (!selectedId) {
-      Alert.alert('Selection Required', 'Please choose your relationship status.');
+      alert('Selection Required', 'Please choose your relationship status.');
       return;
     }
 
@@ -84,7 +84,7 @@ export default function OnboardingQues3Screen() {
       // Proceed to Page 4 of 10
       router.push('/onboarding-ques-04');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your status.');
+      alert('Save Failed', e.message || 'An unexpected error occurred while saving your status.');
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Platform,
   Pressable,
@@ -12,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,7 @@ export default function OnboardingQues6Screen() {
 
   const handleNext = async () => {
     if (!selectedId) {
-      Alert.alert('Selection Required', 'Please select your introvert/extrovert level.');
+      alert('Selection Required', 'Please select your introvert/extrovert level.');
       return;
     }
 
@@ -84,7 +84,7 @@ export default function OnboardingQues6Screen() {
       // Proceed to Page 7 of 10
       router.push('/onboarding-ques-07');
     } catch (e: any) {
-      Alert.alert('Save Failed', e.message || 'An unexpected error occurred while saving your social energy.');
+      alert('Save Failed', e.message || 'An unexpected error occurred while saving your social energy.');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,7 +79,7 @@ export default function LikesScreen() {
   const handleLikeBack = async (userId: string) => {
     const result = await likeBack(userId);
     if (!result) {
-      Alert.alert("Couldn't do that", 'Please check your connection and try again.');
+      alert("Couldn't do that", 'Please check your connection and try again.');
       return;
     }
     if (!result.success) {
@@ -94,7 +95,7 @@ export default function LikesScreen() {
     void triggerIcebreakerGeneration(result.match_id);
 
     await refresh();
-    Alert.alert("It's a match! ✨", 'Say hello — your chat is ready.', [
+    alert("It's a match! ✨", 'Say hello — your chat is ready.', [
       { text: 'Later', style: 'cancel' },
       {
         text: 'Say hi',
@@ -115,7 +116,7 @@ export default function LikesScreen() {
   const handleSpendFreeReveal = async (userId: string) => {
     const result = await spendFreeReveal(userId);
     if (result && !result.success) {
-      Alert.alert("Couldn't reveal", 'That free reveal may already be used, or this profile is no longer available.');
+      alert("Couldn't reveal", 'That free reveal may already be used, or this profile is no longer available.');
     }
     await refresh();
   };
@@ -123,24 +124,24 @@ export default function LikesScreen() {
   const handleSpendSubscriptionReveal = async (userId: string) => {
     const result = await spendSubscriptionReveal(userId);
     if (result && !result.success) {
-      Alert.alert("Couldn't reveal", "You're out of reveals for this billing period, or this profile is no longer available.");
+      alert("Couldn't reveal", "You're out of reveals for this billing period, or this profile is no longer available.");
     }
     await refresh();
   };
 
   const submitReport = async (userId: string, category: string) => {
     const ok = await reportUser(userId, null, category);
-    Alert.alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
+    alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
   };
 
   const handleOpenMenu = (userId: string, name: string | null) => {
     const targetName = name ?? 'this person';
-    Alert.alert(targetName, undefined, [
+    alert(targetName, undefined, [
       {
         text: 'Report',
         style: 'destructive',
         onPress: () =>
-          Alert.alert('Report reason', undefined, [
+          alert('Report reason', undefined, [
             { text: 'Inappropriate content', onPress: () => submitReport(userId, 'inappropriate_content') },
             { text: 'Spam', onPress: () => submitReport(userId, 'spam') },
             { text: 'Fake profile', onPress: () => submitReport(userId, 'fake_profile') },
@@ -152,7 +153,7 @@ export default function LikesScreen() {
         text: 'Block',
         style: 'destructive',
         onPress: () =>
-          Alert.alert('Block this person?', "You won't see each other anymore.", [
+          alert('Block this person?', "You won't see each other anymore.", [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Block',
@@ -162,7 +163,7 @@ export default function LikesScreen() {
                 if (ok) {
                   await refresh();
                 } else {
-                  Alert.alert("Couldn't block", 'Please check your connection and try again.');
+                  alert("Couldn't block", 'Please check your connection and try again.');
                 }
               },
             },

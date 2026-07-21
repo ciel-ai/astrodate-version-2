@@ -7,7 +7,8 @@ import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -1096,7 +1097,7 @@ export default function ZodiacPreviewScreen() {
       router.push('/profile-preview');
     } catch (error) {
       console.error('❌ Error saving astro details:', error);
-      Alert.alert('Error', 'Failed to save your details. Please try again.');
+      alert('Error', 'Failed to save your details. Please try again.');
       setIsSaving(false);
     }
   };

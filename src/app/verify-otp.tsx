@@ -4,7 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   Platform,
@@ -15,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
@@ -61,7 +61,7 @@ export default function VerifyOtpScreen() {
     if (loading) return;
 
     if (!code || code.trim().length < 6) {
-      Alert.alert('Invalid Code', 'Please enter the 6-digit verification code.');
+      alert('Invalid Code', 'Please enter the 6-digit verification code.');
       return;
     }
 
@@ -74,7 +74,7 @@ export default function VerifyOtpScreen() {
       });
 
       if (error) {
-        Alert.alert('Verification Failed', error.message);
+        alert('Verification Failed', error.message);
       } else {
         // The user is already verified/authenticated at this point -- if the
         // resume lookup itself fails (e.g. a transient network error), fall
@@ -87,7 +87,7 @@ export default function VerifyOtpScreen() {
         } catch (resumeErr) {
           console.warn('getOnboardingResumeRoute failed, falling back to /onboarding:', resumeErr);
         }
-        Alert.alert(
+        alert(
           'Verification Successful',
           'Your phone number has been verified successfully!',
           [
@@ -99,7 +99,7 @@ export default function VerifyOtpScreen() {
         );
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'An unexpected error occurred.');
+      alert('Error', err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
@@ -115,13 +115,13 @@ export default function VerifyOtpScreen() {
       });
 
       if (error) {
-        Alert.alert('Resend Failed', error.message);
+        alert('Resend Failed', error.message);
       } else {
-        Alert.alert('Code Resent', 'A new verification code has been sent to your phone.');
+        alert('Code Resent', 'A new verification code has been sent to your phone.');
         setResendTimer(29);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'An unexpected error occurred.');
+      alert('Error', err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }

@@ -15,7 +15,8 @@
  * values is correct regardless of what those values are.
  */
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { MAX_PHOTOS, MIN_REQUIRED_PHOTOS, deleteUserPhoto, setPrimaryPhoto, swapPhotoOrder, uploadUserPhoto, type UserPhoto } from '@/lib/user-photos';
 
 function getImagePicker(): typeof import('expo-image-picker') | null {
@@ -54,12 +55,12 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
-        Alert.alert('Photo picker unavailable', 'This dev build is missing the image-picker module. Rebuild the app to enable photo uploads.');
+        alert('Photo picker unavailable', 'This dev build is missing the image-picker module. Rebuild the app to enable photo uploads.');
         return;
       }
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
+        alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
         return;
       }
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
@@ -83,18 +84,18 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
       setUploading(false);
 
       if (!result.success) {
-        Alert.alert('Upload Failed', result.error || 'An error occurred during image upload.');
+        alert('Upload Failed', result.error || 'An error occurred during image upload.');
         return;
       }
       await onChanged();
     } catch (err) {
       setUploading(false);
-      Alert.alert('Upload Failed', err instanceof Error ? err.message : 'An error occurred during image upload.');
+      alert('Upload Failed', err instanceof Error ? err.message : 'An error occurred during image upload.');
     }
   };
 
   const handleDeletePhoto = (photo: UserPhoto) => {
-    Alert.alert('Remove Photo', 'Are you sure you want to delete this photo?', [
+    alert('Remove Photo', 'Are you sure you want to delete this photo?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -104,7 +105,7 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
           const result = await deleteUserPhoto(photo);
           setBusyPhotoId(null);
           if (!result.success) {
-            Alert.alert('Cannot Remove Photo', result.error || 'Could not delete photo.');
+            alert('Cannot Remove Photo', result.error || 'Could not delete photo.');
             return;
           }
           await onChanged();
@@ -119,7 +120,7 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
     const result = await setPrimaryPhoto(photo.id);
     setBusyPhotoId(null);
     if (!result.success) {
-      Alert.alert('Error', result.error || 'Could not set primary photo.');
+      alert('Error', result.error || 'Could not set primary photo.');
       return;
     }
     await onChanged();
@@ -133,7 +134,7 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
     const result = await swapPhotoOrder(current, other);
     setBusyPhotoId(null);
     if (!result.success) {
-      Alert.alert('Error', result.error || 'Could not reorder photos.');
+      alert('Error', result.error || 'Could not reorder photos.');
       return;
     }
     await onChanged();

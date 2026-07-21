@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { alert } from '@/lib/themed-alert';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -125,19 +126,19 @@ export default function DiscoverScreen() {
         if (result.reason === 'swipe_limit_reached') {
           setLimitReached(true);
         } else if (result.reason === 'super_like_limit_reached') {
-          Alert.alert(
+          alert(
             "You're out of super likes this week",
             'Astro+ gets 3 a week, AstroX gets 5 — yours refresh soon either way.',
             [{ text: 'OK' }, { text: 'See plans', onPress: () => openPaywall('super_like_limit') }]
           );
         } else {
-          Alert.alert('Something went wrong', 'Please try again.');
+          alert('Something went wrong', 'Please try again.');
         }
         return;
       }
 
       if (result.matched) {
-        Alert.alert("It's a match!", `You and ${currentCard.full_name ?? 'this person'} liked each other.`);
+        alert("It's a match!", `You and ${currentCard.full_name ?? 'this person'} liked each other.`);
         // Fire-and-forget: the chat screen reads whatever's in
         // user_matches.icebreaker_text whenever it loads, so this never
         // needs to block the swipe flow or be awaited here.
@@ -168,16 +169,16 @@ export default function DiscoverScreen() {
     if (!result.success) {
       if (result.reason === 'rewind_limit_reached') {
         setRewindLocked(true);
-        Alert.alert("You're out of rewinds for today", 'Come back tomorrow for another one.');
+        alert("You're out of rewinds for today", 'Come back tomorrow for another one.');
       } else if (result.reason === 'already_matched') {
-        Alert.alert("Can't rewind a match", 'That swipe already turned into a mutual match.');
+        alert("Can't rewind a match", 'That swipe already turned into a mutual match.');
       } else if (result.reason === 'nothing_to_rewind') {
-        Alert.alert("Nothing to undo", "You haven't swiped on anyone yet today.");
+        alert("Nothing to undo", "You haven't swiped on anyone yet today.");
       } else if (result.reason === 'rewind_not_available') {
         setRewindLocked(true);
         openPaywall('rewind_not_available');
       } else {
-        Alert.alert('Something went wrong', 'Please try again.');
+        alert('Something went wrong', 'Please try again.');
       }
       return;
     }
@@ -193,19 +194,19 @@ export default function DiscoverScreen() {
 
   const submitReport = useCallback(async (targetId: string, category: string) => {
     const ok = await reportUser(targetId, null, category);
-    Alert.alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
+    alert(ok ? 'Report submitted' : "Couldn't submit report", ok ? 'Thanks for letting us know.' : 'Please try again.');
   }, []);
 
   const handleOpenMenu = useCallback(() => {
     if (!currentCard) return;
     const targetId = currentCard.user_id;
     const targetName = currentCard.full_name ?? 'this person';
-    Alert.alert(targetName, undefined, [
+    alert(targetName, undefined, [
       {
         text: 'Report',
         style: 'destructive',
         onPress: () =>
-          Alert.alert('Report reason', undefined, [
+          alert('Report reason', undefined, [
             { text: 'Inappropriate content', onPress: () => submitReport(targetId, 'inappropriate_content') },
             { text: 'Spam', onPress: () => submitReport(targetId, 'spam') },
             { text: 'Fake profile', onPress: () => submitReport(targetId, 'fake_profile') },
@@ -217,7 +218,7 @@ export default function DiscoverScreen() {
         text: 'Block',
         style: 'destructive',
         onPress: () =>
-          Alert.alert('Block this person?', "You won't see each other anymore.", [
+          alert('Block this person?', "You won't see each other anymore.", [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Block',
@@ -227,7 +228,7 @@ export default function DiscoverScreen() {
                 if (ok) {
                   setIndex((i) => i + 1);
                 } else {
-                  Alert.alert("Couldn't block", 'Please check your connection and try again.');
+                  alert("Couldn't block", 'Please check your connection and try again.');
                 }
               },
             },
