@@ -6,7 +6,7 @@
  * onboarding wizard into Discover.
  */
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +16,7 @@ import Glitters from '@/components/glitters';
 import { PromptEditorForm } from '@/components/prompts/prompt-editor-form';
 import { useAppTheme } from '@/lib/theme-context';
 import { EMPTY_PROMPT_SLOTS, getUserPrompts, saveUserPrompts, type PromptSlots } from '@/lib/user-prompts';
+import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
 
 export default function EditPromptsScreen() {
   const router = useRouter();
@@ -69,45 +70,52 @@ export default function EditPromptsScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={12} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16, paddingBottom: 24 }]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.header}>
-          <Pressable
-            id="btn-edit-prompts-back"
-            onPress={() => router.back()}
-            style={[styles.backBtn, { backgroundColor: T.card, borderColor: T.border }]}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text style={[styles.backChevron, { color: T.text }]}>‹</Text>
-          </Pressable>
-          <Text style={[styles.title, { color: T.text }]}>Edit Prompts</Text>
-          <View style={styles.backBtn} />
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#A855F7" />
-          </View>
-        ) : (
-          <PromptEditorForm slots={slots} onChange={setSlots} isDark={isDark} />
-        )}
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable
-          id="btn-edit-prompts-save"
-          onPress={handleSave}
-          disabled={saving || loading}
-          style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
+          showsVerticalScrollIndicator={false}
         >
-          {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveText}>Save</Text>}
-        </Pressable>
-      </View>
+          <View style={styles.header}>
+            <Pressable
+              id="btn-edit-prompts-back"
+              onPress={() => router.back()}
+              style={[styles.backBtn, { backgroundColor: T.card, borderColor: T.border }]}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Text style={[styles.backChevron, { color: T.text }]}>‹</Text>
+            </Pressable>
+            <Text style={[styles.title, { color: T.text }]}>Edit Prompts</Text>
+            <View style={styles.backBtn} />
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#A855F7" />
+            </View>
+          ) : (
+            <>
+              <PromptEditorForm slots={slots} onChange={setSlots} isDark={isDark} />
+              <View style={styles.saveBtnContainer}>
+                <Pressable
+                  id="btn-edit-prompts-save"
+                  onPress={handleSave}
+                  disabled={saving || loading}
+                  style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+                >
+                  {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveText}>Save</Text>}
+                </Pressable>
+              </View>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
@@ -133,12 +141,9 @@ const styles = StyleSheet.create({
   backChevron: { fontSize: 22, fontWeight: '700', marginTop: -2 },
   title: { fontSize: 18, fontWeight: '700' },
   loadingContainer: { paddingVertical: 80, alignItems: 'center' },
-
-  footer: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 0,
+  saveBtnContainer: {
+    marginTop: 24,
+    width: '100%',
   },
   saveButton: {
     height: 54,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { getScoreTier } from '@/lib/score-tier';
 import type { LikeCardData } from '@/lib/likes';
@@ -151,28 +152,37 @@ export function LikeCard({
           </View>
         )}
 
-        <Pressable
-          onPress={handleHeartPress}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={locked ? 'Unlock to match instantly' : 'Like back'}
-          style={({ pressed }) => [
-            styles.heartBtn,
-            { backgroundColor: T.heartBtnBg, borderColor: T.heartBtnBorder },
-            pressed && styles.heartBtnPressed,
-            busy && styles.heartBtnBusy,
-          ]}
-        >
-          <HeartIcon filled={!locked} isDark={isDark} />
-        </Pressable>
+        {(!locked || (!freeRevealAvailable && !showSubscriptionRevealPill)) && (
+          <Pressable
+            onPress={handleHeartPress}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={locked ? 'Unlock to match instantly' : 'Like back'}
+            style={({ pressed }) => [
+              styles.heartBtn,
+              { backgroundColor: T.heartBtnBg, borderColor: T.heartBtnBorder },
+              pressed && styles.heartBtnPressed,
+              busy && styles.heartBtnBusy,
+            ]}
+          >
+            <HeartIcon filled={!locked} isDark={isDark} />
+          </Pressable>
+        )}
 
         {locked && !isPaid && freeRevealAvailable && (
           <Pressable
             onPress={handleFreeRevealPress}
             disabled={busy}
-            style={({ pressed }) => [styles.freeRevealPill, pressed && styles.freeRevealPillPressed]}
+            style={({ pressed }) => [styles.freeRevealPillContainer, pressed && styles.freeRevealPillPressed]}
           >
-            <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Use your free reveal</Text>
+            <LinearGradient
+              colors={['#C026D3', '#7C3AED', '#2563EB']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.freeRevealPill}
+            >
+              <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Use your free reveal</Text>
+            </LinearGradient>
           </Pressable>
         )}
 
@@ -180,9 +190,16 @@ export function LikeCard({
           <Pressable
             onPress={handleSubscriptionRevealPress}
             disabled={busy}
-            style={({ pressed }) => [styles.freeRevealPill, pressed && styles.freeRevealPillPressed]}
+            style={({ pressed }) => [styles.freeRevealPillContainer, pressed && styles.freeRevealPillPressed]}
           >
-            <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Reveal ({subscriptionRevealsRemaining} left)</Text>
+            <LinearGradient
+              colors={['#C026D3', '#7C3AED', '#2563EB']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.freeRevealPill}
+            >
+              <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Reveal ({subscriptionRevealsRemaining} left)</Text>
+            </LinearGradient>
           </Pressable>
         )}
       </View>
@@ -302,18 +319,35 @@ const styles = StyleSheet.create({
   heartBtnPressed: { opacity: 0.8, transform: [{ scale: 0.94 }] },
   heartBtnBusy: { opacity: 0.5 },
 
-  freeRevealPill: {
+  freeRevealPillContainer: {
     position: 'absolute',
     bottom: 10,
     left: 10,
-    maxWidth: '60%', // caps before heartBtn (36px, right: 10) instead of stretching into it
-    backgroundColor: 'rgba(168, 85, 247, 0.85)',
+    right: 10,
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#7C3AED', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 4 },
+      default: { boxShadow: '0 4px 10px rgba(124, 58, 237, 0.3)' } as any,
+    }),
   },
-  freeRevealPillPressed: { opacity: 0.85 },
-  freeRevealText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  freeRevealPill: {
+    width: '100%',
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  freeRevealPillPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  freeRevealText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
 
   info: {
     paddingHorizontal: 12,

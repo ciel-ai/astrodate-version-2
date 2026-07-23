@@ -347,7 +347,7 @@ export function DiscoverCard({ card, tier, isDark = true, isFlipped = false, onF
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
           >
-            <Pressable onPress={() => onFlipChange?.(false)} style={{ padding: 16, paddingBottom: 24, gap: 14 }}>
+            <Pressable onPress={() => onFlipChange?.(false)} style={{ padding: 16, paddingBottom: 120, gap: 14 }}>
               {/* Cosmic Profile Overview Grid Card */}
               <LinearGradient
                 colors={isDark ? ['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)'] : ['#FFFFFF', '#FFFFFF']}
@@ -585,7 +585,7 @@ export function DiscoverCard({ card, tier, isDark = true, isFlipped = false, onF
               <Text style={[styles.summaryAgeText, { color: T.text }]}>{age}</Text>
             </View>
             {!!(locationLabel || distanceLabel) && (
-              <Text style={[styles.summaryLocationText, { color: T.dim }]}>
+              <Text style={[styles.summaryLocationText, { color: isDark ? 'rgba(255, 255, 255, 0.7)' : '#374151' }]}>
                 📍 {locationLabel} {distanceLabel ? `• ${distanceLabel.replace('Less than', '<')}` : ''}
               </Text>
             )}
@@ -597,9 +597,21 @@ export function DiscoverCard({ card, tier, isDark = true, isFlipped = false, onF
         </View>
 
         {card.looking_for ? (
-          <View style={[styles.summaryLookingFor, !isDark && { backgroundColor: 'rgba(0,0,0,0.04)' }]}>
-            <Text style={[styles.summaryLookingForText, { color: T.text }]}>
-              💖 Looking for a <Text style={{ fontWeight: '700', color: '#F59E0B' }}>{card.looking_for.toLowerCase()}</Text>
+          <View
+            style={[
+              styles.summaryLookingFor,
+              {
+                backgroundColor: isDark ? 'rgba(168, 85, 247, 0.12)' : 'rgba(124, 58, 237, 0.08)',
+                borderColor: isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(124, 58, 237, 0.18)',
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <Text style={[styles.summaryLookingForText, { color: isDark ? 'rgba(255,255,255,0.9)' : '#4B5563' }]}>
+              💖 Looking for a{' '}
+              <Text style={{ fontWeight: '800', color: isDark ? '#F59E0B' : '#7C3AED' }}>
+                {card.looking_for.toLowerCase()}
+              </Text>
             </Text>
           </View>
         ) : null}
@@ -640,7 +652,7 @@ const styles = StyleSheet.create({
   // ── Hero ──
   hero: {
     width: '100%',
-    aspectRatio: 3 / 4.4,
+    aspectRatio: 3 / 4.0,
     borderRadius: 24,
     backgroundColor: 'rgba(30, 15, 60, 0.70)',
     alignItems: 'center',
@@ -1024,7 +1036,7 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    aspectRatio: 3 / 4.4,
+    aspectRatio: 3 / 4.0,
     borderRadius: 24,
     backgroundColor: 'transparent',
     overflow: 'hidden',
@@ -1230,8 +1242,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 16,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
     marginTop: 8,
   },
   summaryHeader: {
@@ -1273,9 +1286,8 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   summaryLocationText: {
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 13.5,
+    fontWeight: '600',
   },
   summaryScoreRing: {
     width: 60,
@@ -1300,7 +1312,7 @@ const styles = StyleSheet.create({
   summaryLookingFor: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },

@@ -427,7 +427,7 @@ export default function InsightsScreen() {
       {state === 'revealed' && insight && (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
           {/* Top Semicircle Gauge Card & Best Time Card combined in Galaxy Image BG.
               Light theme has no equivalent photo asset -- tabs-bg-light.jpg is a
