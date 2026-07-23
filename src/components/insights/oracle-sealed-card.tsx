@@ -16,7 +16,7 @@ export function OracleSealedCard({
 
   return (
     <View style={[styles.card, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
-      <ZodiacWheel size={220} />
+      <ZodiacWheel size={220} isDark={theme === 'dark'} />
 
       <Text style={[styles.title, { color: palette.textPrimary }]}>Your Daily Insight Awaits</Text>
       <Text style={[styles.subtitle, { color: palette.textSecondary }]}>

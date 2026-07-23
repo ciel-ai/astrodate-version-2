@@ -7,9 +7,21 @@ import { useSubscriptionStatus } from '@/context/subscription';
 import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
 import { matchesProductId, REVENUECAT_PRODUCT_IDS } from '@/lib/iap-products';
 import { PLANS } from '@/lib/plan-display';
+import { useAppTheme } from '@/lib/theme-context';
 
 export default function SubscriptionScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const T = {
+    bg: isDark ? '#09031C' : '#F9F9FB',
+    closeBtnBg: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? '#B0A8C4' : '#6B7280',
+    dim2: isDark ? '#6B6885' : '#8B93A6',
+    card: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+    divider: isDark ? '#4A4C5A' : '#C4C1CC',
+  };
   const { membership } = useSubscriptionStatus();
   const {
     paymentStatus,
@@ -35,18 +47,18 @@ export default function SubscriptionScreen() {
   const showFallbackMsg = !loadingPackages && packages.length === 0;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <View style={[styles.container, { backgroundColor: T.bg }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
       >
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" style={styles.closeBtn}>
-          <Text style={styles.closeText}>✕</Text>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" style={[styles.closeBtn, { backgroundColor: T.closeBtnBg }]}>
+          <Text style={[styles.closeText, { color: T.text }]}>✕</Text>
         </Pressable>
 
-        <Text style={styles.title}>Choose your plan</Text>
-        <Text style={styles.subtitle}>Unlock more matches, more insight, more you.</Text>
+        <Text style={[styles.title, { color: T.text }]}>Choose your plan</Text>
+        <Text style={[styles.subtitle, { color: T.dim }]}>Unlock more matches, more insight, more you.</Text>
 
         {paymentStatus === 'active' && (
           <View style={styles.successBanner}>
@@ -69,7 +81,7 @@ export default function SubscriptionScreen() {
         {loadingPackages ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#A855F7" />
-            <Text style={styles.loadingText}>Loading store pricing...</Text>
+            <Text style={[styles.loadingText, { color: T.dim }]}>Loading store pricing...</Text>
           </View>
         ) : (
           PLANS.map((plan) => {
@@ -82,27 +94,27 @@ export default function SubscriptionScreen() {
             const isPlanUnavailable = !matchedPackage;
 
             return (
-              <View key={plan.slug} style={[styles.card, { borderColor: plan.borderColor }, isPlanUnavailable && styles.cardUnavailable]}>
+              <View key={plan.slug} style={[styles.card, { backgroundColor: T.card, borderColor: plan.borderColor }, isPlanUnavailable && styles.cardUnavailable]}>
                 {plan.popular && !isPlanUnavailable && (
                   <View style={[styles.popularTag, { backgroundColor: plan.accentColor }]}>
                     <Text style={styles.popularTagText}>MOST POPULAR</Text>
                   </View>
                 )}
                 <Text style={[styles.planBadge, { color: plan.accentColor }]}>{plan.badge}</Text>
-                
+
                 {isPlanUnavailable ? (
-                  <Text style={styles.planPrice}>Unavailable</Text>
+                  <Text style={[styles.planPrice, { color: T.text }]}>Unavailable</Text>
                 ) : (
-                  <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                  <Text style={[styles.planPrice, { color: T.text }]}>{matchedPackage.product.priceString}/mo</Text>
                 )}
-                
-                <Text style={styles.planTagline}>{plan.tagline}</Text>
+
+                <Text style={[styles.planTagline, { color: T.dim }]}>{plan.tagline}</Text>
 
                 <View style={styles.featureList}>
                   {plan.features.map((feature) => (
                     <View key={feature} style={styles.featureRow}>
                       <Text style={[styles.featureCheck, { color: plan.accentColor }]}>✓</Text>
-                      <Text style={styles.featureText}>{feature}</Text>
+                      <Text style={[styles.featureText, { color: T.text }]}>{feature}</Text>
                     </View>
                   ))}
                 </View>
@@ -141,29 +153,29 @@ export default function SubscriptionScreen() {
           }}
           accessibilityRole="button"
         >
-          <Text style={styles.restoreText}>Restore purchases</Text>
+          <Text style={[styles.restoreText, { color: T.dim }]}>Restore purchases</Text>
         </Pressable>
 
         {/* Legal links required by Apple Guideline 3.1.2 */}
         <View style={styles.legalLinksRow}>
           <Pressable onPress={() => router.push('/terms')}>
-            <Text style={styles.legalLink}>Terms of Service</Text>
+            <Text style={[styles.legalLink, { color: T.dim }]}>Terms of Service</Text>
           </Pressable>
-          <Text style={styles.legalDivider}>|</Text>
+          <Text style={[styles.legalDivider, { color: T.divider }]}>|</Text>
           <Pressable onPress={() => router.push('/privacy')}>
-            <Text style={styles.legalLink}>Privacy Policy</Text>
+            <Text style={[styles.legalLink, { color: T.dim }]}>Privacy Policy</Text>
           </Pressable>
         </View>
 
         {/* Subscription Auto-renewing disclosures required by Apple Guideline 3.1.2 */}
         <View style={styles.disclosureContainer}>
-          <Text style={styles.disclosureText}>
+          <Text style={[styles.disclosureText, { color: T.dim2 }]}>
             Payment will be charged to your iTunes Account at confirmation of purchase.
           </Text>
-          <Text style={styles.disclosureText}>
+          <Text style={[styles.disclosureText, { color: T.dim2 }]}>
             Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.
           </Text>
-          <Text style={styles.disclosureText}>
+          <Text style={[styles.disclosureText, { color: T.dim2 }]}>
             You can manage your subscriptions and turn off auto-renewal by going to your Account Settings on the App Store after purchase.
           </Text>
         </View>
@@ -173,20 +185,19 @@ export default function SubscriptionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09031C' },
+  container: { flex: 1 },
   content: { paddingHorizontal: 24, gap: 16 },
   closeBtn: {
     alignSelf: 'flex-end',
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeText: { color: '#FFFFFF', fontSize: 15 },
-  title: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginTop: 4 },
-  subtitle: { color: '#B0A8C4', fontSize: 15, lineHeight: 22, marginBottom: 8 },
+  closeText: { fontSize: 15 },
+  title: { fontSize: 26, fontWeight: '800', marginTop: 4 },
+  subtitle: { fontSize: 15, lineHeight: 22, marginBottom: 8 },
   successBanner: {
     backgroundColor: 'rgba(52, 211, 153, 0.15)',
     borderWidth: 1,
@@ -204,7 +215,6 @@ const styles = StyleSheet.create({
   },
   errorText: { color: '#F87171', fontSize: 13, lineHeight: 18, textAlign: 'center' },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
     borderRadius: 20,
     padding: 20,
@@ -223,18 +233,18 @@ const styles = StyleSheet.create({
   },
   popularTagText: { color: '#1A1030', fontSize: 11, fontWeight: '800' },
   planBadge: { fontSize: 18, fontWeight: '800' },
-  planPrice: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 2 },
-  planTagline: { color: '#B0A8C4', fontSize: 14, marginBottom: 12 },
+  planPrice: { fontSize: 22, fontWeight: '800', marginTop: 2 },
+  planTagline: { fontSize: 14, marginBottom: 12 },
   featureList: { gap: 8, marginBottom: 16 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   featureCheck: { fontSize: 14, fontWeight: '800' },
-  featureText: { color: '#E4DEEF', fontSize: 14, flexShrink: 1 },
+  featureText: { fontSize: 14, flexShrink: 1 },
   cta: { borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
   ctaPressed: { opacity: 0.85 },
   ctaDisabled: { opacity: 0.4 },
   ctaText: { color: '#1A1030', fontSize: 15, fontWeight: '800' },
-  restoreText: { color: '#8B8D99', fontSize: 14, textAlign: 'center', marginTop: 4, textDecorationLine: 'underline' },
-  
+  restoreText: { fontSize: 14, textAlign: 'center', marginTop: 4, textDecorationLine: 'underline' },
+
   // Loading Packages style
   loadingContainer: {
     paddingVertical: 40,
@@ -243,7 +253,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: '#B0A8C4',
     fontSize: 14,
   },
 
@@ -256,12 +265,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   legalLink: {
-    color: '#8B8D99',
     fontSize: 13,
     textDecorationLine: 'underline',
   },
   legalDivider: {
-    color: '#4A4C5A',
     fontSize: 13,
   },
 
@@ -272,7 +279,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   disclosureText: {
-    color: '#6B6885',
     fontSize: 11,
     lineHeight: 16,
     textAlign: 'center',

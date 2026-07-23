@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
@@ -9,6 +9,7 @@ import { DiscoverCard } from '@/components/discover-card';
 import { DiscoverActionBar } from '@/components/discover-action-bar';
 import { useAuth } from '@/context/auth';
 import { useChats } from '@/context/chats';
+import { useAppTheme } from '@/lib/theme-context';
 import {
   getDiscoverDeck,
   getRewindsRemaining,
@@ -26,6 +27,12 @@ function openPaywall(reason: string) {
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const T = {
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? 'rgba(255,255,255,0.7)' : '#6B7280',
+  };
   const { user } = useAuth();
   const { conversations } = useChats();
   const [cards, setCards] = useState<DiscoverCardData[] | null>(null);
@@ -243,9 +250,9 @@ export default function DiscoverScreen() {
   if (loadError) {
     body = (
       <View style={styles.stateBox}>
-        <Text style={styles.stateTitle}>Couldn&apos;t load your deck</Text>
+        <Text style={[styles.stateTitle, { color: T.text }]}>Couldn&apos;t load your deck</Text>
         <Pressable onPress={loadDeck}>
-          <Text style={styles.retryLink}>Try again</Text>
+          <Text style={[styles.retryLink, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>Try again</Text>
         </Pressable>
       </View>
     );
@@ -259,18 +266,18 @@ export default function DiscoverScreen() {
     const lockedCount = meta?.more_high_locked_count ?? 0;
     body = (
       <View style={styles.stateBox}>
-        <Text style={styles.stateTitle}>
+        <Text style={[styles.stateTitle, { color: T.text }]}>
           {lockedCount > 0
             ? `You're out of swipes — ${lockedCount} more excellent ${lockedCount === 1 ? 'match was' : 'matches were'} waiting today`
             : "You're out of swipes for today"}
         </Text>
-        <Text style={styles.stateBody}>
+        <Text style={[styles.stateBody, { color: T.dim }]}>
           {lockedCount > 0
             ? 'Upgrade to unlock them right now instead of waiting until tomorrow.'
             : 'Come back tomorrow, or upgrade for more daily swipes.'}
         </Text>
         <Pressable onPress={() => openPaywall(lockedCount > 0 ? 'swipe_limit_with_locked_matches' : 'swipe_limit')}>
-          <Text style={styles.retryLink}>See plans</Text>
+          <Text style={[styles.retryLink, { color: isDark ? '#B57BFF' : '#7C3AED' }]}>See plans</Text>
         </Pressable>
       </View>
     );
@@ -279,6 +286,7 @@ export default function DiscoverScreen() {
       <DiscoverCard
         card={currentCard}
         tier={tier}
+        isDark={isDark}
         isFlipped={isCosmicOpen}
         onFlipChange={setIsCosmicOpen}
         onOpenMenu={handleOpenMenu}
@@ -292,29 +300,29 @@ export default function DiscoverScreen() {
         onPress={() => openPaywall('more_high_matches')}
       >
         <Text style={styles.lockedIcon}>✦</Text>
-        <Text style={styles.stateTitle}>
+        <Text style={[styles.stateTitle, { color: T.text }]}>
           {meta.more_high_locked_count} more excellent {meta.more_high_locked_count === 1 ? 'match' : 'matches'} today
         </Text>
-        <Text style={styles.stateBody}>Upgrade to see them now.</Text>
+        <Text style={[styles.stateBody, { color: T.dim }]}>Upgrade to see them now.</Text>
       </Pressable>
     );
   } else {
     body = (
       <View style={styles.stateBox}>
-        <Text style={styles.stateTitle}>No more profiles right now</Text>
-        <Text style={styles.stateBody}>Check back later for new matches.</Text>
+        <Text style={[styles.stateTitle, { color: T.text }]}>No more profiles right now</Text>
+        <Text style={[styles.stateBody, { color: T.dim }]}>Check back later for new matches.</Text>
       </View>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+  const content = (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Main header row */}
-      <View style={[styles.headerRow, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.headerRow, isDark && { backgroundColor: '#09031C' }, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerText}>Discover</Text>
+          <Text style={[styles.headerText, { color: T.text }]}>Discover</Text>
           <Text style={styles.sparkleIcon}>✨</Text>
         </View>
 
@@ -352,16 +360,24 @@ export default function DiscoverScreen() {
             rewindLocked={rewindLocked}
             disabled={swiping}
             swipeDisabled={!currentCard}
+            isDark={isDark}
           />
         </View>
       )}
+    </>
+  );
 
-    </View>
+  return isDark ? (
+    <View style={[styles.container, { backgroundColor: '#09031C' }]}>{content}</View>
+  ) : (
+    <ImageBackground source={require('@/assets/images/tabs-bg-light.jpg')} style={styles.container} resizeMode="cover">
+      {content}
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09031C' },
+  container: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
   headerRow: {
     flexDirection: 'row',
@@ -369,7 +385,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 10,
-    backgroundColor: '#09031C',
   },
   headerLeft: {
     flexDirection: 'row',

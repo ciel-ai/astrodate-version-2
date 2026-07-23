@@ -22,19 +22,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
 
-import {
-  useAudioRecorder,
-  useAudioRecorderState,
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioPlayer,
-} from 'expo-audio';
+import type * as ExpoAudio from 'expo-audio';
 import { File } from 'expo-file-system';
 import { Asset } from 'expo-asset';
 
 import { useAuth } from '@/context/auth';
 import { useChats } from '@/context/chats';
+import { useAppTheme } from '@/lib/theme-context';
 import { supabase } from '@/lib/supabase';
 import {
   blockAndLeave,
@@ -64,7 +58,63 @@ function getImagePicker(): typeof import('expo-image-picker') | null {
   }
 }
 
+// expo-audio's own module-scope init throws immediately on import when its
+// native module is absent (Expo Go, or a dev client built before expo-audio
+// was added) -- unlike expo-image-picker above, that means a plain top-level
+// `import` from 'expo-audio' takes down this entire file before the default
+// export ever runs (Expo Router then reports "missing the required default
+// export", which is really this crash one level up). Loading it the same
+// lazy, try/catch way fixes the crash, but useAudioRecorder/useAudioPlayer
+// are hooks, so the component can't call them conditionally per Rules of
+// Hooks -- AUDIO is decided once here, before the component function is even
+// defined, and stays constant for the process's lifetime, so branching on it
+// inside the wrapper hooks below is safe (the same hooks fire in the same
+// order on every render of any given app instance).
+let AUDIO: typeof ExpoAudio | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  AUDIO = require('expo-audio');
+} catch {
+  AUDIO = null;
+}
 
+type SafeRecorder = {
+  prepareToRecordAsync: () => Promise<void>;
+  record: () => void;
+  stop: () => Promise<void>;
+  uri: string | null;
+};
+type SafeRecorderState = { isRecording: boolean; durationMillis: number };
+type SafePlayer = { loop: boolean; seekTo: (seconds: number) => void; play: () => void; pause: () => void };
+
+const NOOP_RECORDER: SafeRecorder = {
+  prepareToRecordAsync: async () => {},
+  record: () => {},
+  stop: async () => {},
+  uri: null,
+};
+const NOOP_RECORDER_STATE: SafeRecorderState = { isRecording: false, durationMillis: 0 };
+const NOOP_PLAYER: SafePlayer = { loop: false, seekTo: () => {}, play: () => {}, pause: () => {} };
+const SAFE_RECORDING_PRESETS = AUDIO ? AUDIO.RecordingPresets : ({ HIGH_QUALITY: {} } as any);
+
+function useSafeAudioRecorder(preset: any): SafeRecorder {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- AUDIO is fixed at module load, see comment above
+  return AUDIO ? AUDIO.useAudioRecorder(preset) : NOOP_RECORDER;
+}
+function useSafeAudioRecorderState(recorder: any): SafeRecorderState {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- AUDIO is fixed at module load, see comment above
+  return AUDIO ? AUDIO.useAudioRecorderState(recorder) : NOOP_RECORDER_STATE;
+}
+function useSafeAudioPlayer(source: any): SafePlayer {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- AUDIO is fixed at module load, see comment above
+  return AUDIO ? AUDIO.useAudioPlayer(source) : NOOP_PLAYER;
+}
+async function safeRequestRecordingPermissionsAsync(): Promise<{ granted: boolean }> {
+  return AUDIO ? AUDIO.requestRecordingPermissionsAsync() : { granted: false };
+}
+async function safeSetAudioModeAsync(mode: Partial<ExpoAudio.AudioMode>): Promise<void> {
+  if (AUDIO) await AUDIO.setAudioModeAsync(mode);
+}
 
 // Gap (ms) above which a new timestamp label is shown between two messages,
 // same convention as most chat apps ("group by ~15 minutes of silence").
@@ -96,6 +146,18 @@ export default function ChatThreadScreen() {
   const channelId = params.channelId;
 
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const T = {
+    bg: isDark ? '#09031C' : '#F9F9FB',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    surfaceBg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    surfaceBorder: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? '#8B8D99' : '#6B7280',
+    dim2: isDark ? '#8C8896' : '#6B7280',
+    backBtnBg: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+  };
   const { user } = useAuth();
   const { refresh: refreshChatsList } = useChats();
 
@@ -115,7 +177,6 @@ export default function ChatThreadScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [inputText, setInputText] = useState('');
-  const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [showStickerTray, setShowStickerTray] = useState(false);
   const [icebreaker, setIcebreaker] = useState<string | null>(null);
   const [icebreakerDismissed, setIcebreakerDismissed] = useState(false);
@@ -135,7 +196,7 @@ export default function ChatThreadScreen() {
   const webViewRef = useRef<WebView | null>(null);
 
   // Call ringtone player using a stable mixkit ringing sound
-  const ringtonePlayer = useAudioPlayer({
+  const ringtonePlayer = useSafeAudioPlayer({
     uri: 'https://assets.mixkit.co/active_storage/sfx/1359/1359-84.wav',
   });
 
@@ -148,8 +209,8 @@ export default function ChatThreadScreen() {
   // Voice recording. The recorder writes to a temp file; on stop we read its
   // bytes and hand them to sendMediaMessage. recorderState gives a reactive
   // isRecording + durationMillis for the recording UI.
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(recorder);
+  const recorder = useSafeAudioRecorder(SAFE_RECORDING_PRESETS.HIGH_QUALITY);
+  const recorderState = useSafeAudioRecorderState(recorder);
 
   const isFocusedRef = useRef(false);
   const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -485,7 +546,7 @@ export default function ChatThreadScreen() {
     if (!activeCall) return;
     const nextSpeaker = !activeCall.isSpeaker;
     setActiveCall((prev) => prev ? { ...prev, isSpeaker: nextSpeaker } : null);
-    await setAudioModeAsync({
+    await safeSetAudioModeAsync({
       playsInSilentMode: true,
       allowsRecording: true,
     }).catch(() => {});
@@ -494,7 +555,6 @@ export default function ChatThreadScreen() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const startCall = (kind: 'audio' | 'video') => {
     if (!user || !channelRef.current) return;
-    setShowEmojiTray(false);
     setShowStickerTray(false);
 
     const newCall = {
@@ -710,7 +770,6 @@ export default function ChatThreadScreen() {
   };
 
   const pickAndSendImage = async (source: 'camera' | 'library') => {
-    setShowEmojiTray(false);
     const ImagePicker = getImagePicker();
     if (!ImagePicker) {
       alert('Unavailable', 'Please update the app to send photos.');
@@ -742,7 +801,6 @@ export default function ChatThreadScreen() {
   };
 
   const sendSticker = async (stickerSource: string | number) => {
-    setShowEmojiTray(false);
     setShowStickerTray(false);
     try {
       let localUri = typeof stickerSource === 'string' ? stickerSource : '';
@@ -767,14 +825,17 @@ export default function ChatThreadScreen() {
   };
 
   const startRecording = async () => {
-    setShowEmojiTray(false);
     setShowStickerTray(false);
-    const perm = await requestRecordingPermissionsAsync();
+    if (!AUDIO) {
+      alert('Unavailable', 'Please update the app to send voice messages.');
+      return;
+    }
+    const perm = await safeRequestRecordingPermissionsAsync();
     if (!perm.granted) {
       alert('Microphone needed', 'Enable microphone access to record voice messages.');
       return;
     }
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+    await safeSetAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
     await recorder.prepareToRecordAsync();
     recorder.record();
   };
@@ -787,7 +848,7 @@ export default function ChatThreadScreen() {
       // ignore -- recorder may already be stopped
     }
     const uri = recorder.uri;
-    await setAudioModeAsync({ allowsRecording: false }).catch(() => {});
+    await safeSetAudioModeAsync({ allowsRecording: false }).catch(() => {});
     // Drop cancelled or accidental sub-half-second taps.
     if (cancel || !uri || durationMs < 500) return;
     const ext = inferExt(uri, 'm4a');
@@ -843,7 +904,7 @@ export default function ChatThreadScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: T.bg }]}
       // react-native-keyboard-controller's KeyboardAvoidingView tracks the
       // real keyboard frame via native insets, so `behavior="padding"` lifts
       // the input bar identically on iOS and on Android edge-to-edge (SDK 56),
@@ -851,11 +912,11 @@ export default function ChatThreadScreen() {
       behavior="padding"
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
-          <View style={styles.backChevron} />
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: T.border }]}>
+        <Pressable onPress={() => router.back()} hitSlop={10} style={[styles.backBtn, { backgroundColor: T.backBtnBg }]}>
+          <View style={[styles.backChevron, { borderColor: T.text }]} />
         </Pressable>
 
         {otherUser?.photo ? (
@@ -865,7 +926,7 @@ export default function ChatThreadScreen() {
             <Text style={styles.headerAvatarInitials}>{(otherUser?.name ?? '?').slice(0, 2).toUpperCase()}</Text>
           </View>
         )}
-        <Text style={styles.headerName} numberOfLines={1}>
+        <Text style={[styles.headerName, { color: T.text }]} numberOfLines={1}>
           {otherUser?.name ?? 'Loading…'}
         </Text>
 
@@ -875,9 +936,9 @@ export default function ChatThreadScreen() {
 
         <Pressable onPress={handleOpenMenu} hitSlop={8} style={styles.headerIconBtn}>
           <Svg viewBox="0 0 24 24" width={24} height={24}>
-            <Circle cx="12" cy="12" r="10" fill="none" stroke="#FFFFFF" strokeWidth={2} />
-            <Line x1="12" y1="16" x2="12" y2="12" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
-            <Line x1="12" y1="8" x2="12.01" y2="8" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
+            <Circle cx="12" cy="12" r="10" fill="none" stroke={T.text} strokeWidth={2} />
+            <Line x1="12" y1="16" x2="12" y2="12" stroke={T.text} strokeWidth={2} strokeLinecap="round" />
+            <Line x1="12" y1="8" x2="12.01" y2="8" stroke={T.text} strokeWidth={2} strokeLinecap="round" />
           </Svg>
         </Pressable>
       </View>
@@ -924,23 +985,24 @@ export default function ChatThreadScreen() {
                 otherPhoto={otherUser?.photo}
                 otherName={otherUser?.name}
                 onRetry={() => handleRetry(item)}
+                isDark={isDark}
               />
             );
           }}
           contentContainerStyle={styles.listContent}
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
-          ListFooterComponent={loadingMore ? <ActivityIndicator color="#8B8D99" style={{ marginVertical: 12 }} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color={T.dim} style={{ marginVertical: 12 }} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyThreadWrap}>
               {icebreaker && !icebreakerDismissed ? (
                 <>
-                  <Text style={styles.icebreakerLabel}>✦ COSMIC ICEBREAKER ✦</Text>
+                  <Text style={[styles.icebreakerLabel, { color: T.dim }]}>✦ COSMIC ICEBREAKER ✦</Text>
                   <Pressable
                     onPress={() => setInputText(icebreaker)}
                     style={styles.icebreakerChip}
                   >
-                    <Text style={styles.icebreakerText}>&quot;{icebreaker}&quot;</Text>
+                    <Text style={[styles.icebreakerText, { color: isDark ? 'rgba(255,255,255,0.88)' : '#1B1528' }]}>&quot;{icebreaker}&quot;</Text>
                     <View style={styles.icebreakerTapBtn}>
                       <Text style={styles.icebreakerTapBtnText}>Tap to use this opener ✨</Text>
                     </View>
@@ -950,11 +1012,11 @@ export default function ChatThreadScreen() {
                     hitSlop={{ top: 10, bottom: 10, left: 20, right: 20 }}
                     style={styles.icebreakerDismiss}
                   >
-                    <Text style={styles.icebreakerDismissText}>dismiss</Text>
+                    <Text style={[styles.icebreakerDismissText, { color: T.dim }]}>dismiss</Text>
                   </Pressable>
                 </>
               ) : (
-                <Text style={styles.emptyThreadText}>You matched! Say hello 👋</Text>
+                <Text style={[styles.emptyThreadText, { color: T.dim }]}>You matched! Say hello 👋</Text>
               )}
             </View>
           }
@@ -965,22 +1027,16 @@ export default function ChatThreadScreen() {
         />
       )}
 
-      {showEmojiTray && !recorderState.isRecording && (
-        <EmojiPicker
-          mode="emoji"
-          onSelectEmoji={(emoji) => setInputText((t) => t + emoji)}
-        />
-      )}
-
       {showStickerTray && !recorderState.isRecording && (
         <EmojiPicker
           mode="sticker"
           onSelectSticker={sendSticker}
           onSelectEmoji={() => {}}
+          isDark={isDark}
         />
       )}
 
-      <View style={[styles.inputBar, { paddingBottom: keyboardVisible ? 18 : insets.bottom + 12 }]}>
+      <View style={[styles.inputBar, { paddingBottom: keyboardVisible ? 18 : insets.bottom + 12, borderTopColor: T.border, backgroundColor: T.bg }]}>
         {recorderState.isRecording ? (
           <View style={styles.recordingBar}>
             <Pressable onPress={() => stopRecording(true)} hitSlop={10} style={styles.recCancelBtn}>
@@ -991,12 +1047,12 @@ export default function ChatThreadScreen() {
             </Pressable>
 
             <View style={styles.recDot} />
-            <Text style={styles.recTimer}>
+            <Text style={[styles.recTimer, { color: T.text }]}>
               {`${Math.floor(recorderState.durationMillis / 60000)}:${Math.floor((recorderState.durationMillis % 60000) / 1000)
                 .toString()
                 .padStart(2, '0')}`}
             </Text>
-            <Text style={styles.recHint}>Recording…</Text>
+            <Text style={[styles.recHint, { color: T.dim2 }]}>Recording…</Text>
 
             <View style={{ flex: 1 }} />
 
@@ -1016,17 +1072,14 @@ export default function ChatThreadScreen() {
               </Svg>
             </Pressable>
 
-            <View style={styles.inputCapsule}>
+            <View style={[styles.inputCapsule, { backgroundColor: T.surfaceBg }]}>
               <TextInput
                 value={inputText}
                 onChangeText={setInputText}
-                onFocus={() => {
-                  setShowEmojiTray(false);
-                  setShowStickerTray(false);
-                }}
+                onFocus={() => setShowStickerTray(false)}
                 placeholder="Message..."
-                placeholderTextColor="#8C8896"
-                style={styles.capsuleInput}
+                placeholderTextColor={T.dim2}
+                style={[styles.capsuleInput, { color: T.text }]}
                 multiline
                 maxLength={1000}
               />
@@ -1035,38 +1088,18 @@ export default function ChatThreadScreen() {
                 <View style={styles.utilityIconsRow}>
                   <Pressable style={styles.iconBtn} onPress={startRecording}>
                     <Svg viewBox="0 0 24 24" width={20} height={20}>
-                      <Path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                      <Path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                      <Line x1="12" y1="19" x2="12" y2="23" stroke="#A3A0AB" strokeWidth={2} />
-                      <Line x1="8" y1="23" x2="16" y2="23" stroke="#A3A0AB" strokeWidth={2} />
+                      <Path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="none" stroke={T.dim2} strokeWidth={2} />
+                      <Path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke={T.dim2} strokeWidth={2} />
+                      <Line x1="12" y1="19" x2="12" y2="23" stroke={T.dim2} strokeWidth={2} />
+                      <Line x1="8" y1="23" x2="16" y2="23" stroke={T.dim2} strokeWidth={2} />
                     </Svg>
                   </Pressable>
 
                   <Pressable style={styles.iconBtn} onPress={() => pickAndSendImage('library')}>
                     <Svg viewBox="0 0 24 24" width={20} height={20}>
-                      <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                      <Circle cx="8.5" cy="8.5" r="1.5" fill="#A3A0AB" />
-                      <Polyline points="21 15 16 10 5 21" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                    </Svg>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.iconBtn}
-                    onPress={() => {
-                      if (showEmojiTray) {
-                        setShowEmojiTray(false);
-                      } else {
-                        setShowStickerTray(false);
-                        Keyboard.dismiss();
-                        setShowEmojiTray(true);
-                      }
-                    }}
-                  >
-                    <Svg viewBox="0 0 24 24" width={20} height={20}>
-                      <Circle cx="12" cy="12" r="10" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                      <Path d="M8 14s1.5 2 4 2 4-2 4-2" fill="none" stroke="#A3A0AB" strokeWidth={2} />
-                      <Circle cx="9" cy="9" r="1" fill="#A3A0AB" />
-                      <Circle cx="15" cy="9" r="1" fill="#A3A0AB" />
+                      <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke={T.dim2} strokeWidth={2} />
+                      <Circle cx="8.5" cy="8.5" r="1.5" fill={T.dim2} />
+                      <Polyline points="21 15 16 10 5 21" fill="none" stroke={T.dim2} strokeWidth={2} />
                     </Svg>
                   </Pressable>
 
@@ -1076,7 +1109,6 @@ export default function ChatThreadScreen() {
                       if (showStickerTray) {
                         setShowStickerTray(false);
                       } else {
-                        setShowEmojiTray(false);
                         Keyboard.dismiss();
                         setShowStickerTray(true);
                       }
@@ -1086,21 +1118,21 @@ export default function ChatThreadScreen() {
                       <Path
                         d="M12 3a9 9 0 0 0-9 9 9 9 0 0 0 9 9c1.9 0 3.7-.6 5.2-1.6l2.4-2.4c1-.8 1.4-2 1.4-3a9 9 0 0 0-9-9z"
                         fill="none"
-                        stroke="#A3A0AB"
+                        stroke={T.dim2}
                         strokeWidth={2}
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                       <Path
                         d="M17.2 19.4c.5-.5 1-1.2 1.2-1.9h-2.2v2.2c.7-.2 1-.3 1-.3z"
-                        fill="#A3A0AB"
+                        fill={T.dim2}
                       />
-                      <Circle cx="9.5" cy="10.5" r="1.2" fill="#A3A0AB" />
-                      <Circle cx="14.5" cy="10.5" r="1.2" fill="#A3A0AB" />
+                      <Circle cx="9.5" cy="10.5" r="1.2" fill={T.dim2} />
+                      <Circle cx="14.5" cy="10.5" r="1.2" fill={T.dim2} />
                       <Path
                         d="M9 14.5c1 1.5 3 1.5 4 0"
                         fill="none"
-                        stroke="#A3A0AB"
+                        stroke={T.dim2}
                         strokeWidth={1.5}
                         strokeLinecap="round"
                       />
@@ -1620,7 +1652,10 @@ const styles = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listContent: { paddingVertical: 12 },
 
-  emptyThreadWrap: { padding: 40, alignItems: 'center', transform: [{ scaleY: -1 }] },
+  // No counter-flip needed here: unlike renderItem cells, this inverted
+  // FlatList's ListEmptyComponent already renders upright on its own -- a
+  // manual scaleY: -1 here was flipping it upside down instead of fixing it.
+  emptyThreadWrap: { padding: 40, alignItems: 'center' },
   emptyThreadText: { color: '#8B8D99', fontSize: 14 },
 
   icebreakerLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 11, letterSpacing: 1, marginBottom: 10 },

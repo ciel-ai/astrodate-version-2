@@ -23,6 +23,7 @@ import { getLastDrawnAt, isSameLocalDay, recordOracleDraw } from '@/lib/oracle';
 
 import { OracleSealedCard } from '@/components/insights/oracle-sealed-card';
 import { CategoryIcon, InsightCategory } from '@/components/insights/category-icons';
+import { getInsightsPalette } from '@/components/insights/palette';
 
 type ScreenState = 'loading' | 'sealed' | 'revealed' | 'error';
 
@@ -65,7 +66,7 @@ const getLuckyColorHex = (colorName?: string): string => {
 };
 
 
-function ChevronRightIcon({ rotated }: { rotated?: boolean }) {
+function ChevronRightIcon({ rotated, color }: { rotated?: boolean; color: string }) {
   return (
     <Svg
       width={16}
@@ -74,7 +75,7 @@ function ChevronRightIcon({ rotated }: { rotated?: boolean }) {
       fill="none"
       style={rotated ? { transform: [{ rotate: '90deg' }] } : undefined}
     >
-      <Path d="M9 5l7 7-7 7" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M9 5l7 7-7 7" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -121,26 +122,35 @@ function CloverIcon() {
 }
 
 
-function ClockFace() {
+function ClockFace({ isDark }: { isDark: boolean }) {
+  const ringStrong = isDark ? 'rgba(196, 160, 255, 0.4)' : 'rgba(124, 58, 237, 0.35)';
+  const ringSoft = isDark ? 'rgba(196, 160, 255, 0.15)' : 'rgba(124, 58, 237, 0.12)';
+  const numeral = isDark ? 'rgba(196, 160, 255, 0.8)' : 'rgba(124, 58, 237, 0.7)';
+  const hourHand = isDark ? '#C4A0FF' : '#7C3AED';
+  const minuteHand = isDark ? '#FFFFFF' : '#1B1528';
+  const centerDot = isDark ? '#FFFFFF' : '#1B1528';
+  const centerDotCore = isDark ? '#0A051B' : '#FFFFFF';
   return (
     <Svg width={90} height={90} viewBox="0 0 100 100">
-      <Circle cx="50" cy="50" r="45" stroke="rgba(196, 160, 255, 0.4)" strokeWidth="1.5" fill="none" />
-      <Circle cx="50" cy="50" r="40" stroke="rgba(196, 160, 255, 0.15)" strokeWidth="1" fill="none" />
-      <SvgText x="50" y="20" fontSize="8" fill="rgba(196, 160, 255, 0.8)" textAnchor="middle" fontWeight="bold">XII</SvgText>
-      <SvgText x="82" y="53" fontSize="8" fill="rgba(196, 160, 255, 0.8)" textAnchor="middle" fontWeight="bold">III</SvgText>
-      <SvgText x="50" y="87" fontSize="8" fill="rgba(196, 160, 255, 0.8)" textAnchor="middle" fontWeight="bold">VI</SvgText>
-      <SvgText x="18" y="53" fontSize="8" fill="rgba(196, 160, 255, 0.8)" textAnchor="middle" fontWeight="bold">IX</SvgText>
-      <Line x1="50" y1="50" x2="33" y2="35" stroke="#C4A0FF" strokeWidth="2.5" strokeLinecap="round" />
-      <Line x1="50" y1="50" x2="50" y2="25" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" />
-      <Circle cx="50" cy="50" r="3" fill="#FFFFFF" />
-      <Circle cx="50" cy="50" r="1.5" fill="#0A051B" />
+      <Circle cx="50" cy="50" r="45" stroke={ringStrong} strokeWidth="1.5" fill="none" />
+      <Circle cx="50" cy="50" r="40" stroke={ringSoft} strokeWidth="1" fill="none" />
+      <SvgText x="50" y="20" fontSize="8" fill={numeral} textAnchor="middle" fontWeight="bold">XII</SvgText>
+      <SvgText x="82" y="53" fontSize="8" fill={numeral} textAnchor="middle" fontWeight="bold">III</SvgText>
+      <SvgText x="50" y="87" fontSize="8" fill={numeral} textAnchor="middle" fontWeight="bold">VI</SvgText>
+      <SvgText x="18" y="53" fontSize="8" fill={numeral} textAnchor="middle" fontWeight="bold">IX</SvgText>
+      <Line x1="50" y1="50" x2="33" y2="35" stroke={hourHand} strokeWidth="2.5" strokeLinecap="round" />
+      <Line x1="50" y1="50" x2="50" y2="25" stroke={minuteHand} strokeWidth="1.8" strokeLinecap="round" />
+      <Circle cx="50" cy="50" r="3" fill={centerDot} />
+      <Circle cx="50" cy="50" r="1.5" fill={centerDotCore} />
     </Svg>
   );
 }
 
 export default function InsightsScreen() {
   const { user, loading: authLoading } = useAuth();
-  useAppTheme();
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const palette = getInsightsPalette(theme);
   const insets = useSafeAreaInsets();
 
   const [state, setState] = useState<ScreenState>('loading');
@@ -307,13 +317,80 @@ export default function InsightsScreen() {
     return "Energy is high! A perfect day to take bold actions.";
   };
 
+  // Header + gauge dial content, overlaid on insights-bg.jpg -- same cosmic
+  // photo in both themes (user preference), so this text stays light-on-dark
+  // regardless of theme rather than switching to palette.textPrimary/Secondary
+  // (which would go dark-on-dark against a backdrop that never lightens).
+  const topBannerContent = (
+    <>
+      {/* Header Row (no settings button) */}
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.headerTitle}>Daily insights</Text>
+          <Text style={styles.headerSubtitle}>{getFormattedDate()}</Text>
+        </View>
+      </View>
+
+      {/* Semicircle Gauge Dial */}
+      <View style={styles.dialContainer}>
+        <Svg width={280} height={230} viewBox="0 0 280 230">
+          <Defs>
+            <LinearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <Stop offset="0%" stopColor="#FB7185" />
+              <Stop offset="60%" stopColor="#F59E0B" />
+              <Stop offset="100%" stopColor="#A78BFA" />
+            </LinearGradient>
+          </Defs>
+
+          {/* 240-degree Semicircle Track */}
+          <Circle
+            cx={140}
+            cy={115}
+            r={85}
+            stroke="rgba(255, 255, 255, 0.06)"
+            strokeWidth={12}
+            strokeDasharray={`${356.0}, ${534.0}`}
+            rotation={150}
+            origin="140, 115"
+            fill="none"
+          />
+
+          {/* 240-degree Semicircle Fill */}
+          <AnimatedCircle
+            cx={140}
+            cy={115}
+            r={85}
+            stroke="url(#gaugeGrad)"
+            strokeWidth={12}
+            strokeLinecap="round"
+            strokeDasharray="356.0, 534.0"
+            strokeDashoffset={animatedOffset}
+            rotation={150}
+            origin="140, 115"
+            fill="none"
+          />
+        </Svg>
+
+        {/* Absolute Dial Text Center */}
+        <View style={styles.dialCenter}>
+          <Text style={styles.dialCenterLabel}>COSMIC ENERGY</Text>
+          <Text style={styles.dialCenterScore}>{animatedScoreDisplay}%</Text>
+          <View style={[styles.energyBadge, { borderColor: tier.color }]}>
+            <Text style={[styles.energyBadgeText, { color: tier.color }]}>{tier.label}</Text>
+          </View>
+        </View>
+        <Text style={styles.dialCaption}>{getCosmicWeatherDescription(clampedScore)}</Text>
+      </View>
+    </>
+  );
+
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <View style={[styles.container, { backgroundColor: isDark ? '#09031C' : palette.screenBg }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {state === 'loading' && (
         <View style={styles.centered}>
-          <ActivityIndicator color="#C4A0FF" size="large" />
+          <ActivityIndicator color={palette.accent} size="large" />
         </View>
       )}
 
@@ -324,25 +401,25 @@ export default function InsightsScreen() {
             { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 },
           ]}
         >
-          <OracleSealedCard onDraw={handleDraw} drawing={drawing} theme="dark" />
+          <OracleSealedCard onDraw={handleDraw} drawing={drawing} theme={theme} />
         </ScrollView>
       )}
 
       {state === 'error' && (
         <View style={styles.centered}>
-          <Text style={[styles.errorText, { color: '#FFFFFF' }]}>
+          <Text style={[styles.errorText, { color: palette.textPrimary }]}>
             Couldn&apos;t load today&apos;s insight.
           </Text>
           {errorDetails ? (
-            <Text style={styles.errorSubText}>
+            <Text style={[styles.errorSubText, { color: palette.textSecondary }]}>
               {errorDetails}
             </Text>
           ) : null}
           <Pressable
             onPress={() => user && reveal(user.id)}
-            style={styles.retryBtn}
+            style={[styles.retryBtn, { backgroundColor: palette.accent }]}
           >
-            <Text style={styles.retryText}>Try Again</Text>
+            <Text style={[styles.retryText, { color: palette.retryText }]}>Try Again</Text>
           </Pressable>
         </View>
       )}
@@ -352,84 +429,29 @@ export default function InsightsScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
         >
-          {/* Top Semicircle Gauge Card & Best Time Card combined in Galaxy Image BG */}
+          {/* Top Semicircle Gauge Card & Best Time Card combined in Galaxy Image BG.
+              Light theme has no equivalent photo asset -- tabs-bg-light.jpg is a
+              flat, subtle wash meant as a backdrop behind opaque cards elsewhere,
+              not a focal banner behind large headline text like this. Swap to a
+              soft gradient in the same color story as the gauge itself instead. */}
           <ImageBackground
             source={require('@/assets/images/insights-bg.jpg')}
             style={[styles.topBgContainer, { paddingTop: insets.top + 16 }]}
             imageStyle={styles.topBgImage}
             resizeMode="cover"
           >
-            {/* Header Row (no settings button) */}
-            <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.headerTitle}>Daily insights</Text>
-                <Text style={styles.headerSubtitle}>{getFormattedDate()}</Text>
-              </View>
-            </View>
-
-            {/* Semicircle Gauge Dial */}
-            <View style={styles.dialContainer}>
-              <Svg width={280} height={230} viewBox="0 0 280 230">
-                <Defs>
-                  <LinearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <Stop offset="0%" stopColor="#FB7185" />
-                    <Stop offset="60%" stopColor="#F59E0B" />
-                    <Stop offset="100%" stopColor="#A78BFA" />
-                  </LinearGradient>
-                </Defs>
-
-                {/* 240-degree Semicircle Track */}
-                <Circle
-                  cx={140}
-                  cy={115}
-                  r={85}
-                  stroke="rgba(255, 255, 255, 0.06)"
-                  strokeWidth={12}
-                  strokeDasharray={`${356.0}, ${534.0}`}
-                  rotation={150}
-                  origin="140, 115"
-                  fill="none"
-                />
-
-                {/* 240-degree Semicircle Fill */}
-                <AnimatedCircle
-                  cx={140}
-                  cy={115}
-                  r={85}
-                  stroke="url(#gaugeGrad)"
-                  strokeWidth={12}
-                  strokeLinecap="round"
-                  strokeDasharray="356.0, 534.0"
-                  strokeDashoffset={animatedOffset}
-                  rotation={150}
-                  origin="140, 115"
-                  fill="none"
-                />
-
-
-              </Svg>
-
-              {/* Absolute Dial Text Center */}
-              <View style={styles.dialCenter}>
-                <Text style={styles.dialCenterLabel}>COSMIC ENERGY</Text>
-                <Text style={styles.dialCenterScore}>{animatedScoreDisplay}%</Text>
-                <View style={[styles.energyBadge, { borderColor: tier.color }]}>
-                  <Text style={[styles.energyBadgeText, { color: tier.color }]}>{tier.label}</Text>
-                </View>
-              </View>
-              <Text style={styles.dialCaption}>{getCosmicWeatherDescription(clampedScore)}</Text>
-            </View>
+            {topBannerContent}
           </ImageBackground>
 
           {/* Bottom Content Container (transparent overlay on dark background) */}
           <View style={styles.bottomContainer}>
             {/* Best Time Today Card */}
-            <View style={styles.bestTimeCard}>
+            <View style={[styles.bestTimeCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
               <View style={styles.bestTimeLeft}>
 
                 <View style={styles.bestTimeTextWrap}>
-                  <Text style={styles.bestTimeLabel}>Best time today</Text>
-                  <Text style={styles.bestTimeValue}>
+                  <Text style={[styles.bestTimeLabel, { color: palette.textSecondary }]}>Best time today</Text>
+                  <Text style={[styles.bestTimeValue, { color: palette.textPrimary }]}>
                     {insight.best_time
                       ? `${formatTime(insight.best_time.start)} – ${formatTime(insight.best_time.end)} (${insight.best_time.ruling_planet} hour)`
                       : 'No optimal time today'}
@@ -437,59 +459,59 @@ export default function InsightsScreen() {
                 </View>
               </View>
               <View style={styles.bestTimeRight}>
-                <ClockFace />
+                <ClockFace isDark={isDark} />
               </View>
             </View>
 
             {/* 2x2 Grid Section */}
             <View style={styles.gridContainer}>
               <View style={styles.gridRow}>
-                <View style={styles.gridCard}>
-                  <View style={styles.gridIconCircle}>
+                <View style={[styles.gridCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
+                  <View style={[styles.gridIconCircle, { backgroundColor: palette.iconCircleBg, borderColor: palette.iconCircleBorder }]}>
                     <MoonIcon />
                   </View>
                   <View style={styles.gridTextWrap}>
-                    <Text style={styles.gridCardLabel}>Moon phase</Text>
-                    <Text style={styles.gridCardValue}>{insight.moon_phase}</Text>
+                    <Text style={[styles.gridCardLabel, { color: palette.textSecondary }]}>Moon phase</Text>
+                    <Text style={[styles.gridCardValue, { color: palette.textPrimary }]}>{insight.moon_phase}</Text>
                   </View>
                 </View>
 
-                <View style={styles.gridCard}>
-                  <View style={styles.gridIconCircle}>
+                <View style={[styles.gridCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
+                  <View style={[styles.gridIconCircle, { backgroundColor: palette.iconCircleBg, borderColor: palette.iconCircleBorder }]}>
                     <PlanetIcon />
                   </View>
                   <View style={styles.gridTextWrap}>
-                    <Text style={styles.gridCardLabel}>Day ruler</Text>
-                    <Text style={styles.gridCardValue}>{insight.day_ruler}</Text>
+                    <Text style={[styles.gridCardLabel, { color: palette.textSecondary }]}>Day ruler</Text>
+                    <Text style={[styles.gridCardValue, { color: palette.textPrimary }]}>{insight.day_ruler}</Text>
                   </View>
                 </View>
               </View>
 
               <View style={styles.gridRow}>
-                <View style={styles.gridCard}>
-                  <View style={styles.gridIconCircle}>
+                <View style={[styles.gridCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
+                  <View style={[styles.gridIconCircle, { backgroundColor: palette.iconCircleBg, borderColor: palette.iconCircleBorder }]}>
                     <CrystalIcon color={getLuckyColorHex(insight.lucky_color)} />
                   </View>
                   <View style={styles.gridTextWrap}>
-                    <Text style={styles.gridCardLabel}>Lucky color</Text>
-                    <Text style={styles.gridCardValue}>{insight.lucky_color}</Text>
+                    <Text style={[styles.gridCardLabel, { color: palette.textSecondary }]}>Lucky color</Text>
+                    <Text style={[styles.gridCardValue, { color: palette.textPrimary }]}>{insight.lucky_color}</Text>
                   </View>
                 </View>
 
-                <View style={styles.gridCard}>
-                  <View style={styles.gridIconCircle}>
+                <View style={[styles.gridCard, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }]}>
+                  <View style={[styles.gridIconCircle, { backgroundColor: palette.iconCircleBg, borderColor: palette.iconCircleBorder }]}>
                     <CloverIcon />
                   </View>
                   <View style={styles.gridTextWrap}>
-                    <Text style={styles.gridCardLabel}>Lucky number</Text>
-                    <Text style={styles.gridCardValue}>{insight.lucky_number}</Text>
+                    <Text style={[styles.gridCardLabel, { color: palette.textSecondary }]}>Lucky number</Text>
+                    <Text style={[styles.gridCardValue, { color: palette.textPrimary }]}>{insight.lucky_number}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
             {/* All Six Categories Today Section */}
-            <Text style={styles.categoriesHeader}>ALL SIX CATEGORIES TODAY</Text>
+            <Text style={[styles.categoriesHeader, { color: palette.textSecondary }]}>ALL SIX CATEGORIES TODAY</Text>
             
             <View style={styles.categoriesList}>
               {insight.prediction &&
@@ -503,18 +525,20 @@ export default function InsightsScreen() {
                       onPress={() => handleCategoryPress(cat.id)}
                       style={[
                         styles.categoryRow,
-                        isSelected && styles.categoryRowSelected
+                        { backgroundColor: palette.cardBgSoft, borderColor: palette.cardBorderSoft },
+                        isSelected && [styles.categoryRowSelected, { backgroundColor: palette.cardBg, borderColor: palette.cardBorder }],
                       ]}
                     >
                       <View style={[styles.categoryCircle, { backgroundColor: `${cat.color}1E` }]}>
                         <CategoryIcon category={cat.id} color={cat.color} size={18} />
                       </View>
                       <View style={styles.categoryInfo}>
-                        <Text style={styles.categoryName}>{cat.label}</Text>
+                        <Text style={[styles.categoryName, { color: palette.textPrimary }]}>{cat.label}</Text>
                         <Text
                           style={[
                             styles.categorySnippet,
-                            isSelected && { color: 'rgba(255, 255, 255, 0.85)', marginTop: 4 }
+                            { color: palette.textSecondary },
+                            isSelected && { color: palette.textPrimary, marginTop: 4 }
                           ]}
                           numberOfLines={isSelected ? undefined : 2}
                         >
@@ -522,7 +546,7 @@ export default function InsightsScreen() {
                         </Text>
                       </View>
                       <View style={styles.categoryChevron}>
-                        <ChevronRightIcon rotated={isSelected} />
+                        <ChevronRightIcon rotated={isSelected} color={palette.chevron} />
                       </View>
                     </Pressable>
                   );

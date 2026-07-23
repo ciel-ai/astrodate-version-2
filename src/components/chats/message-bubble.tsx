@@ -1,10 +1,40 @@
 import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import type * as ExpoAudio from 'expo-audio';
 import Svg, { Path } from 'react-native-svg';
 
 import { formatRelativeTime, type Message } from '@/lib/chats';
+
+// expo-audio's own module-scope init throws immediately on import when its
+// native module is absent (Expo Go, or a dev client built before expo-audio
+// was added), which takes down this whole file -- and since chat/[channelId].tsx
+// imports MessageBubble statically, that crash surfaces one level up as
+// "Route is missing the required default export". Same lazy, try/catch guard
+// as chat/[channelId].tsx's own AUDIO; this file needs its own copy since
+// modules don't share module-scope state.
+let AUDIO: typeof ExpoAudio | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  AUDIO = require('expo-audio');
+} catch {
+  AUDIO = null;
+}
+
+type SafePlayer = { pause: () => void; play: () => void; seekTo: (seconds: number) => void };
+type SafePlayerStatus = { playing: boolean; duration: number; currentTime: number; didJustFinish: boolean };
+
+const NOOP_PLAYER: SafePlayer = { pause: () => {}, play: () => {}, seekTo: () => {} };
+const NOOP_STATUS: SafePlayerStatus = { playing: false, duration: 0, currentTime: 0, didJustFinish: false };
+
+function useSafeAudioPlayer(source: { uri: string }): SafePlayer {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- AUDIO is fixed at module load, see comment above
+  return AUDIO ? AUDIO.useAudioPlayer(source) : NOOP_PLAYER;
+}
+function useSafeAudioPlayerStatus(player: any): SafePlayerStatus {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- AUDIO is fixed at module load, see comment above
+  return AUDIO ? AUDIO.useAudioPlayerStatus(player) : NOOP_STATUS;
+}
 
 /** A message plus optional client-only send-state, used only for the bubble
  *  the local user just sent (see chat/[channelId].tsx's optimistic flow).
@@ -34,6 +64,7 @@ interface MessageBubbleProps {
   otherPhoto?: string | null;
   otherName?: string;
   onRetry?: () => void;
+  isDark?: boolean;
 }
 
 // Instagram uses a large radius on bubbles and squares off the corner facing
@@ -55,12 +86,12 @@ function formatDuration(ms: number): string {
  *  Each bubble owns its own player -- fine for the handful of audio messages
  *  in a thread. `uri` may be a local file (optimistic, still sending) or the
  *  public bucket URL; useAudioPlayer accepts both. */
-function AudioMessage({ uri, durationMs, mine }: { uri: string; durationMs?: number | null; mine: boolean }) {
-  const player = useAudioPlayer({ uri });
-  const status = useAudioPlayerStatus(player);
+function AudioMessage({ uri, durationMs, mine, isDark }: { uri: string; durationMs?: number | null; mine: boolean; isDark: boolean }) {
+  const player = useSafeAudioPlayer({ uri });
+  const status = useSafeAudioPlayerStatus(player);
 
   const tint = mine ? '#FFFFFF' : '#D4B8FF';
-  const trackBg = mine ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.18)';
+  const trackBg = mine ? 'rgba(255,255,255,0.28)' : isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
 
   const totalSec = status.duration || (durationMs ? durationMs / 1000 : 0);
   const progress = totalSec > 0 ? Math.min(status.currentTime / totalSec, 1) : 0;
@@ -115,7 +146,15 @@ function MessageBubbleImpl({
   otherPhoto,
   otherName,
   onRetry,
+  isDark = true,
 }: MessageBubbleProps) {
+  const T = {
+    timestamp: isDark ? '#6B6478' : '#6B7280',
+    bubbleTheirs: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)',
+    textTheirs: isDark ? '#EDE9FF' : '#1B1528',
+    imagePlaceholder: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+    dim: isDark ? '#8B8D99' : '#6B7280',
+  };
   const isFailed = message.status === 'failed';
   const isBlocked = message.status === 'blocked';
   const isSending = message.status === 'sending';
@@ -145,7 +184,7 @@ function MessageBubbleImpl({
   return (
     <View style={styles.wrap}>
       {showTimestamp && (
-        <Text style={styles.timestamp}>{formatRelativeTime(message.created_at)}</Text>
+        <Text style={[styles.timestamp, { color: T.timestamp }]}>{formatRelativeTime(message.created_at)}</Text>
       )}
 
       <View style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs]}>
@@ -168,7 +207,7 @@ function MessageBubbleImpl({
           style={[
             isImage ? styles.imageBubble : styles.bubble,
             cornerStyle,
-            !isImage && (isMine ? styles.bubbleMine : styles.bubbleTheirs),
+            !isImage && (isMine ? styles.bubbleMine : { backgroundColor: T.bubbleTheirs }),
             isSending && styles.bubbleSending,
             isFailed && styles.bubbleFailed,
             isBlocked && styles.bubbleBlocked,
@@ -178,7 +217,7 @@ function MessageBubbleImpl({
             <View>
               <Image
                 source={{ uri: message.media_url! }}
-                style={[styles.image, cornerStyle]}
+                style={[styles.image, cornerStyle, { backgroundColor: T.imagePlaceholder }]}
                 contentFit="cover"
               />
               {isSending && (
@@ -188,21 +227,21 @@ function MessageBubbleImpl({
               )}
             </View>
           ) : isAudio ? (
-            <AudioMessage uri={message.media_url!} durationMs={message.media_duration_ms} mine={isMine} />
+            <AudioMessage uri={message.media_url!} durationMs={message.media_duration_ms} mine={isMine} isDark={isDark} />
           ) : (
-            <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs]}>
+            <Text style={[styles.text, isMine ? styles.textMine : { color: T.textTheirs }]}>
               {message.message_text}
             </Text>
           )}
         </Pressable>
 
-        {isSending && !isImage && <ActivityIndicator size="small" color="#8B8D99" style={styles.statusIcon} />}
+        {isSending && !isImage && <ActivityIndicator size="small" color={T.dim} style={styles.statusIcon} />}
         {isFailed && <Text style={styles.retryText}>Tap to retry</Text>}
         {isBlocked && <Text style={styles.blockedText}>Blocked</Text>}
       </View>
 
       {isFlagged && isMine && (
-        <Text style={styles.flaggedNote}>This message was flagged during review.</Text>
+        <Text style={[styles.flaggedNote, { color: T.dim }]}>This message was flagged during review.</Text>
       )}
     </View>
   );

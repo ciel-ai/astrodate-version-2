@@ -34,7 +34,7 @@ let Notifications: typeof import('expo-notifications') | null = null;
 
 if (pushAvailable) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     Notifications = require('expo-notifications');
   } catch (err) {
     console.warn('[push-notifications] expo-notifications could not be imported:', err);

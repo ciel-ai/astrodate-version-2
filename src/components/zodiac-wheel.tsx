@@ -58,14 +58,15 @@ const INNER_STROKE  = 3;   // → 1 px on screen (inner ring)
 const DIV_STROKE    = 3;   // → 1 px on screen
 const SYMBOL_SIZE   = 90;  // → ~26 px on screen — plain, thin glyphs
 
-// Soft violet used throughout — thin, elegant, no glow on the glyphs
-const GLYPH_COLOR   = '#8F6DFF';
-
 interface ZodiacWheelProps {
   size?: number;
+  isDark?: boolean;
 }
 
-export default function ZodiacWheel({ size = 310 }: ZodiacWheelProps) {
+export default function ZodiacWheel({ size = 310, isDark = true }: ZodiacWheelProps) {
+  // Soft violet reads fine on a dark card but washes out on white — the
+  // standard light-mode accent used everywhere else in the app instead.
+  const glyphColor = isDark ? '#8F6DFF' : '#7C3AED';
   const [rotateAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -158,17 +159,17 @@ export default function ZodiacWheel({ size = 310 }: ZodiacWheelProps) {
 
           {/* ── Three concentric rings — 1.5 px stroke, 15% opacity, soft glow ── */}
           <Circle cx={CENTER} cy={CENTER} r={OUTER_RADIUS}
-            stroke={GLYPH_COLOR} strokeWidth={RING_STROKE}
+            stroke={glyphColor} strokeWidth={RING_STROKE}
             fill="none" opacity={0.15}
             filter="url(#ringGlow)" />
 
           <Circle cx={CENTER} cy={CENTER} r={MIDDLE_RADIUS}
-            stroke={GLYPH_COLOR} strokeWidth={RING_STROKE}
+            stroke={glyphColor} strokeWidth={RING_STROKE}
             fill="none" opacity={0.15}
             filter="url(#ringGlow)" />
 
           <Circle cx={CENTER} cy={CENTER} r={INNER_RADIUS}
-            stroke={GLYPH_COLOR} strokeWidth={INNER_STROKE}
+            stroke={glyphColor} strokeWidth={INNER_STROKE}
             fill="none" opacity={0.15}
             filter="url(#ringGlow)" />
 
@@ -177,7 +178,7 @@ export default function ZodiacWheel({ size = 310 }: ZodiacWheelProps) {
             <Line
               key={`div-${idx}`}
               x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2}
-              stroke={GLYPH_COLOR} strokeWidth={DIV_STROKE} opacity={0.06}
+              stroke={glyphColor} strokeWidth={DIV_STROKE} opacity={0.06}
             />
           ))}
 
@@ -208,7 +209,7 @@ export default function ZodiacWheel({ size = 310 }: ZodiacWheelProps) {
             y={sign.y}
             textAnchor="middle"
             fontSize={SYMBOL_SIZE}
-            fill={GLYPH_COLOR}
+            fill={glyphColor}
             opacity={0.28}
           >
             {sign.glyph}

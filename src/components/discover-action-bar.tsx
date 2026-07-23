@@ -62,6 +62,7 @@ interface DiscoverActionBarProps {
   disabled?: boolean;
   /** True when there's no current card to act on (deck exhausted) -- disables only pass/like/super-like. */
   swipeDisabled?: boolean;
+  isDark?: boolean;
 }
 
 export function DiscoverActionBar({
@@ -72,6 +73,7 @@ export function DiscoverActionBar({
   rewindLocked = true,
   disabled,
   swipeDisabled,
+  isDark = true,
 }: DiscoverActionBarProps) {
   const swipeBtnDisabled = disabled || swipeDisabled;
 
@@ -103,13 +105,13 @@ export function DiscoverActionBar({
         <ActionButton
           size={52}
           onPress={swipeBtnDisabled ? undefined : onPass}
-          btnStyle={styles.passBtn}
+          btnStyle={[styles.passBtn, !isDark && { backgroundColor: 'rgba(0,0,0,0.05)', borderColor: 'rgba(0,0,0,0.15)' }]}
         >
           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path d="M5 5 19 19M19 5 5 19" stroke="#FFFFFF" strokeWidth={2.2} strokeLinecap="round" />
+            <Path d="M5 5 19 19M19 5 5 19" stroke={isDark ? '#FFFFFF' : '#1B1528'} strokeWidth={2.2} strokeLinecap="round" />
           </Svg>
         </ActionButton>
-        <Text style={[styles.btnLabel, { color: '#9CA3AF' }]}>Pass</Text>
+        <Text style={[styles.btnLabel, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Pass</Text>
       </View>
 
       {/* Super Like */}

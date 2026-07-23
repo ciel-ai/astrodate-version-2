@@ -3,15 +3,19 @@ import { router } from 'expo-router';
 
 // A bare empty grid reads as discouraging ("nobody likes you") rather than
 // motivating, so both variants point somewhere actionable instead.
-type EmptyStateProps = { variant: 'liked-you' | 'your-likes' };
+type EmptyStateProps = { variant: 'liked-you' | 'your-likes'; isDark?: boolean };
 
-export function EmptyState({ variant }: EmptyStateProps) {
+export function EmptyState({ variant, isDark = true }: EmptyStateProps) {
+  const T = {
+    title: isDark ? '#FFFFFF' : '#1B1528',
+    body: isDark ? '#B0A8C4' : '#6B7280',
+  };
   if (variant === 'liked-you') {
     return (
       <View style={styles.wrap}>
         <Text style={styles.emoji}>✨</Text>
-        <Text style={styles.title}>No likes yet — let&apos;s fix that</Text>
-        <Text style={styles.body}>
+        <Text style={[styles.title, { color: T.title }]}>No likes yet — let&apos;s fix that</Text>
+        <Text style={[styles.body, { color: T.body }]}>
           Complete your Cosmic Blueprint to get noticed by more people who match your energy.
         </Text>
         <Pressable
@@ -27,8 +31,8 @@ export function EmptyState({ variant }: EmptyStateProps) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.emoji}>💫</Text>
-      <Text style={styles.title}>You haven&apos;t liked anyone yet</Text>
-      <Text style={styles.body}>Head to Discover and start finding your matches.</Text>
+      <Text style={[styles.title, { color: T.title }]}>You haven&apos;t liked anyone yet</Text>
+      <Text style={[styles.body, { color: T.body }]}>Head to Discover and start finding your matches.</Text>
       <Pressable
         onPress={() => router.push('/discover')}
         style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}

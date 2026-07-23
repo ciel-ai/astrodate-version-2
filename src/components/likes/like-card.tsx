@@ -19,13 +19,14 @@ function LockIcon() {
   );
 }
 
-function HeartIcon({ filled }: { filled: boolean }) {
+function HeartIcon({ filled, isDark }: { filled: boolean; isDark: boolean }) {
+  const color = isDark ? '#FFFFFF' : '#1B1528';
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
       <Path
         d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
-        fill={filled ? '#FFFFFF' : 'none'}
-        stroke="#FFFFFF"
+        fill={filled ? color : 'none'}
+        stroke={color}
         strokeWidth={1.8}
         strokeLinejoin="round"
       />
@@ -58,6 +59,7 @@ type LikeCardProps = {
    *  (locked cards show neither photo nor name, so there's nothing to
    *  meaningfully report yet). */
   onOpenMenu?: (userId: string, name: string | null) => void;
+  isDark?: boolean;
 };
 
 export function LikeCard({
@@ -70,7 +72,18 @@ export function LikeCard({
   onLikeBack,
   onOpenPaywall,
   onOpenMenu,
+  isDark = true,
 }: LikeCardProps) {
+  const T = {
+    card: isDark ? 'rgba(13, 9, 32, 0.80)' : 'rgba(255,255,255,0.85)',
+    border: isDark ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0,0,0,0.08)',
+    photoPlaceholder: isDark ? 'rgba(30, 15, 60, 0.70)' : 'rgba(0,0,0,0.05)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? 'rgba(255,255,255,0.55)' : '#6B7280',
+    initials: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(27,21,40,0.2)',
+    heartBtnBg: isDark ? 'rgba(20, 12, 40, 0.65)' : 'rgba(255,255,255,0.85)',
+    heartBtnBorder: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.10)',
+  };
   const [busy, setBusy] = useState(false);
   const locked = !item.is_visible;
 
@@ -108,17 +121,17 @@ export function LikeCard({
   const isSuperLike = item.action_type === 'super_like';
 
   return (
-    <View style={styles.card}>
-      <View style={styles.photoWrap}>
+    <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+      <View style={[styles.photoWrap, { backgroundColor: T.photoPlaceholder }]}>
         {locked ? (
-          <View style={styles.lockedPlaceholder}>
+          <View style={[styles.lockedPlaceholder, { backgroundColor: T.photoPlaceholder }]}>
             <LockIcon />
           </View>
         ) : item.photo_url ? (
           <Image source={{ uri: item.photo_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
-          <View style={styles.lockedPlaceholder}>
-            <Text style={styles.initialsFallback}>{(item.full_name ?? '?').slice(0, 1).toUpperCase()}</Text>
+          <View style={[styles.lockedPlaceholder, { backgroundColor: T.photoPlaceholder }]}>
+            <Text style={[styles.initialsFallback, { color: T.initials }]}>{(item.full_name ?? '?').slice(0, 1).toUpperCase()}</Text>
           </View>
         )}
 
@@ -143,9 +156,14 @@ export function LikeCard({
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel={locked ? 'Unlock to match instantly' : 'Like back'}
-          style={({ pressed }) => [styles.heartBtn, pressed && styles.heartBtnPressed, busy && styles.heartBtnBusy]}
+          style={({ pressed }) => [
+            styles.heartBtn,
+            { backgroundColor: T.heartBtnBg, borderColor: T.heartBtnBorder },
+            pressed && styles.heartBtnPressed,
+            busy && styles.heartBtnBusy,
+          ]}
         >
-          <HeartIcon filled={!locked} />
+          <HeartIcon filled={!locked} isDark={isDark} />
         </Pressable>
 
         {locked && !isPaid && freeRevealAvailable && (
@@ -154,7 +172,7 @@ export function LikeCard({
             disabled={busy}
             style={({ pressed }) => [styles.freeRevealPill, pressed && styles.freeRevealPillPressed]}
           >
-            <Text style={styles.freeRevealText}>Use your free reveal</Text>
+            <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Use your free reveal</Text>
           </Pressable>
         )}
 
@@ -164,13 +182,13 @@ export function LikeCard({
             disabled={busy}
             style={({ pressed }) => [styles.freeRevealPill, pressed && styles.freeRevealPillPressed]}
           >
-            <Text style={styles.freeRevealText}>Reveal ({subscriptionRevealsRemaining} left)</Text>
+            <Text style={styles.freeRevealText} numberOfLines={1} ellipsizeMode="tail">Reveal ({subscriptionRevealsRemaining} left)</Text>
           </Pressable>
         )}
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: T.text }]} numberOfLines={1}>
           {locked ? (isSuperLike ? 'Someone super liked you' : 'Someone liked you') : item.full_name}
         </Text>
         {!locked && onOpenMenu && (
@@ -180,7 +198,7 @@ export function LikeCard({
             accessibilityRole="button"
             accessibilityLabel={`Report or block ${item.full_name ?? 'this person'}`}
           >
-            <Text style={styles.menuDots}>⋯</Text>
+            <Text style={[styles.menuDots, { color: T.dim }]}>⋯</Text>
           </Pressable>
         )}
       </View>
@@ -288,13 +306,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 10,
     left: 10,
+    maxWidth: '60%', // caps before heartBtn (36px, right: 10) instead of stretching into it
     backgroundColor: 'rgba(168, 85, 247, 0.85)',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   freeRevealPillPressed: { opacity: 0.85 },
-  freeRevealText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  freeRevealText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
 
   info: {
     paddingHorizontal: 12,

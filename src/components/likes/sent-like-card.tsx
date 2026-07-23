@@ -7,17 +7,24 @@ import type { SentLikeData } from '@/lib/likes';
 // "Your likes" cards are always fully visible to their owner -- no reveal
 // logic, no lock states, no heart action (nothing to do here but see who
 // you've already liked).
-export function SentLikeCard({ item }: { item: SentLikeData }) {
+export function SentLikeCard({ item, isDark = true }: { item: SentLikeData; isDark?: boolean }) {
   const tier = item.compatibility_score != null ? getScoreTier(item.compatibility_score) : null;
+  const T = {
+    card: isDark ? 'rgba(13, 9, 32, 0.80)' : 'rgba(255,255,255,0.85)',
+    border: isDark ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0,0,0,0.08)',
+    photoPlaceholder: isDark ? 'rgba(30, 15, 60, 0.70)' : 'rgba(0,0,0,0.05)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    initials: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(27,21,40,0.2)',
+  };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.photoWrap}>
+    <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+      <View style={[styles.photoWrap, { backgroundColor: T.photoPlaceholder }]}>
         {item.photo_url ? (
           <Image source={{ uri: item.photo_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
           <View style={styles.placeholder}>
-            <Text style={styles.initials}>{item.full_name.slice(0, 1).toUpperCase()}</Text>
+            <Text style={[styles.initials, { color: T.initials }]}>{item.full_name.slice(0, 1).toUpperCase()}</Text>
           </View>
         )}
 
@@ -39,7 +46,7 @@ export function SentLikeCard({ item }: { item: SentLikeData }) {
       </View>
 
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={[styles.name, { color: T.text }]} numberOfLines={1}>
           {item.full_name}
         </Text>
       </View>

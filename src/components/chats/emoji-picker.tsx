@@ -637,9 +637,22 @@ interface EmojiPickerProps {
   onSelectEmoji: (emoji: string) => void;
   onSelectSticker?: (stickerUrl: string) => void;
   mode?: 'emoji' | 'sticker';
+  isDark?: boolean;
 }
 
-export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji' }: EmojiPickerProps) {
+export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji', isDark = true }: EmojiPickerProps) {
+  const T = {
+    bg: isDark ? '#0E0726' : '#FFFFFF',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    headerBg: isDark ? '#0A0420' : '#F9F9FB',
+    dim: isDark ? '#A3A0AB' : '#6B7280',
+    dim2: isDark ? '#8C8896' : '#6B7280',
+    inputBg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    inputBorder: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    placeholderBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+    pressedBg: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  };
   const [searchText, setSearchText] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('smileys');
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
@@ -741,7 +754,7 @@ export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji' }: 
   };
 
   return (
-    <View style={[styles.container, mode === 'sticker' ? { height: 340 } : { height: 310 }]}>
+    <View style={[styles.container, { backgroundColor: T.bg, borderTopColor: T.border }, mode === 'sticker' ? { height: 340 } : { height: 310 }]}>
       {mode === 'emoji' ? (
         <>
           {/* Category Navigation Bar */}
@@ -830,15 +843,15 @@ export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji' }: 
       ) : (
         <>
           {/* Stickers Header & Avatar Creator */}
-          <View style={styles.avatarCreatorWrap}>
+          <View style={[styles.avatarCreatorWrap, { backgroundColor: T.headerBg, borderBottomColor: T.border }]}>
             <View style={styles.avatarInputRow}>
-              <Text style={styles.avatarLabel}>Avatar seed:</Text>
+              <Text style={[styles.avatarLabel, { color: T.dim }]}>Avatar seed:</Text>
               <TextInput
                 value={avatarSeed}
                 onChangeText={setAvatarSeed}
                 placeholder="Type name..."
-                placeholderTextColor="#8C8896"
-                style={styles.avatarInput}
+                placeholderTextColor={T.dim2}
+                style={[styles.avatarInput, { backgroundColor: T.inputBg, color: T.text, borderColor: T.inputBorder }]}
                 autoCorrect={false}
                 maxLength={20}
               />
@@ -853,8 +866,8 @@ export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji' }: 
                     style={[styles.templateBtn, isActive && styles.templateBtnActive]}
                     onPress={() => setAvatarSeed(tmpl.seed)}
                   >
-                    <Image source={{ uri: previewUrl }} style={styles.templatePreview} />
-                    <Text style={[styles.templateText, isActive && styles.templateTextActive]}>
+                    <Image source={{ uri: previewUrl }} style={[styles.templatePreview, { backgroundColor: T.placeholderBg }]} />
+                    <Text style={[styles.templateText, { color: T.dim2 }, isActive && styles.templateTextActive]}>
                       {tmpl.name}
                     </Text>
                   </Pressable>
@@ -875,12 +888,12 @@ export function EmojiPicker({ onSelectEmoji, onSelectSticker, mode = 'emoji' }: 
                   <Pressable
                     style={({ pressed }) => [
                       styles.stickerBtn,
-                      pressed && styles.stickerBtnPressed,
+                      pressed && [styles.stickerBtnPressed, { backgroundColor: T.pressedBg }],
                     ]}
                     onPress={() => onSelectSticker?.(stickerUrl)}
                   >
                     <Image source={{ uri: stickerUrl }} style={styles.stickerImage} contentFit="contain" />
-                    <Text style={styles.stickerName}>{item.name}</Text>
+                    <Text style={[styles.stickerName, { color: T.dim }]}>{item.name}</Text>
                   </Pressable>
                 );
               }}

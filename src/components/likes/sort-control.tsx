@@ -8,9 +8,16 @@ type SortControlProps = {
   active: boolean;
   onToggle: () => void;
   onLockedPress: () => void;
+  isDark?: boolean;
 };
 
-export function SortControl({ unlocked, active, onToggle, onLockedPress }: SortControlProps) {
+export function SortControl({ unlocked, active, onToggle, onLockedPress, isDark = true }: SortControlProps) {
+  const T = {
+    card: isDark ? 'rgba(20, 12, 40, 0.55)' : 'rgba(255,255,255,0.85)',
+    border: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+    label: isDark ? '#C9A6E8' : '#6B7280',
+    labelActive: isDark ? '#D4B8FF' : '#3B0764',
+  };
   return (
     <Pressable
       onPress={unlocked ? onToggle : onLockedPress}
@@ -18,11 +25,12 @@ export function SortControl({ unlocked, active, onToggle, onLockedPress }: SortC
       accessibilityLabel="Sort by compatibility"
       style={({ pressed }) => [
         styles.control,
+        { backgroundColor: T.card, borderColor: T.border },
         active && unlocked && styles.controlActive,
         pressed && styles.controlPressed,
       ]}
     >
-      <Text style={[styles.label, active && unlocked && styles.labelActive]}>Sort by compatibility</Text>
+      <Text style={[styles.label, { color: T.label }, active && unlocked && { color: T.labelActive }]}>Sort by compatibility</Text>
       {!unlocked && (
         <View style={styles.lockBadge}>
           <Text style={styles.lockIcon}>🔒</Text>

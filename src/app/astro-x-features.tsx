@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Pressable, StyleSheet, Text, View,
-  ScrollView, Dimensions, Modal, Platform, Animated, Easing,
+  ScrollView, Dimensions, Modal, Animated, Easing,
   ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 
 import { getSynastryDetail, type AshtakootaDetail, type KootaDetail } from '@/lib/synastry';
 import { useSubscriptionStatus } from '@/context/subscription';
+import { useAppTheme } from '@/lib/theme-context';
 
 // Display label + decorative emoji per real koota key (compute-synastry
 // stores the raw astrologyapi.com response shape: vashya/maitri/gan/bhakut,
@@ -282,6 +283,29 @@ export default function AstroXFeaturesScreen() {
   const westPct = westernScore ? Math.round(parseFloat(westernScore)) : 92;
   const vedicPct = indianScore ? Math.round(parseFloat(indianScore)) : 78;
 
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const T = {
+    screenBg: isDark ? '#08040F' : '#F9F9FB',
+    menuBtnBg: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280',
+    dim2: isDark ? 'rgba(255,255,255,0.7)' : '#4B5563',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    modalOverlay: 'rgba(0,0,0,0.65)',
+    modalCard: isDark ? '#0F0820' : '#FFFFFF',
+    modalHandle: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
+    lockBoxBg: isDark ? 'rgba(10,5,25,0.97)' : 'rgba(0,0,0,0.04)',
+    lockBoxBorder: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+    neutralChipBg: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+    neutralChipBorder: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
+    tableHeaderBg: isDark ? 'rgba(30,10,70,0.95)' : 'rgba(124,58,237,0.12)',
+    rowBg: isDark ? 'rgba(15,5,40,0.7)' : 'rgba(124,58,237,0.05)',
+    progressTrack: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    ringFillBg: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
+    factorCardBg: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+  };
+
   const [showCompatibility, setShowCompatibility] = useState(false);
   const [showBadgesModal, setShowBadgesModal] = useState(false);
   const [showAshtaModal, setShowAshtaModal] = useState(false);
@@ -289,11 +313,13 @@ export default function AstroXFeaturesScreen() {
   const [showIndianModal, setShowIndianModal] = useState(false);
 
   // Pulsing glow animation for the tap hint
+  // eslint-disable-next-line react-hooks/refs -- stable Animated.Value ref, standard RN animation pattern
   const pulseAnim = useRef(new Animated.Value(1)).current;
   // Rotation animations for orbits
   const spinAnimCW = useRef(new Animated.Value(0)).current;
   const spinAnimCCW = useRef(new Animated.Value(0)).current;
   // Glitter animation for the inner diamond core
+  // eslint-disable-next-line react-hooks/refs -- stable Animated.Value ref, standard RN animation pattern
   const glitterAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -334,13 +360,16 @@ export default function AstroXFeaturesScreen() {
         Animated.timing(glitterAnim, { toValue: 0.95, duration: 300, useNativeDriver: true }),
       ])
     ).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are stable across renders by construction
   }, []);
 
+  // eslint-disable-next-line react-hooks/refs -- stable Animated.Value ref, standard RN animation pattern
   const spinCW = spinAnimCW.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
+  // eslint-disable-next-line react-hooks/refs -- stable Animated.Value ref, standard RN animation pattern
   const spinCCW = spinAnimCCW.interpolate({
     inputRange: [0, 1],
     outputRange: ['360deg', '0deg'],
@@ -351,27 +380,27 @@ export default function AstroXFeaturesScreen() {
   // content or misleading fallback copy.
   if (membershipLoading || planSlug === 'free') {
     return (
-      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
-        <StatusBar style="light" />
+      <View style={[styles.container, { backgroundColor: T.screenBg, alignItems: 'center', justifyContent: 'center' }]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <ActivityIndicator color="#A78BFA" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: T.screenBg }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* ── HEADER ── */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => router.back()} style={styles.menuBtn}>
-            <Text style={styles.menuIcon}>☰</Text>
+          <Pressable onPress={() => router.back()} style={[styles.menuBtn, { backgroundColor: T.menuBtnBg }]}>
+            <Text style={[styles.menuIcon, { color: T.text }]}>☰</Text>
           </Pressable>
           <View>
-            <Text style={styles.headerTitle}>Discover</Text>
-            <Text style={styles.headerSubtitle}>AI match insights for you 💜</Text>
+            <Text style={[styles.headerTitle, { color: T.text }]}>Discover</Text>
+            <Text style={[styles.headerSubtitle, { color: T.dim }]}>AI match insights for you 💜</Text>
           </View>
         </View>
         <LinearGradient
@@ -509,8 +538,8 @@ export default function AstroXFeaturesScreen() {
         {planSlug === 'astro_x' ? (
           whyYouMatchBullets.length > 0 && (
             <LinearGradient
-              colors={['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)']}
-              style={styles.fullCard}
+              colors={isDark ? ['rgba(50,20,80,0.7)', 'rgba(15,10,30,0.95)'] : ['#FFFFFF', '#FFFFFF']}
+              style={[styles.fullCard, { borderColor: T.border }]}
             >
               <View style={styles.splitRow}>
                 {/* Left — 3D heart image */}
@@ -520,13 +549,13 @@ export default function AstroXFeaturesScreen() {
 
                 {/* Right — content */}
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>✨ Why you matched</Text>
+                  <Text style={[styles.cardTitle, { color: T.text }]}>✨ Why you matched</Text>
                   {whyYouMatchBullets.map((bullet) => (
                     <View key={bullet.text} style={styles.checkRow}>
                       <View style={styles.checkBubble}>
                         <Text style={styles.checkMark}>✓</Text>
                       </View>
-                      <Text style={styles.checkText}>{bullet.text}</Text>
+                      <Text style={[styles.checkText, { color: T.dim2 }]}>{bullet.text}</Text>
                     </View>
                   ))}
                 </View>
@@ -534,9 +563,9 @@ export default function AstroXFeaturesScreen() {
             </LinearGradient>
           )
         ) : (
-          <View style={styles.fullCardLockBox}>
+          <View style={[styles.fullCardLockBox, { backgroundColor: T.lockBoxBg, borderColor: T.lockBoxBorder }]}>
             <Text style={styles.lockedNarrativeIcon}>🔒</Text>
-            <Text style={styles.ashtaLockText}>Unlock "Why you matched" with AstroX</Text>
+            <Text style={[styles.ashtaLockText, { color: T.text }]}>Unlock &quot;Why you matched&quot; with AstroX</Text>
           </View>
         )}
 
@@ -551,19 +580,19 @@ export default function AstroXFeaturesScreen() {
               hidden entirely until it's actually been computed for this pair */}
           {synastryDetail?.ashtakoota_score != null && (
             <LinearGradient
-              colors={['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)']}
-              style={[styles.smallCard, { justifyContent: 'space-between' }]}
+              colors={isDark ? ['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)'] : ['#FFFFFF', '#FFFFFF']}
+              style={[styles.smallCard, { justifyContent: 'space-between', borderColor: T.border }]}
             >
               <View>
-                <Text style={styles.smallCardTitle}>⚡ Ashtakoota (36/36)</Text>
+                <Text style={[styles.smallCardTitle, { color: T.text }]}>⚡ Ashtakoota (36/36)</Text>
 
                 {/* Ring + Score row */}
                 <View style={styles.ashtaMainRow}>
                   {/* Glowing double ring */}
                   <View style={styles.ashtaRingOuter}>
                     <View style={styles.ashtaBigRing}>
-                      <Text style={styles.ashtaBigScore}>{synastryDetail.ashtakoota_score} / 36</Text>
-                      <Text style={styles.ashtaBigLabel}>{ashtakootaTierLabel(synastryDetail.ashtakoota_score)}</Text>
+                      <Text style={[styles.ashtaBigScore, { color: T.text }]}>{synastryDetail.ashtakoota_score} / 36</Text>
+                      <Text style={[styles.ashtaBigLabel, !isDark && { color: '#7C3AED' }]}>{ashtakootaTierLabel(synastryDetail.ashtakoota_score)}</Text>
                     </View>
                   </View>
                 </View>
@@ -581,11 +610,11 @@ export default function AstroXFeaturesScreen() {
 
           {/* Indian Astrology */}
           <LinearGradient
-            colors={['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)']}
-            style={[styles.smallCard, { justifyContent: 'space-between' }]}
+            colors={isDark ? ['rgba(18,8,45,0.98)', 'rgba(10,5,25,0.99)'] : ['#FFFFFF', '#FFFFFF']}
+            style={[styles.smallCard, { justifyContent: 'space-between', borderColor: T.border }]}
           >
             <View>
-              <Text style={styles.smallCardTitle}>🔰 Indian Astrology</Text>
+              <Text style={[styles.smallCardTitle, { color: T.text }]}>🔰 Indian Astrology</Text>
 
               {/* OM emoji */}
               <View style={styles.omMandalaWrap}>
@@ -601,14 +630,14 @@ export default function AstroXFeaturesScreen() {
 
           {/* Personality Score */}
           <LinearGradient
-            colors={['rgba(30,15,60,0.8)', 'rgba(15,10,30,0.95)']}
-            style={styles.smallCard}
+            colors={isDark ? ['rgba(30,15,60,0.8)', 'rgba(15,10,30,0.95)'] : ['#FFFFFF', '#FFFFFF']}
+            style={[styles.smallCard, { borderColor: T.border }]}
           >
-            <Text style={styles.smallCardTitle}>🧠 Personality Score</Text>
+            <Text style={[styles.smallCardTitle, { color: T.text }]}>🧠 Personality Score</Text>
             <View style={styles.personalityRing}>
-              <Text style={styles.personalityPct}>{pct}%</Text>
+              <Text style={[styles.personalityPct, { color: T.text }]}>{pct}%</Text>
             </View>
-            <Text style={styles.personalityDesc}>
+            <Text style={[styles.personalityDesc, { color: T.dim2 }]}>
               {pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : 'Fair'} compatibility{'\n'}based on your{'\n'}personality.
             </Text>
             <Pressable style={styles.cardFullBtn} onPress={() => setShowPersonalityModal(true)}>
@@ -622,8 +651,8 @@ export default function AstroXFeaturesScreen() {
              compute-synastry's buildBadges(); hidden if this pair earned none ── */}
         {!!synastryDetail?.badges.length && (
           <LinearGradient
-            colors={['rgba(20,10,50,0.85)', 'rgba(10,5,25,0.95)']}
-            style={styles.fullCard}
+            colors={isDark ? ['rgba(20,10,50,0.85)', 'rgba(10,5,25,0.95)'] : ['#FFFFFF', '#FFFFFF']}
+            style={[styles.fullCard, { borderColor: T.border }]}
           >
             <View style={styles.synastryRow}>
               {/* Left: Shield visual */}
@@ -647,8 +676,8 @@ export default function AstroXFeaturesScreen() {
               {/* Right: Content */}
               <View style={styles.synastryRightStacked}>
                 <View>
-                  <Text style={styles.synastryTitleText} numberOfLines={1}>✨ Synastry Badges</Text>
-                  <Text style={styles.synastrySubText} numberOfLines={1}>
+                  <Text style={[styles.synastryTitleText, { color: T.text }]} numberOfLines={1}>✨ Synastry Badges</Text>
+                  <Text style={[styles.synastrySubText, { color: T.dim2 }]} numberOfLines={1}>
                     {synastryDetail.badges.length} special cosmic connection{synastryDetail.badges.length === 1 ? '' : 's'}
                   </Text>
                 </View>
@@ -673,54 +702,54 @@ export default function AstroXFeaturesScreen() {
         animationType="slide"
         onRequestClose={() => setShowCompatibility(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowCompatibility(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: T.modalOverlay }]} onPress={() => setShowCompatibility(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: T.modalCard }]} onPress={() => {}}>
 
             {/* Handle bar */}
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: T.modalHandle }]} />
 
             {/* Title row */}
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>⚡ Cosmic Compatibility</Text>
-              <Text style={styles.modalInfoIcon}>ⓘ</Text>
+              <Text style={[styles.modalTitle, { color: T.text }]}>⚡ Cosmic Compatibility</Text>
+              <Text style={[styles.modalInfoIcon, { color: T.dim }]}>ⓘ</Text>
             </View>
 
             {/* 3 rings */}
             <View style={styles.ringsRow}>
               {/* Western Astrology — Purple */}
               <View style={styles.ringItem}>
-                <View style={[styles.ringCircle, { borderColor: '#8B5CF6' }]}>
-                  <Text style={styles.ringPct}>{westPct}%</Text>
+                <View style={[styles.ringCircle, { backgroundColor: T.ringFillBg }, { borderColor: '#8B5CF6' }]}>
+                  <Text style={[styles.ringPct, { color: T.text }]}>{westPct}%</Text>
                 </View>
-                <Text style={styles.ringLabel}>Western{`\n`}Astrology</Text>
+                <Text style={[styles.ringLabel, { color: T.dim2 }]}>Western{`\n`}Astrology</Text>
               </View>
 
               {/* Vedic Astrology — Cyan */}
               <View style={styles.ringItem}>
-                <View style={[styles.ringCircle, { borderColor: '#06B6D4' }]}>
-                  <Text style={styles.ringPct}>{vedicPct}%</Text>
+                <View style={[styles.ringCircle, { backgroundColor: T.ringFillBg }, { borderColor: '#06B6D4' }]}>
+                  <Text style={[styles.ringPct, { color: T.text }]}>{vedicPct}%</Text>
                 </View>
-                <Text style={styles.ringLabel}>Vedic{`\n`}Astrology</Text>
+                <Text style={[styles.ringLabel, { color: T.dim2 }]}>Vedic{`\n`}Astrology</Text>
               </View>
 
               {/* Personality — Pink */}
               <View style={styles.ringItem}>
-                <View style={[styles.ringCircle, { borderColor: '#EC4899' }]}>
-                  <Text style={styles.ringPct}>{pct}%</Text>
+                <View style={[styles.ringCircle, { backgroundColor: T.ringFillBg }, { borderColor: '#EC4899' }]}>
+                  <Text style={[styles.ringPct, { color: T.text }]}>{pct}%</Text>
                 </View>
-                <Text style={styles.ringLabel}>Personality{`\n`}Match</Text>
+                <Text style={[styles.ringLabel, { color: T.dim2 }]}>Personality{`\n`}Match</Text>
               </View>
             </View>
 
             {/* Total Score footer */}
             <LinearGradient
-              colors={['rgba(30,15,60,0.6)', 'rgba(15,8,30,0.8)']}
-              style={styles.totalScoreRow}
+              colors={isDark ? ['rgba(30,15,60,0.6)', 'rgba(15,8,30,0.8)'] : ['#FFFFFF', '#FFFFFF']}
+              style={[styles.totalScoreRow, { borderColor: T.border }]}
             >
-              <Text style={styles.totalScoreLabel}>Total Compatibility Score</Text>
+              <Text style={[styles.totalScoreLabel, { color: T.dim2 }]}>Total Compatibility Score</Text>
               <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                 <Text style={styles.totalScoreNum}>{overallScore}</Text>
-                <Text style={styles.totalScoreDen}> /100</Text>
+                <Text style={[styles.totalScoreDen, { color: T.dim }]}> /100</Text>
               </View>
             </LinearGradient>
 
@@ -735,15 +764,15 @@ export default function AstroXFeaturesScreen() {
         animationType="slide"
         onRequestClose={() => setShowBadgesModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowBadgesModal(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: T.modalOverlay }]} onPress={() => setShowBadgesModal(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: T.modalCard }]} onPress={() => {}}>
 
             {/* Handle bar */}
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: T.modalHandle }]} />
 
             {/* Title row */}
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>✨ Synastry Badges</Text>
+              <Text style={[styles.modalTitle, { color: T.text }]}>✨ Synastry Badges</Text>
             </View>
 
             {/* Badge pills wrap row — real badges, cycling the 3 pill styles.
@@ -788,9 +817,9 @@ export default function AstroXFeaturesScreen() {
                 })}
               </View>
             ) : (
-              <View style={styles.ashtaLockBox}>
+              <View style={[styles.ashtaLockBox, { backgroundColor: T.lockBoxBg, borderColor: T.lockBoxBorder }]}>
                 <Text style={styles.lockedNarrativeIcon}>🔒</Text>
-                <Text style={styles.ashtaLockText}>Unlock which badges you earned with AstroX</Text>
+                <Text style={[styles.ashtaLockText, { color: T.text }]}>Unlock which badges you earned with AstroX</Text>
               </View>
             )}
 
@@ -805,16 +834,16 @@ export default function AstroXFeaturesScreen() {
         animationType="slide"
         onRequestClose={() => setShowAshtaModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAshtaModal(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: T.modalOverlay }]} onPress={() => setShowAshtaModal(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: T.modalCard }]} onPress={() => {}}>
 
             {/* Handle bar */}
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: T.modalHandle }]} />
 
             {/* Title row */}
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>⚡ Ashtakoota Breakdown <Text style={{ color: '#A78BFA', fontSize: 14 }}>(36/36)</Text></Text>
-              <Text style={styles.modalInfoIcon}>ⓘ</Text>
+              <Text style={[styles.modalTitle, { color: T.text }]}>⚡ Ashtakoota Breakdown <Text style={{ color: '#A78BFA', fontSize: 14 }}>(36/36)</Text></Text>
+              <Text style={[styles.modalInfoIcon, { color: T.dim }]}>ⓘ</Text>
             </View>
 
             {/* Grid of 8 parameters — real received_points/total_points from
@@ -830,20 +859,20 @@ export default function AstroXFeaturesScreen() {
               <View style={styles.ashtaGrid}>
                 <View style={styles.ashtaGridRow}>
                   {KOOTA_DISPLAY.slice(0, 4).map(({ key, label, emoji }, i) => (
-                    <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
-                      <Text style={styles.ashtaItemName}>{label}</Text>
+                    <View key={key} style={[i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem, { borderRightColor: T.border }]}>
+                      <Text style={[styles.ashtaItemName, { color: T.dim2 }]}>{label}</Text>
                       <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
                       <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
                     </View>
                   ))}
                 </View>
 
-                <View style={styles.ashtaGridDivider} />
+                <View style={[styles.ashtaGridDivider, { backgroundColor: T.border }]} />
 
                 <View style={styles.ashtaGridRow}>
                   {KOOTA_DISPLAY.slice(4, 8).map(({ key, label, emoji }, i) => (
-                    <View key={key} style={i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem}>
-                      <Text style={styles.ashtaItemName}>{label}</Text>
+                    <View key={key} style={[i === 3 ? styles.ashtaGridItemLast : styles.ashtaGridItem, { borderRightColor: T.border }]}>
+                      <Text style={[styles.ashtaItemName, { color: T.dim2 }]}>{label}</Text>
                       <Text style={styles.ashtaItemEmoji}>{emoji}</Text>
                       <Text style={styles.ashtaStars}>{kootaStars(synastryDetail?.ashtakoota_detail?.[key])}</Text>
                     </View>
@@ -851,9 +880,9 @@ export default function AstroXFeaturesScreen() {
                 </View>
               </View>
             ) : (
-              <View style={styles.ashtaLockBox}>
+              <View style={[styles.ashtaLockBox, { backgroundColor: T.lockBoxBg, borderColor: T.lockBoxBorder }]}>
                 <Text style={styles.lockedNarrativeIcon}>🔒</Text>
-                <Text style={styles.ashtaLockText}>Unlock the full 8-koota breakdown with AstroX</Text>
+                <Text style={[styles.ashtaLockText, { color: T.text }]}>Unlock the full 8-koota breakdown with AstroX</Text>
               </View>
             )}
 
@@ -868,16 +897,16 @@ export default function AstroXFeaturesScreen() {
         animationType="slide"
         onRequestClose={() => setShowPersonalityModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowPersonalityModal(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: T.modalOverlay }]} onPress={() => setShowPersonalityModal(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: T.modalCard }]} onPress={() => {}}>
 
             {/* Handle bar */}
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: T.modalHandle }]} />
 
             {/* Title row */}
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>🧠 Personality Compatibility Details</Text>
-              <Text style={styles.modalInfoIcon}>ⓘ</Text>
+              <Text style={[styles.modalTitle, { color: T.text }]}>🧠 Personality Compatibility Details</Text>
+              <Text style={[styles.modalInfoIcon, { color: T.dim }]}>ⓘ</Text>
             </View>
 
             {/* Premium Factor Cards -- the overall Personality Score % on
@@ -885,21 +914,21 @@ export default function AstroXFeaturesScreen() {
                 already shown in the shared Cosmic Compatibility modal), but
                 the per-factor breakdown here is AstroX-only. */}
             {planSlug !== 'astro_x' ? (
-              <View style={styles.fullCardLockBox}>
+              <View style={[styles.fullCardLockBox, { backgroundColor: T.lockBoxBg, borderColor: T.lockBoxBorder }]}>
                 <Text style={styles.lockedNarrativeIcon}>🔒</Text>
-                <Text style={styles.ashtaLockText}>Unlock the full personality breakdown with AstroX</Text>
+                <Text style={[styles.ashtaLockText, { color: T.text }]}>Unlock the full personality breakdown with AstroX</Text>
               </View>
             ) : (
             <View style={{ marginTop: 8, marginBottom: 20, gap: 12 }}>
               {/* Relationship Goal Row */}
-              <View style={styles.factorCard}>
+              <View style={[styles.factorCard, { backgroundColor: T.factorCardBg, borderColor: T.border }]}>
                 <View style={styles.factorHeader}>
-                  <Text style={styles.factorLabel}>🎯  Relationship goal</Text>
+                  <Text style={[styles.factorLabel, { color: T.text }]}>🎯  Relationship goal</Text>
                   <Text style={[styles.factorValue, { color: '#C084FC' }]}>
                     {relationshipGoalVal !== '—' ? `${relationshipGoalVal}%` : '—'}
                   </Text>
                 </View>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: T.progressTrack }]}>
                   <LinearGradient
                     colors={['#8B5CF6', '#C084FC']}
                     start={{ x: 0, y: 0 }}
@@ -910,14 +939,14 @@ export default function AstroXFeaturesScreen() {
               </View>
 
               {/* Hobbies Row */}
-              <View style={styles.factorCard}>
+              <View style={[styles.factorCard, { backgroundColor: T.factorCardBg, borderColor: T.border }]}>
                 <View style={styles.factorHeader}>
-                  <Text style={styles.factorLabel}>🎨  Hobbies</Text>
+                  <Text style={[styles.factorLabel, { color: T.text }]}>🎨  Hobbies</Text>
                   <Text style={[styles.factorValue, { color: '#FBBF24' }]}>
                     {hobbiesVal !== '—' ? `${hobbiesVal}%` : '—'}
                   </Text>
                 </View>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: T.progressTrack }]}>
                   <LinearGradient
                     colors={['#F59E0B', '#FBBF24']}
                     start={{ x: 0, y: 0 }}
@@ -928,14 +957,14 @@ export default function AstroXFeaturesScreen() {
               </View>
 
               {/* Lifestyle Row */}
-              <View style={styles.factorCard}>
+              <View style={[styles.factorCard, { backgroundColor: T.factorCardBg, borderColor: T.border }]}>
                 <View style={styles.factorHeader}>
-                  <Text style={styles.factorLabel}>🍷  Lifestyle</Text>
+                  <Text style={[styles.factorLabel, { color: T.text }]}>🍷  Lifestyle</Text>
                   <Text style={[styles.factorValue, { color: '#06B6D4' }]}>
                     {lifestyleVal !== '—' ? `${lifestyleVal}%` : '—'}
                   </Text>
                 </View>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: T.progressTrack }]}>
                   <LinearGradient
                     colors={['#3B82F6', '#06B6D4']}
                     start={{ x: 0, y: 0 }}
@@ -946,14 +975,14 @@ export default function AstroXFeaturesScreen() {
               </View>
 
               {/* Personality Row */}
-              <View style={styles.factorCard}>
+              <View style={[styles.factorCard, { backgroundColor: T.factorCardBg, borderColor: T.border }]}>
                 <View style={styles.factorHeader}>
-                  <Text style={styles.factorLabel}>🎭  Personality traits</Text>
+                  <Text style={[styles.factorLabel, { color: T.text }]}>🎭  Personality traits</Text>
                   <Text style={[styles.factorValue, { color: '#EC4899' }]}>
                     {personalityVal !== '—' ? `${personalityVal}%` : '—'}
                   </Text>
                 </View>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: T.progressTrack }]}>
                   <LinearGradient
                     colors={['#D946EF', '#EC4899']}
                     start={{ x: 0, y: 0 }}
@@ -964,14 +993,14 @@ export default function AstroXFeaturesScreen() {
               </View>
 
               {/* Communication Row */}
-              <View style={styles.factorCard}>
+              <View style={[styles.factorCard, { backgroundColor: T.factorCardBg, borderColor: T.border }]}>
                 <View style={styles.factorHeader}>
-                  <Text style={styles.factorLabel}>💬  Communication</Text>
+                  <Text style={[styles.factorLabel, { color: T.text }]}>💬  Communication</Text>
                   <Text style={[styles.factorValue, { color: '#10B981' }]}>
                     {communicationVal !== '—' ? `${communicationVal}%` : '—'}
                   </Text>
                 </View>
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: T.progressTrack }]}>
                   <LinearGradient
                     colors={['#14B8A6', '#10B981']}
                     start={{ x: 0, y: 0 }}
@@ -994,16 +1023,16 @@ export default function AstroXFeaturesScreen() {
         animationType="slide"
         onRequestClose={() => setShowIndianModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowIndianModal(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: T.modalOverlay }]} onPress={() => setShowIndianModal(false)}>
+          <Pressable style={[styles.modalCard, { backgroundColor: T.modalCard }]} onPress={() => {}}>
             {/* Handle */}
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: T.modalHandle }]} />
 
             {/* Header */}
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>🔰 Indian Astrology Report</Text>
+              <Text style={[styles.modalTitle, { color: T.text }]}>🔰 Indian Astrology Report</Text>
               <Pressable onPress={() => setShowIndianModal(false)}>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 20 }}>✕</Text>
+                <Text style={{ color: T.dim, fontSize: 20 }}>✕</Text>
               </Pressable>
             </View>
 
@@ -1024,12 +1053,12 @@ export default function AstroXFeaturesScreen() {
                   marginBottom: 16,
                   padding: 14,
                   borderRadius: 12,
-                  backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+                  backgroundColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.1)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.1)' : T.neutralChipBg,
                   borderWidth: 1,
-                  borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.12)',
+                  borderColor: manglikStatus === 'yes' ? 'rgba(239,68,68,0.3)' : manglikStatus === 'no' ? 'rgba(16,185,129,0.3)' : T.neutralChipBorder,
                   alignItems: 'center',
                 }}>
-                  <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : manglikStatus === 'no' ? '#34D399' : 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: '700' }}>
+                  <Text style={{ color: manglikStatus === 'yes' ? '#F87171' : manglikStatus === 'no' ? '#34D399' : T.dim2, fontSize: 16, fontWeight: '700' }}>
                     {manglikStatus === 'yes' ? '⚠️  Manglik' : manglikStatus === 'no' ? '✅  No Manglik Dosha' : 'Not available yet'}
                   </Text>
                 </View>
@@ -1037,38 +1066,38 @@ export default function AstroXFeaturesScreen() {
                 {/* Dosha table */}
                 <View style={{ marginHorizontal: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(124,58,237,0.2)' }}>
                   {/* Header row */}
-                  <View style={{ flexDirection: 'row', backgroundColor: 'rgba(30,10,70,0.95)', paddingVertical: 10, paddingHorizontal: 16 }}>
-                    <Text style={{ color: '#fff', fontWeight: '700', flex: 1, fontSize: 13 }}>Dosha</Text>
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Status</Text>
+                  <View style={{ flexDirection: 'row', backgroundColor: T.tableHeaderBg, paddingVertical: 10, paddingHorizontal: 16 }}>
+                    <Text style={{ color: isDark ? '#fff' : T.text, fontWeight: '700', flex: 1, fontSize: 13 }}>Dosha</Text>
+                    <Text style={{ color: isDark ? '#fff' : T.text, fontWeight: '700', fontSize: 13 }}>Status</Text>
                   </View>
                   {/* Nadi Dosha */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.7)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: isDark ? 'rgba(15,5,40,0.7)' : T.rowBg, borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                    <Text style={{ color: T.dim2, flex: 1, fontSize: 14 }}>Nadi Dosha</Text>
                     {nadiDosha === 'yes' ? (
                       <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
                     ) : nadiDosha === 'no' ? (
                       <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
                     ) : (
-                      <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
+                      <View style={[styles.greenDot, { backgroundColor: T.neutralChipBg }]}><Text style={[styles.greenTick, { color: T.dim }]}>—</Text></View>
                     )}
                   </View>
                   {/* Bhakoot Dosha */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(15,5,40,0.5)', borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: isDark ? 'rgba(15,5,40,0.5)' : T.rowBg, borderTopWidth: 1, borderColor: 'rgba(124,58,237,0.15)' }}>
+                    <Text style={{ color: T.dim2, flex: 1, fontSize: 14 }}>Bhakoot Dosha</Text>
                     {bhakootDosha === 'yes' ? (
                       <View style={[styles.greenDot, { backgroundColor: '#EF4444' }]}><Text style={styles.greenTick}>✗</Text></View>
                     ) : bhakootDosha === 'no' ? (
                       <View style={styles.greenDot}><Text style={styles.greenTick}>✓</Text></View>
                     ) : (
-                      <View style={[styles.greenDot, { backgroundColor: 'rgba(255,255,255,0.12)' }]}><Text style={[styles.greenTick, { color: 'rgba(255,255,255,0.5)' }]}>—</Text></View>
+                      <View style={[styles.greenDot, { backgroundColor: T.neutralChipBg }]}><Text style={[styles.greenTick, { color: T.dim }]}>—</Text></View>
                     )}
                   </View>
                 </View>
               </>
             ) : (
-              <View style={[styles.fullCardLockBox, { marginHorizontal: 16 }]}>
+              <View style={[styles.fullCardLockBox, { backgroundColor: T.lockBoxBg, borderColor: T.lockBoxBorder, marginHorizontal: 16 }]}>
                 <Text style={styles.lockedNarrativeIcon}>🔒</Text>
-                <Text style={styles.ashtaLockText}>Unlock Manglik &amp; dosha detail with AstroX</Text>
+                <Text style={[styles.ashtaLockText, { color: T.text }]}>Unlock Manglik &amp; dosha detail with AstroX</Text>
               </View>
             )}
 

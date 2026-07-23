@@ -20,7 +20,6 @@ import {
   View,
   Modal,
 } from 'react-native';
-import { alert } from '@/lib/themed-alert';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,7 +41,6 @@ import { saveOnboardingResponses } from '@/lib/onboarding-responses';
 import { saveSection1Height } from '@/lib/section1-responses';
 import { saveUserProfile } from '@/lib/user-profile';
 import { useAppTheme } from '@/lib/theme-context';
-import { uploadUserPhoto, getUserPhotos, setPrimaryPhoto } from '@/lib/user-photos';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -70,7 +68,7 @@ export default function ProfileScreen() {
 
   const bgSource = isDark
     ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    : require('@/assets/images/tabs-bg-light.jpg');
 
   const handleSaveBio = async (bio: string) => {
     const result = await saveOnboardingResponses({ about_me: bio });
@@ -105,93 +103,6 @@ export default function ProfileScreen() {
     }
     if (result.success) await refetch();
     return result;
-  };
-
-  const handlePickAndUploadPrimary = async () => {
-    try {
-      const ImagePicker = require('expo-image-picker');
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        alert('Permission Required', 'AstroDate needs gallery access to upload photos.');
-        return;
-      }
-
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-        base64: true,
-      });
-
-      if (pickerResult.canceled || !pickerResult.assets?.length) return;
-
-      const asset = pickerResult.assets[0];
-      if (!asset.base64) {
-        alert('Error', 'Could not read image file data');
-        return;
-      }
-
-      // Check max photos limit
-      const existing = await getUserPhotos();
-      if (existing.success && (existing.data?.length ?? 0) >= 6) {
-        alert('Limit Reached', 'You can have at most 6 photos in your gallery. Remove one first.');
-        return;
-      }
-
-      // Get next display order
-      const usedOrders = new Set((existing.data ?? []).map((p) => p.display_order));
-      const nextOrder = [0, 1, 2, 3, 4, 5].find((i) => !usedOrders.has(i)) ?? 0;
-
-      const result = await uploadUserPhoto({
-        uri: asset.uri,
-        base64: asset.base64,
-        displayOrder: nextOrder,
-      });
-
-      if (!result.success) {
-        alert('Upload Failed', result.error || 'An error occurred during upload.');
-        return;
-      }
-
-      // Set the newly uploaded photo as the primary profile photo
-      const updated = await getUserPhotos();
-      if (updated.success && updated.data) {
-        const newPhoto = updated.data.find((p) => p.display_order === nextOrder);
-        if (newPhoto) {
-          await setPrimaryPhoto(newPhoto.id);
-        }
-      }
-
-      await refetch();
-      alert('Success', 'Profile photo updated successfully!');
-    } catch (err) {
-      console.error(err);
-      alert('Error', 'An unexpected error occurred while uploading.');
-    }
-  };
-
-  const handleEditPhoto = () => {
-    alert(
-      'Profile Photo',
-      'Choose an option to edit your profile picture',
-      [
-        {
-          text: 'Upload Photo',
-          onPress: handlePickAndUploadPrimary,
-        },
-        {
-          text: 'Manage Gallery',
-          onPress: () => {
-            router.push('/upload-photos');
-          },
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ]
-    );
   };
 
   const T = {

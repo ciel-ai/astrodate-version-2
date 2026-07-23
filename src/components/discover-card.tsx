@@ -17,6 +17,7 @@ import type { DiscoverCardData } from '@/lib/discover';
 interface DiscoverCardProps {
   card: DiscoverCardData;
   tier: string;
+  isDark?: boolean;
   isFlipped?: boolean;
   onFlipChange?: (flipped: boolean) => void;
   onOpenMenu?: () => void;
@@ -194,7 +195,21 @@ function cap(str: string | undefined | null) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOpenMenu, extraDetails }: DiscoverCardProps) {
+export function DiscoverCard({ card, tier, isDark = true, isFlipped = false, onFlipChange, onOpenMenu, extraDetails }: DiscoverCardProps) {
+  // Chrome/surface tokens for the info cards (About, Preferences, Lifestyle,
+  // prompts, summary) -- NOT applied to anything overlaid directly on a real
+  // photo (name/location overlays, verified badge, cosmic-match ring, "Read
+  // More" links, back-face scrim), which stay constant across themes.
+  const T = {
+    surface: isDark ? 'rgba(20, 12, 40, 0.70)' : 'rgba(255,255,255,0.85)',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    dim: isDark ? 'rgba(255,255,255,0.45)' : '#6B7280',
+    dim2: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(27,21,40,0.65)',
+    placeholderText: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(27,21,40,0.2)',
+    placeholderBg: isDark ? 'rgba(30, 15, 60, 0.70)' : 'rgba(0,0,0,0.05)',
+  };
+
   const name = card.full_name ?? 'Someone';
   const age = card.age ?? '';
   const initials = name.slice(0, 2).toUpperCase();
@@ -275,7 +290,7 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
               transform: [{ rotateY: frontInterpolate }],
               opacity: frontOpacity,
               backfaceVisibility: 'hidden',
-              backgroundColor: 'rgba(30, 15, 60, 0.70)',
+              backgroundColor: T.placeholderBg,
               borderRadius: 24,
               overflow: 'hidden',
               pointerEvents: isFlipped ? 'none' : 'auto',
@@ -286,7 +301,7 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
             {heroSource ? (
               <Image source={heroSource} style={StyleSheet.absoluteFill} contentFit="cover" />
             ) : (
-              <Text style={styles.heroInitials}>{initials}</Text>
+              <Text style={[styles.heroInitials, { color: T.placeholderText }]}>{initials}</Text>
             )}
           </Pressable>
 
@@ -335,59 +350,59 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
             <Pressable onPress={() => onFlipChange?.(false)} style={{ padding: 16, paddingBottom: 24, gap: 14 }}>
               {/* Cosmic Profile Overview Grid Card */}
               <LinearGradient
-                colors={['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)']}
+                colors={isDark ? ['rgba(30, 16, 68, 0.85)', 'rgba(15, 8, 38, 0.95)'] : ['#FFFFFF', '#FFFFFF']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
-                style={styles.aboutGridCard}
+                style={[styles.aboutGridCard, { borderColor: T.border }]}
               >
                 <View style={styles.aboutGridRow}>
                   <View style={styles.gridCol}>
                     <LinearGradient colors={['#EC4899', '#BE185D']} style={styles.gridIconCircleGradient}>
                       <Text style={styles.gridIconText}>💖</Text>
                     </LinearGradient>
-                    <Text style={styles.gridMainText} numberOfLines={1}>Long-term</Text>
-                    <Text style={styles.gridSubText} numberOfLines={1}>Relationship</Text>
+                    <Text style={[styles.gridMainText, { color: T.text }]} numberOfLines={1}>Long-term</Text>
+                    <Text style={[styles.gridSubText, { color: T.dim }]} numberOfLines={1}>Relationship</Text>
                   </View>
-                  <View style={styles.gridDivider} />
+                  <View style={[styles.gridDivider, { backgroundColor: T.border }]} />
                   <View style={styles.gridCol}>
                     <LinearGradient colors={['#A855F7', '#6D28D9']} style={styles.gridIconCircleGradient}>
                       <Text style={styles.gridIconText}>♓</Text>
                     </LinearGradient>
-                    <Text style={styles.gridMainText} numberOfLines={1}>{card.western_sign || 'Pisces'}</Text>
-                    <Text style={styles.gridSubText} numberOfLines={1}>(Western)</Text>
+                    <Text style={[styles.gridMainText, { color: T.text }]} numberOfLines={1}>{card.western_sign || 'Pisces'}</Text>
+                    <Text style={[styles.gridSubText, { color: T.dim }]} numberOfLines={1}>(Western)</Text>
                   </View>
-                  <View style={styles.gridDivider} />
+                  <View style={[styles.gridDivider, { backgroundColor: T.border }]} />
                   <View style={styles.gridCol}>
                     <LinearGradient colors={['#3B82F6', '#1D4ED8']} style={styles.gridIconCircleGradient}>
                       <Text style={styles.gridIconText}>🪐</Text>
                     </LinearGradient>
-                    <Text style={styles.gridMainText} numberOfLines={1}>{card.vedic_sign ? card.vedic_sign.split(' ')[0] : 'Meena'}</Text>
-                    <Text style={styles.gridSubText} numberOfLines={1}>(Vedic)</Text>
+                    <Text style={[styles.gridMainText, { color: T.text }]} numberOfLines={1}>{card.vedic_sign ? card.vedic_sign.split(' ')[0] : 'Meena'}</Text>
+                    <Text style={[styles.gridSubText, { color: T.dim }]} numberOfLines={1}>(Vedic)</Text>
                   </View>
-                  <View style={styles.gridDivider} />
+                  <View style={[styles.gridDivider, { backgroundColor: T.border }]} />
                   <View style={styles.gridCol}>
                     <LinearGradient colors={['#F59E0B', '#B45309']} style={styles.gridIconCircleGradient}>
                       <Text style={styles.gridIconText}>⭐</Text>
                     </LinearGradient>
-                    <Text style={styles.gridMainText} numberOfLines={1}>{card.nakshatra || 'Revati'}</Text>
-                    <Text style={styles.gridSubText} numberOfLines={1}>Nakshatra</Text>
+                    <Text style={[styles.gridMainText, { color: T.text }]} numberOfLines={1}>{card.nakshatra || 'Revati'}</Text>
+                    <Text style={[styles.gridSubText, { color: T.dim }]} numberOfLines={1}>Nakshatra</Text>
                   </View>
                 </View>
-                <View style={styles.capsuleBar}>
+                <View style={[styles.capsuleBar, { backgroundColor: T.surface, borderColor: T.border }]}>
                   <View style={styles.capsuleItemColumn}>
                     <View style={styles.capsuleRow}>
                       <Text style={styles.capsuleIcon}>📏</Text>
-                      <Text style={styles.capsuleTextValue}>{card.height_cm || 178} cm</Text>
+                      <Text style={[styles.capsuleTextValue, { color: T.text }]}>{card.height_cm || 178} cm</Text>
                     </View>
-                    <Text style={styles.capsuleTextLabel}>Height</Text>
+                    <Text style={[styles.capsuleTextLabel, { color: T.dim }]}>Height</Text>
                   </View>
-                  <View style={styles.capsuleDivider} />
+                  <View style={[styles.capsuleDivider, { backgroundColor: T.border }]} />
                   <View style={styles.capsuleItemColumn}>
                     <View style={styles.capsuleRow}>
                       <Text style={styles.capsuleIcon}>🏫</Text>
-                      <Text style={styles.capsuleTextValue}>{locationLabel.split(',')[0] || 'Chennai'}</Text>
+                      <Text style={[styles.capsuleTextValue, { color: T.text }]}>{locationLabel.split(',')[0] || 'Chennai'}</Text>
                     </View>
-                    <Text style={styles.capsuleTextLabel}>Location</Text>
+                    <Text style={[styles.capsuleTextLabel, { color: T.dim }]}>Location</Text>
                   </View>
                 </View>
               </LinearGradient>
@@ -395,8 +410,8 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
               {!!card.about && (
                 <View style={styles.cSection}>
                   <Text style={styles.cSectionTitle}>About Me</Text>
-                  <View style={styles.cCard}>
-                    <Text style={styles.cAboutText} numberOfLines={showFullAbout ? undefined : 4}>
+                  <View style={[styles.cCard, { backgroundColor: T.surface, borderColor: T.border }]}>
+                    <Text style={[styles.cAboutText, { color: T.dim2 }]} numberOfLines={showFullAbout ? undefined : 4}>
                       {card.about}
                     </Text>
                     {card.about.length > 120 && (
@@ -417,46 +432,46 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
                 <Text style={styles.cSectionTitle}>Preferences & Personality</Text>
                 <View style={{ gap: 10 }}>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Relationship Status</Text>
-                      <Text style={styles.cInfoValue}>{cap(extraDetails?.relationship_status)}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Relationship Status</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{cap(extraDetails?.relationship_status)}</Text>
                     </View>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Personality Type</Text>
-                      <Text style={styles.cInfoValue}>{cap(extraDetails?.introvert_extrovert)}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Personality Type</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{cap(extraDetails?.introvert_extrovert)}</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Interested In</Text>
-                      <Text style={styles.cInfoValue}>{cap(extraDetails?.interest?.[0])}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Interested In</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{cap(extraDetails?.interest?.[0])}</Text>
                     </View>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Sexual Orientation</Text>
-                      <Text style={styles.cInfoValue}>{extraDetails?.sexual_orientation || '—'}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Sexual Orientation</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.sexual_orientation || '—'}</Text>
                     </View>
                   </View>
 
                   {showAllPrefs && (
                     <>
                       <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Religion</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.religion || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Religion</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.religion || '—'}</Text>
                         </View>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Relationship Style</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.relationship_style || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Relationship Style</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.relationship_style || '—'}</Text>
                         </View>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Have Children</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.have_children || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Have Children</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.have_children || '—'}</Text>
                         </View>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Want Children</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.want_children || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Want Children</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.want_children || '—'}</Text>
                         </View>
                       </View>
                     </>
@@ -477,52 +492,52 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
                 <Text style={styles.cSectionTitle}>Lifestyle</Text>
                 <View style={{ gap: 10 }}>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Education</Text>
-                      <Text style={styles.cInfoValue}>{extraDetails?.education || '—'}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Education</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.education || '—'}</Text>
                     </View>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Smoking</Text>
-                      <Text style={styles.cInfoValue}>{extraDetails?.smoking || '—'}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Smoking</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.smoking || '—'}</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Drinking</Text>
-                      <Text style={styles.cInfoValue}>{extraDetails?.drinking || '—'}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Drinking</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.drinking || '—'}</Text>
                     </View>
-                    <View style={styles.cGrid2ColFlex}>
-                      <Text style={styles.cInfoLabel}>Weed</Text>
-                      <Text style={styles.cInfoValue}>{extraDetails?.weed || '—'}</Text>
+                    <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                      <Text style={[styles.cInfoLabel, { color: T.dim }]}>Weed</Text>
+                      <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.weed || '—'}</Text>
                     </View>
                   </View>
 
                   {showAllLifestyle && (
                     <>
                       <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Workout</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.workout || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Workout</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.workout || '—'}</Text>
                         </View>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Diet</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.diet || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Diet</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.diet || '—'}</Text>
                         </View>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Pets</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.pets || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Pets</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.pets || '—'}</Text>
                         </View>
-                        <View style={styles.cGrid2ColFlex}>
-                          <Text style={styles.cInfoLabel}>Travel</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails?.travel || '—'}</Text>
+                        <View style={[styles.cGrid2ColFlex, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Travel</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails?.travel || '—'}</Text>
                         </View>
                       </View>
                       {extraDetails?.languages && extraDetails.languages.length > 0 && (
-                        <View style={styles.cInfoFullCol}>
-                          <Text style={styles.cInfoLabel}>Languages Spoken</Text>
-                          <Text style={styles.cInfoValue}>{extraDetails.languages.join(', ')}</Text>
+                        <View style={[styles.cInfoFullCol, { backgroundColor: T.surface, borderColor: T.border }]}>
+                          <Text style={[styles.cInfoLabel, { color: T.dim }]}>Languages Spoken</Text>
+                          <Text style={[styles.cInfoValue, { color: T.text }]}>{extraDetails.languages.join(', ')}</Text>
                         </View>
                       )}
                     </>
@@ -559,31 +574,31 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
 
 
       {/* Name, Age, Location, Looking For & Score Summary Box */}
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: T.surface, borderColor: T.border }]}>
         <View style={styles.summaryHeader}>
           <View style={styles.summaryLeft}>
             <View style={styles.summaryNameRow}>
-              <Text style={styles.summaryNameText}>{name}</Text>
+              <Text style={[styles.summaryNameText, { color: T.text }]}>{name}</Text>
               <View style={styles.verifiedBadgeMini}>
                 <Text style={styles.verifiedTextMini}>✓</Text>
               </View>
-              <Text style={styles.summaryAgeText}>{age}</Text>
+              <Text style={[styles.summaryAgeText, { color: T.text }]}>{age}</Text>
             </View>
             {!!(locationLabel || distanceLabel) && (
-              <Text style={styles.summaryLocationText}>
+              <Text style={[styles.summaryLocationText, { color: T.dim }]}>
                 📍 {locationLabel} {distanceLabel ? `• ${distanceLabel.replace('Less than', '<')}` : ''}
               </Text>
             )}
           </View>
-          <View style={styles.summaryScoreRing}>
-            <Text style={styles.summaryScorePercent}>{Math.round(card.score)}%</Text>
-            <Text style={styles.summaryScoreLabel}>Match</Text>
+          <View style={[styles.summaryScoreRing, { backgroundColor: T.surface }]}>
+            <Text style={[styles.summaryScorePercent, { color: T.text }]}>{Math.round(card.score)}%</Text>
+            <Text style={[styles.summaryScoreLabel, { color: T.dim }]}>Match</Text>
           </View>
         </View>
 
         {card.looking_for ? (
-          <View style={styles.summaryLookingFor}>
-            <Text style={styles.summaryLookingForText}>
+          <View style={[styles.summaryLookingFor, !isDark && { backgroundColor: 'rgba(0,0,0,0.04)' }]}>
+            <Text style={[styles.summaryLookingForText, { color: T.text }]}>
               💖 Looking for a <Text style={{ fontWeight: '700', color: '#F59E0B' }}>{card.looking_for.toLowerCase()}</Text>
             </Text>
           </View>
@@ -593,24 +608,24 @@ export function DiscoverCard({ card, tier, isFlipped = false, onFlipChange, onOp
       <SwipeDiscover card={card} />
       <FullPhoto src={ep0src} />
       {prompts[0] && (
-        <View style={styles.promptCard}>
-          <Text style={styles.promptQuestion}>{prompts[0].question}</Text>
-          <Text style={styles.promptAnswer}>{prompts[0].answer}</Text>
+        <View style={[styles.promptCard, { backgroundColor: T.surface, borderColor: T.border }]}>
+          <Text style={[styles.promptQuestion, { color: T.dim }]}>{prompts[0].question}</Text>
+          <Text style={[styles.promptAnswer, { color: T.text }]}>{prompts[0].answer}</Text>
         </View>
       )}
       <FullPhoto src={ep1src} />
       {prompts[1] && (
-        <View style={styles.promptCard}>
-          <Text style={styles.promptQuestion}>{prompts[1].question}</Text>
-          <Text style={styles.promptAnswer}>{prompts[1].answer}</Text>
+        <View style={[styles.promptCard, { backgroundColor: T.surface, borderColor: T.border }]}>
+          <Text style={[styles.promptQuestion, { color: T.dim }]}>{prompts[1].question}</Text>
+          <Text style={[styles.promptAnswer, { color: T.text }]}>{prompts[1].answer}</Text>
         </View>
       )}
       <FullPhoto src={ep2src} />
       <FullPhoto src={ep3src} />
       {prompts[2] && (
-        <View style={styles.promptCard}>
-          <Text style={styles.promptQuestion}>{prompts[2].question}</Text>
-          <Text style={styles.promptAnswer}>{prompts[2].answer}</Text>
+        <View style={[styles.promptCard, { backgroundColor: T.surface, borderColor: T.border }]}>
+          <Text style={[styles.promptQuestion, { color: T.dim }]}>{prompts[2].question}</Text>
+          <Text style={[styles.promptAnswer, { color: T.text }]}>{prompts[2].answer}</Text>
         </View>
       )}
       <FullPhoto src={ep4src} />

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAppTheme } from '@/lib/theme-context';
 import { useLikes } from '@/context/likes';
 import { getMySentLikes, likeBack, spendFreeReveal, spendSubscriptionReveal, type SentLikeData } from '@/lib/likes';
 import { blockAndLeave, reportUser } from '@/lib/chats';
@@ -22,6 +23,15 @@ function openPaywall(reason: string) {
 
 export default function LikesScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useAppTheme();
+  const isDark = theme === 'dark';
+  const T = {
+    text: isDark ? '#FFFFFF' : '#1B1528',
+    card: isDark ? 'rgba(20, 12, 40, 0.55)' : 'rgba(255,255,255,0.85)',
+    border: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+    dim: isDark ? '#8B8D99' : '#6B7280',
+    labelActive: isDark ? '#FFFFFF' : '#3B0764',
+  };
   const { data, loading, refresh, markSeen } = useLikes();
 
   const [subTab, setSubTab] = useState<SubTab>('liked-you');
@@ -173,29 +183,29 @@ export default function LikesScreen() {
     ]);
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+  const content = (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110 }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.header}>Likes</Text>
+        <Text style={[styles.header, { color: T.text }]}>Likes</Text>
 
         <View style={styles.tabRow}>
           <Pressable
             onPress={() => handleSelectSubTab('liked-you')}
-            style={[styles.tabBtn, subTab === 'liked-you' && styles.tabBtnActive]}
+            style={[styles.tabBtn, { backgroundColor: T.card, borderColor: T.border }, subTab === 'liked-you' && styles.tabBtnActive]}
           >
-            <Text style={[styles.tabLabel, subTab === 'liked-you' && styles.tabLabelActive]}>
+            <Text style={[styles.tabLabel, { color: T.dim }, subTab === 'liked-you' && { color: T.labelActive }]}>
               Liked you{data && data.count > 0 ? ` (${data.count})` : ''}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => handleSelectSubTab('your-likes')}
-            style={[styles.tabBtn, subTab === 'your-likes' && styles.tabBtnActive]}
+            style={[styles.tabBtn, { backgroundColor: T.card, borderColor: T.border }, subTab === 'your-likes' && styles.tabBtnActive]}
           >
-            <Text style={[styles.tabLabel, subTab === 'your-likes' && styles.tabLabelActive]}>Your likes</Text>
+            <Text style={[styles.tabLabel, { color: T.dim }, subTab === 'your-likes' && { color: T.labelActive }]}>Your likes</Text>
           </Pressable>
         </View>
 
@@ -205,7 +215,7 @@ export default function LikesScreen() {
               <ActivityIndicator color="#A855F7" size="large" />
             </View>
           ) : data && data.likes.length === 0 ? (
-            <EmptyState variant="liked-you" />
+            <EmptyState variant="liked-you" isDark={isDark} />
           ) : (
             <>
               <View style={styles.sortRow}>
@@ -214,6 +224,7 @@ export default function LikesScreen() {
                   active={sortActive}
                   onToggle={() => setSortActive((v) => !v)}
                   onLockedPress={() => openPaywall('sort_by_compatibility')}
+                  isDark={isDark}
                 />
               </View>
               <View style={styles.grid}>
@@ -229,6 +240,7 @@ export default function LikesScreen() {
                       onLikeBack={handleLikeBack}
                       onOpenPaywall={openPaywall}
                       onOpenMenu={handleOpenMenu}
+                      isDark={isDark}
                     />
                   </View>
                 ))}
@@ -240,23 +252,31 @@ export default function LikesScreen() {
             <ActivityIndicator color="#A855F7" size="large" />
           </View>
         ) : sentLikes && sentLikes.length === 0 ? (
-          <EmptyState variant="your-likes" />
+          <EmptyState variant="your-likes" isDark={isDark} />
         ) : (
           <View style={styles.grid}>
             {(sentLikes ?? []).map((item) => (
               <View key={item.user_id} style={styles.cell}>
-                <SentLikeCard item={item} />
+                <SentLikeCard item={item} isDark={isDark} />
               </View>
             ))}
           </View>
         )}
       </ScrollView>
-    </View>
+    </>
+  );
+
+  return isDark ? (
+    <View style={[styles.container, { backgroundColor: '#09031C' }]}>{content}</View>
+  ) : (
+    <ImageBackground source={require('@/assets/images/tabs-bg-light.jpg')} style={styles.container} resizeMode="cover">
+      {content}
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09031C' },
+  container: { flex: 1 },
   header: { color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginBottom: 16, paddingHorizontal: 16 },
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
   tabBtn: {
