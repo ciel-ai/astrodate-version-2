@@ -93,6 +93,9 @@ export default function HomeScreen() {
   const bgSource = isDark
     ? require('@/assets/images/bg.png')
     : require('@/assets/images/bg-light.png');
+  const logoSource = isDark
+    ? require('@/assets/images/logo.png')
+    : require('@/assets/images/logo-dark-text.png');
 
   // ── Content ───────────────────────────────────────────────────────────────
   const renderContent = () => (
@@ -109,7 +112,7 @@ export default function HomeScreen() {
       {/* ── Logo + wordmark, centred on the wheel baked into the background ── */}
       <View style={[styles.group, { top: groupTop, left: 0, width: deviceW }]} pointerEvents="none">
         <Image
-          source={require('@/assets/images/logo.png')}
+          source={logoSource}
           style={{ width: LOGO_W, height: LOGO_H }}
           resizeMode="contain"
         />

@@ -141,6 +141,9 @@ export default function LoginScreen() {
   const bgSource = isDark
     ? require('@/assets/images/create-bg.png')
     : require('@/assets/images/create-bg-light.png');
+  const logoSource = isDark
+    ? require('@/assets/images/logo.png')
+    : require('@/assets/images/logo-dark-text.png');
 
   return (
     <ImageBackground
@@ -176,7 +179,7 @@ export default function LoginScreen() {
         {/* ── Logo lockup ── */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
           <Image
-            source={require('@/assets/images/logo.png')}
+            source={logoSource}
             style={{ width: LOGO_W, height: LOGO_H }}
             resizeMode="contain"
           />
@@ -387,8 +390,15 @@ const styles = StyleSheet.create({
   },
 
   // ── Form section ──
+  // flex + center so the phone input/button/footer settle in the middle of
+  // whatever vertical space is left below the hero, instead of hugging the
+  // top with a dead gap below (this screen has far less form content than
+  // create-account.tsx, so it has nothing else to fill that space with).
   formSection: {
+    flex: 1,
+    justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingBottom: 24,
   },
 
   // ── Phone input ──

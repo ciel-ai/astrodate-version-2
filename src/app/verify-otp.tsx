@@ -145,6 +145,9 @@ export default function VerifyOtpScreen() {
   const bgSource = isDark
     ? require('@/assets/images/create-bg.png')
     : require('@/assets/images/create-bg-light.png');
+  const logoSource = isDark
+    ? require('@/assets/images/logo.png')
+    : require('@/assets/images/logo-dark-text.png');
 
   return (
     <ImageBackground
@@ -178,7 +181,7 @@ export default function VerifyOtpScreen() {
         {/* Logo lockup */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
           <Image
-            source={require('@/assets/images/logo.png')}
+            source={logoSource}
             style={{ width: LOGO_W, height: LOGO_H }}
             resizeMode="contain"
           />
