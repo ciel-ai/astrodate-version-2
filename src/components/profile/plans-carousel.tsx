@@ -43,9 +43,6 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
   );
 
   const T = {
-    card: isDark ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)',
-    text: isDark ? '#FFFFFF' : '#1B1528',
-    dim: isDark ? '#7C7796' : '#6B7280',
     dotOff: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
     dotOn: isDark ? '#FFFFFF' : '#1B1528',
   };
@@ -72,35 +69,36 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
               {
                 width: cardWidth,
                 marginRight: index < PLANS.length - 1 ? CARD_GAP : 0,
-                backgroundColor: T.card,
-                borderColor: plan.borderColor,
+                backgroundColor: plan.accentColor,
               },
               pressed && styles.pressed,
             ]}
             accessibilityRole="button"
             accessibilityLabel={`View ${plan.name} plan`}
           >
-            {plan.popular && (
-              <View style={[styles.popularTag, { backgroundColor: plan.accentColor }]}>
-                <Text style={styles.popularTagText}>MOST POPULAR</Text>
-              </View>
-            )}
+            {/* Always rendered (just invisible when not popular) so every
+                card reserves the same vertical space -- otherwise the plan
+                without a badge is shorter and the cards visibly jump when
+                swiping between them. */}
+            <View style={[styles.popularTag, !plan.popular && styles.hidden]}>
+              <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
+            </View>
 
-            <Text style={[styles.badge, { color: plan.accentColor }]}>{plan.badge}</Text>
-            <Text style={[styles.price, { color: T.text }]}>{plan.price}</Text>
-            <Text style={[styles.tagline, { color: T.dim }]}>{plan.tagline}</Text>
+            <Text style={styles.badge}>{plan.badge}</Text>
+            <Text style={styles.price}>{plan.price}</Text>
+            <Text style={styles.tagline}>{plan.tagline}</Text>
 
             <View style={styles.features}>
               {plan.features.map((feature) => (
                 <View key={feature} style={styles.featureRow}>
-                  <Text style={[styles.checkmark, { color: plan.accentColor }]}>✓</Text>
-                  <Text style={[styles.featureText, { color: T.text }]}>{feature}</Text>
+                  <Text style={styles.checkmark}>✓</Text>
+                  <Text style={styles.featureText}>{feature}</Text>
                 </View>
               ))}
             </View>
 
-            <View style={[styles.cta, { backgroundColor: plan.accentColor }]}>
-              <Text style={styles.ctaText}>Upgrade to {plan.name}</Text>
+            <View style={styles.cta}>
+              <Text style={[styles.ctaText, { color: plan.accentColor }]}>Upgrade to {plan.name}</Text>
             </View>
           </Pressable>
         ))}
@@ -122,31 +120,33 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: 16 },
   card: {
     borderRadius: 20,
-    borderWidth: 1,
     padding: 20,
   },
   pressed: { opacity: 0.92 },
+  hidden: { opacity: 0 },
   popularTag: {
     alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
   },
-  popularTagText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  badge: { fontSize: 18, fontWeight: '800' },
-  price: { fontSize: 15, fontWeight: '700', marginTop: 4 },
-  tagline: { fontSize: 13, marginTop: 2, marginBottom: 14 },
+  popularTagText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  badge: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
+  price: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', marginTop: 4 },
+  tagline: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 2, marginBottom: 14 },
   features: { gap: 8, marginBottom: 18 },
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  checkmark: { fontSize: 13, fontWeight: '800', marginTop: 1 },
-  featureText: { fontSize: 13, lineHeight: 18, flex: 1 },
+  checkmark: { color: '#FFFFFF', fontSize: 13, fontWeight: '800', marginTop: 1 },
+  featureText: { color: 'rgba(255,255,255,0.95)', fontSize: 13, lineHeight: 18, flex: 1 },
   cta: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  ctaText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  ctaText: { fontSize: 14, fontWeight: '700' },
   dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12 },
   dot: { width: 6, height: 6, borderRadius: 3 },
 });
