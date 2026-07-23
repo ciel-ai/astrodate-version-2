@@ -225,7 +225,17 @@ export default function DiscoverScreen() {
       if (useMockDinesh) {
         // Dev mode simulation
         if (action === 'like') {
-          Alert.alert("It's a match!", `You and Dinesh liked each other.`);
+          router.push({
+            pathname: '/match',
+            params: {
+              matchId: 'mock-match-id',
+              channelId: 'mock-channel-id',
+              otherUserId: DINESH_MOCK_CARD.user_id,
+              otherUserName: DINESH_MOCK_CARD.full_name ?? 'Dinesh',
+              otherUserPhoto: 'mock-dinesh',
+            },
+          } as any);
+          return;
         }
         Alert.alert('Dev Swipe Action', `Mock action: ${action}`);
         return;
@@ -254,7 +264,18 @@ export default function DiscoverScreen() {
       }
 
       if (result.matched) {
-        Alert.alert("It's a match!", `You and ${currentCard.full_name ?? 'this person'} liked each other.`);
+        router.push({
+          pathname: '/match',
+          params: {
+            matchId: result.match_id ?? '',
+            channelId: result.channel_id ?? '',
+            otherUserId: currentCard.user_id,
+            otherUserName: currentCard.full_name ?? '',
+            otherUserPhoto: typeof currentCard.photos[0]?.url === 'string'
+              ? currentCard.photos[0]?.url
+              : String(currentCard.photos[0]?.url ?? ''),
+          },
+        } as any);
       }
 
       setIndex((i) => i + 1);

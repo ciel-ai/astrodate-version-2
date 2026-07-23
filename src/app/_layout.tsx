@@ -90,6 +90,8 @@ function RootLayout() {
             <Stack.Screen name="subscription" options={{ headerShown: false, presentation: 'modal' }} />
             {/* Message thread for a matched conversation — custom in-screen header */}
             <Stack.Screen name="chat/[channelId]" options={{ headerShown: false }} />
+            {/* Match page — beautiful transition overlay */}
+            <Stack.Screen name="match" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade' }} />
             {/* Verification — placeholder entry point linked from Profile's Hero card */}
             <Stack.Screen name="verification" options={{ headerShown: false, presentation: 'modal' }} />
             {/* Profile's prompts editor — reuses PromptEditorForm, pushed from PromptsCard */}

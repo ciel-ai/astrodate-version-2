@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -134,9 +135,8 @@ export default function LoginScreen() {
   const LOGO_W = Math.round(deviceW * 0.50);
   const LOGO_H = Math.round(LOGO_W * (175 / 145));
   const TITLE_FS = Math.round(deviceW * 0.105);
-  const BG_SHIFT = isDark ? Math.round(deviceH * 0.18) : Math.round(deviceH * 0.26);
+  const BG_SHIFT = isDark ? Math.round(deviceH * 0.12) : Math.round(deviceH * 0.20);
   const BG_SCALE = isDark ? 1.38 : 2.25;
-  const FORM_GAP = 65;
 
   const bgSource = isDark
     ? require('@/assets/images/create-bg.png')
@@ -170,8 +170,12 @@ export default function LoginScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      {/* Main layout — plain View, no scrolling */}
-      <View style={[styles.container, { paddingTop: Math.max(0, insets.top - 2), paddingBottom: insets.bottom + 16 }]}>
+      {/* Main layout — KeyboardAvoidingView, no scrolling */}
+      <KeyboardAvoidingView
+        style={[styles.container, { paddingTop: Math.max(0, insets.top - 2), paddingBottom: insets.bottom + 48 }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      >
 
         {/* ── Logo lockup ── */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
@@ -191,8 +195,10 @@ export default function LoginScreen() {
           <Text style={[styles.tagline, { color: isDark ? '#E6D8FF' : '#6B7280' }]}>LOVE, WRITTEN IN THE STARS</Text>
         </View>
 
+        <View style={{ flex: 1 }} />
+
         {/* ── Welcome Back ── */}
-        <View style={[styles.heroSection, { marginTop: FORM_GAP }]}>
+        <View style={styles.heroSection}>
           <Text style={[styles.welcomeTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]} numberOfLines={1} adjustsFontSizeToFit>
             Welcome Back
           </Text>
@@ -259,7 +265,7 @@ export default function LoginScreen() {
             </Text>
           </Text>
         </View>
-      </View>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={countryPickerVisible}
@@ -370,7 +376,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 32,
   },
   welcomeTitle: {
     fontFamily: SERIF,
