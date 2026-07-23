@@ -145,13 +145,24 @@ export default function DiscoverScreen() {
       }
 
       if (result.matched) {
-        alert("It's a match!", `You and ${currentCard.full_name ?? 'this person'} liked each other.`);
         // Fire-and-forget: the chat screen reads whatever's in
         // user_matches.icebreaker_text whenever it loads, so this never
         // needs to block the swipe flow or be awaited here.
         if (result.match_id) {
           void triggerIcebreakerGeneration(result.match_id);
         }
+        router.push({
+          pathname: '/match',
+          params: {
+            matchId: result.match_id ?? '',
+            channelId: result.channel_id ?? '',
+            otherUserId: currentCard.user_id,
+            otherUserName: currentCard.full_name ?? '',
+            otherUserPhoto: typeof currentCard.photos[0]?.url === 'string'
+              ? currentCard.photos[0]?.url
+              : String(currentCard.photos[0]?.url ?? ''),
+          },
+        } as any);
       }
 
       setIndex((i) => i + 1);

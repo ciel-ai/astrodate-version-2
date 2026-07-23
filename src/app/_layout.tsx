@@ -92,6 +92,8 @@ function RootLayout() {
             <Stack.Screen name="subscription" options={{ headerShown: false, presentation: 'modal' }} />
             {/* Message thread for a matched conversation — custom in-screen header */}
             <Stack.Screen name="chat/[channelId]" options={{ headerShown: false }} />
+            {/* Match page — beautiful transition overlay */}
+            <Stack.Screen name="match" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade' }} />
             {/* Profile's prompts editor — reuses PromptEditorForm, pushed from PromptsCard */}
             <Stack.Screen name="edit-prompts" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>

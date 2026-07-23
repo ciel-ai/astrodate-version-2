@@ -105,22 +105,16 @@ export default function LikesScreen() {
     void triggerIcebreakerGeneration(result.match_id);
 
     await refresh();
-    alert("It's a match! ✨", 'Say hello — your chat is ready.', [
-      { text: 'Later', style: 'cancel' },
-      {
-        text: 'Say hi',
-        onPress: () =>
-          router.push({
-            pathname: '/chat/[channelId]',
-            params: {
-              channelId: newChannelId,
-              otherUserId: userId,
-              otherUserName: otherName,
-              otherUserPhoto: otherPhoto,
-            },
-          } as any),
+    router.push({
+      pathname: '/match',
+      params: {
+        matchId: result.match_id ?? '',
+        channelId: newChannelId,
+        otherUserId: userId,
+        otherUserName: otherName,
+        otherUserPhoto: otherPhoto,
       },
-    ]);
+    } as any);
   };
 
   const handleSpendFreeReveal = async (userId: string) => {
