@@ -6,38 +6,109 @@
  * disabled while a request is in flight. Rewind shows its padlock whenever
  * `rewindLocked` is true.
  *
- * Updated with button labels and customized colored gradients to match the
- * exact glassmorphism design from the mockup.
+ * BOLD & PLAYFUL sticker style: every badge is rendered as one SVG (badge
+ * shape + shadow + glyph + sparkles) rather than a colored View, because
+ * Super Like is an actual 5-point star badge, not a circle with a star icon
+ * inside -- a plain RN View/borderRadius can't produce that shape, so all
+ * four are done the same way for consistency. This intentionally drops the
+ * old glass-blur look: flat cartoon fills and translucent blur don't read
+ * well together, so this is a straight swap, not an addition.
  */
-import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+
+const OUTLINE = '#17131F';
+
+function RewindBadge() {
+  return (
+    <Svg width={64} height={76} viewBox="0 0 100 116">
+      <Ellipse cx={50} cy={100} rx={32} ry={7.5} fill="#8B7FE8" opacity={0.22} />
+      <Circle cx={50} cy={44} r={38} fill="#8B7FE8" stroke={OUTLINE} strokeWidth={3.6} />
+      <Path
+        d="M57 27 L41 44 L57 61"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={5.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M41 44 h22.5 a17.3 17.3 0 0 1 0 34.6 h-5.2"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={5.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M84 12 l2.6 6 6 2.6 -6 2.6 -2.6 6 -2.6-6-6-2.6 6-2.6z" fill={OUTLINE} />
+      <Circle cx={18} cy={72} r={2.2} fill={OUTLINE} />
+    </Svg>
+  );
+}
+
+function PassBadge() {
+  return (
+    <Svg width={64} height={76} viewBox="0 0 100 116">
+      <Ellipse cx={50} cy={100} rx={32} ry={7.5} fill="#F16B75" opacity={0.22} />
+      <Circle cx={50} cy={44} r={38} fill="#F16B75" stroke={OUTLINE} strokeWidth={3.6} />
+      <Path d="M37 31 L63 57 M63 31 L37 57" stroke="#FFFFFF" strokeWidth={5.6} strokeLinecap="round" />
+      <Path d="M84 12 l2.6 5.2 5.2 2.6 -5.2 2.6 -2.6 5.2 -2.6-5.2-5.2-2.6 5.2-2.6z" fill={OUTLINE} />
+      <Path d="M14 66 l2.6 5.2 5.2 2.6 -5.2 2.6 -2.6 5.2 -2.6-5.2-5.2-2.6 5.2-2.6z" fill={OUTLINE} />
+    </Svg>
+  );
+}
+
+function SuperLikeBadge() {
+  return (
+    <Svg width={68} height={76} viewBox="0 0 106 116">
+      <Ellipse cx={53} cy={100} rx={34} ry={7.5} fill="#3FBFAE" opacity={0.22} />
+      <Path
+        d="M53 6 L64 34 L94 36 L70 55 L78.5 84 L53 67 L27.5 84 L36 55 L12 36 L42 34 Z"
+        fill="#3FBFAE"
+        stroke={OUTLINE}
+        strokeWidth={3.9}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M53 30 L59.2 46.5 L77 47.5 L63 58 L68 75 L53 65 L38 75 L43 58 L29 47.5 L46.8 46.5 Z"
+        fill="#FFFFFF"
+      />
+      <Path d="M94 13 l2.6 5.2 5.2 2.6 -5.2 2.6 -2.6 5.2 -2.6-5.2-5.2-2.6 5.2-2.6z" fill={OUTLINE} />
+      <Path d="M12 65 l2.2 4.4 4.4 2.2 -4.4 2.2 -2.2 4.4 -2.2-4.4-4.4-2.2 4.4-2.2z" fill={OUTLINE} />
+    </Svg>
+  );
+}
+
+function LikeBadge() {
+  return (
+    <Svg width={64} height={76} viewBox="0 0 100 116">
+      <Ellipse cx={50} cy={100} rx={32} ry={7.5} fill="#F4B942" opacity={0.22} />
+      <Circle cx={50} cy={44} r={38} fill="#F4B942" stroke={OUTLINE} strokeWidth={3.6} />
+      <Path
+        d="M50 61 l-17-16c-5.5-5.5-5.5-14 0-19.5 5.5-5.5 14-5.5 18 0l-1 0c4-5.5 12.5-5.5 18 0 5.5 5.5 5.5 14 0 19.5z"
+        fill="#FFFFFF"
+      />
+      <Path d="M90 12 l2.6 5.2 5.2 2.6 -5.2 2.6 -2.6 5.2 -2.6-5.2-5.2-2.6 5.2-2.6z" fill={OUTLINE} />
+      <Path d="M13 76 l2.6 5.2 5.2 2.6 -5.2 2.6 -2.6 5.2 -2.6-5.2-5.2-2.6 5.2-2.6z" fill={OUTLINE} />
+    </Svg>
+  );
+}
 
 function ActionButton({
   onPress,
   locked,
-  size,
-  btnStyle,
-  children,
+  badge,
 }: {
   onPress?: () => void;
   locked?: boolean;
-  size: number;
-  btnStyle?: any;
-  children: ReactNode;
+  badge: React.ReactNode;
 }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button">
       {({ pressed }) => (
-        <View
-          style={[
-            styles.btn,
-            { width: size, height: size, borderRadius: size / 2 },
-            btnStyle,
-            pressed && styles.btnPressed,
-          ]}
-        >
-          {children}
+        <View style={[styles.btnWrap, pressed && styles.btnPressed]}>
+          {badge}
           {locked && (
             <View style={styles.lockBadge}>
               <Text style={styles.lockBadgeIcon}>🔒</Text>
@@ -59,7 +130,6 @@ interface DiscoverActionBarProps {
   disabled?: boolean;
   /** True when there's no current card to act on (deck exhausted) -- disables only pass/like/super-like. */
   swipeDisabled?: boolean;
-  isDark?: boolean;
 }
 
 export function DiscoverActionBar({
@@ -70,100 +140,29 @@ export function DiscoverActionBar({
   rewindLocked = true,
   disabled,
   swipeDisabled,
-  isDark = true,
 }: DiscoverActionBarProps) {
   const swipeBtnDisabled = disabled || swipeDisabled;
 
-  const C = {
-    rewindBg: isDark ? 'rgba(168, 85, 247, 0.22)' : '#FFFFFF',
-    rewindBorder: isDark ? '#C084FC' : '#7C3AED',
-    rewindText: isDark ? '#D4B8FF' : '#7C3AED',
-
-    passBg: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FFFFFF',
-    passBorder: isDark ? 'rgba(255, 255, 255, 0.35)' : '#4B5563',
-    passText: isDark ? '#D1D5DB' : '#374151',
-
-    superLikeBg: isDark ? 'rgba(14, 165, 233, 0.22)' : '#FFFFFF',
-    superLikeBorder: isDark ? '#38BDF8' : '#0284C7',
-    superLikeText: isDark ? '#7DD3FC' : '#0369A1',
-
-    likeBg: isDark ? 'rgba(244, 63, 94, 0.22)' : '#FFFFFF',
-    likeBorder: isDark ? '#FB7185' : '#E11D48',
-    likeText: isDark ? '#FDA4AF' : '#BE185D',
-  };
-
   return (
     <View style={styles.bar}>
-      {/* Rewind */}
-      <View style={styles.btnWrapper}>
-        <ActionButton
-          size={54}
-          locked={rewindLocked}
-          onPress={disabled ? undefined : onRewind}
-          btnStyle={{ backgroundColor: C.rewindBg, borderColor: C.rewindBorder, borderWidth: 2 }}
-        >
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M9 5 4 12l5 7M4 12h11a5 5 0 0 1 0 10h-1"
-              stroke={C.rewindBorder}
-              strokeWidth={2.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </ActionButton>
-        <Text style={[styles.btnLabel, { color: C.rewindText }]}>Rewind</Text>
+      <View style={styles.btnColumn}>
+        <ActionButton locked={rewindLocked} onPress={disabled ? undefined : onRewind} badge={<RewindBadge />} />
+        <Text style={styles.btnLabel}>Rewind</Text>
       </View>
 
-      {/* Pass */}
-      <View style={styles.btnWrapper}>
-        <ActionButton
-          size={54}
-          onPress={swipeBtnDisabled ? undefined : onPass}
-          btnStyle={{ backgroundColor: C.passBg, borderColor: C.passBorder, borderWidth: 2 }}
-        >
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-            <Path d="M5 5 19 19M19 5 5 19" stroke={C.passBorder} strokeWidth={2.6} strokeLinecap="round" />
-          </Svg>
-        </ActionButton>
-        <Text style={[styles.btnLabel, { color: C.passText }]}>Pass</Text>
+      <View style={styles.btnColumn}>
+        <ActionButton onPress={swipeBtnDisabled ? undefined : onPass} badge={<PassBadge />} />
+        <Text style={styles.btnLabel}>Pass</Text>
       </View>
 
-      {/* Super Like */}
-      <View style={styles.btnWrapper}>
-        <ActionButton
-          size={54}
-          onPress={swipeBtnDisabled ? undefined : onSuperLike}
-          btnStyle={{ backgroundColor: C.superLikeBg, borderColor: C.superLikeBorder, borderWidth: 2 }}
-        >
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12 2.5 14.9 9l7.1.6-5.4 4.7 1.6 6.9-6.2-3.7-6.2 3.7 1.6-6.9L2 9.6 9.1 9z"
-              fill={C.superLikeBorder}
-              stroke={C.superLikeBorder}
-              strokeWidth={1.5}
-              strokeLinejoin="round"
-            />
-          </Svg>
-        </ActionButton>
-        <Text style={[styles.btnLabel, { color: C.superLikeText }]}>Super Like</Text>
+      <View style={styles.btnColumn}>
+        <ActionButton onPress={swipeBtnDisabled ? undefined : onSuperLike} badge={<SuperLikeBadge />} />
+        <Text style={styles.btnLabel}>Super Like</Text>
       </View>
 
-      {/* Like */}
-      <View style={styles.btnWrapper}>
-        <ActionButton
-          size={54}
-          onPress={swipeBtnDisabled ? undefined : onLike}
-          btnStyle={{ backgroundColor: C.likeBg, borderColor: C.likeBorder, borderWidth: 2 }}
-        >
-          <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="M12 20.2 4.6 13c-2-2-2-5 0-6.9 2-2 5-2 6.9 0l.5.5.5-.5c2-2 5-2 6.9 0 2 2 2 4.9 0 6.9z"
-              fill={C.likeBorder}
-            />
-          </Svg>
-        </ActionButton>
-        <Text style={[styles.btnLabel, { color: C.likeText }]}>Like</Text>
+      <View style={styles.btnColumn}>
+        <ActionButton onPress={swipeBtnDisabled ? undefined : onLike} badge={<LikeBadge />} />
+        <Text style={styles.btnLabel}>Like</Text>
       </View>
     </View>
   );
@@ -172,41 +171,37 @@ export function DiscoverActionBar({
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    gap: 16,
+    gap: 12,
     backgroundColor: 'transparent',
   },
-  btnWrapper: {
+  btnColumn: {
     alignItems: 'center',
-    width: 68,
+    width: 72,
   },
-  btnLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  btn: {
+  btnWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOpacity: 0.15, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-      android: { elevation: 4 },
-      default: { boxShadow: '0 3px 8px rgba(0,0,0,0.15)' } as any,
-    }),
   },
-  btnPressed: { opacity: 0.88, transform: [{ scale: 0.94 }] },
+  btnPressed: { opacity: 0.9, transform: [{ scale: 0.94 }] },
+  btnLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: -4,
+    textAlign: 'center',
+    color: '#f7f6f8',
+  },
   lockBadge: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: 14,
+    right: 4,
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: '#2A1B4A',
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 92, 168, 0.65)',
+    borderWidth: 1,
+    borderColor: OUTLINE,
     alignItems: 'center',
     justifyContent: 'center',
   },
