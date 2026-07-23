@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,11 +10,37 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { PLANS } from '@/lib/plan-display';
 
 interface PlansCarouselProps {
   isDark: boolean;
+}
+
+/** Mixes a hex color toward white (target=255) or black (target=0) by
+ *  `amount` (0-1). Used to derive the gradient's light/dark stops from each
+ *  plan's single accentColor instead of hand-picking a second color per plan. */
+function mix(hex: string, target: number, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const blend = (c: number) => Math.round(c + (target - c) * amount).toString(16).padStart(2, '0');
+  return `#${blend(r)}${blend(g)}${blend(b)}`;
+}
+const lighten = (hex: string, amount = 0.32) => mix(hex, 255, amount);
+const darken = (hex: string, amount = 0.28) => mix(hex, 0, amount);
+
+/** Colored drop shadow behind the card, matching the pattern already used
+ *  elsewhere in this app (e.g. hero-card.tsx's avatar glow) -- Android's
+ *  elevation can't be tinted, so it falls back to a plain gray shadow there,
+ *  same tradeoff already accepted throughout this codebase. */
+function cardShadow(color: string) {
+  return Platform.select({
+    ios: { shadowColor: color, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+    android: { elevation: 8 },
+    web: { boxShadow: `0 8px 24px ${color}59` } as any,
+  });
 }
 
 // Matches profile.tsx's outer ScrollView contentContainerStyle paddingHorizontal
@@ -65,40 +92,61 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
             id={`btn-plan-carousel-${plan.slug}`}
             onPress={() => router.push('/subscription')}
             style={({ pressed }) => [
-              styles.card,
+              styles.cardShadowWrap,
               {
                 width: cardWidth,
                 marginRight: index < PLANS.length - 1 ? CARD_GAP : 0,
-                backgroundColor: plan.accentColor,
               },
+              cardShadow(plan.accentColor),
               pressed && styles.pressed,
             ]}
             accessibilityRole="button"
             accessibilityLabel={`View ${plan.name} plan`}
           >
-            {/* Always rendered (just invisible when not popular) so every
-                card reserves the same vertical space -- otherwise the plan
-                without a badge is shorter and the cards visibly jump when
-                swiping between them. */}
-            <View style={[styles.popularTag, !plan.popular && styles.hidden]}>
-              <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
-            </View>
+            {/* Shadow needs an unclipped wrapper (above) -- overflow:hidden
+                on the same view that casts an iOS shadow clips the shadow
+                away entirely, so the gradient/rounded-corner clipping lives
+                on this separate inner view instead. */}
+            <View style={styles.card}>
+              <LinearGradient
+                colors={[lighten(plan.accentColor), plan.accentColor, darken(plan.accentColor)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {/* Soft diagonal glass-sheen highlight, top-left corner */}
+              <LinearGradient
+                colors={['rgba(255,255,255,0.32)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0.7, y: 0.7 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
 
-            <Text style={styles.badge}>{plan.badge}</Text>
-            <Text style={styles.price}>{plan.price}</Text>
-            <Text style={styles.tagline}>{plan.tagline}</Text>
+              {/* Always rendered (just invisible when not popular) so every
+                  card reserves the same vertical space -- otherwise the plan
+                  without a badge is shorter and the cards visibly jump when
+                  swiping between them. */}
+              <View style={[styles.popularTag, !plan.popular && styles.hidden]}>
+                <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
+              </View>
 
-            <View style={styles.features}>
-              {plan.features.map((feature) => (
-                <View key={feature} style={styles.featureRow}>
-                  <Text style={styles.checkmark}>✓</Text>
-                  <Text style={styles.featureText}>{feature}</Text>
-                </View>
-              ))}
-            </View>
+              <Text style={styles.badge}>{plan.badge}</Text>
+              <Text style={styles.price}>{plan.price}</Text>
+              <Text style={styles.tagline}>{plan.tagline}</Text>
 
-            <View style={styles.cta}>
-              <Text style={[styles.ctaText, { color: plan.accentColor }]}>Upgrade to {plan.name}</Text>
+              <View style={styles.features}>
+                {plan.features.map((feature) => (
+                  <View key={feature} style={styles.featureRow}>
+                    <Text style={styles.checkmark}>✓</Text>
+                    <Text style={styles.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.cta}>
+                <Text style={[styles.ctaText, { color: plan.accentColor }]}>Upgrade to {plan.name}</Text>
+              </View>
             </View>
           </Pressable>
         ))}
@@ -118,9 +166,11 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 16 },
+  cardShadowWrap: { borderRadius: 20 },
   card: {
     borderRadius: 20,
     padding: 20,
+    overflow: 'hidden',
   },
   pressed: { opacity: 0.92 },
   hidden: { opacity: 0 },
