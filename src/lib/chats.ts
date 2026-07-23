@@ -87,17 +87,35 @@ export async function getConversations(): Promise<ConversationSummary[] | null> 
 
 /** Fetches a page of messages, newest-first (matches the inverted FlatList's
  *  expected order -- index 0 renders at the bottom). Pass the oldest loaded
- *  message's created_at as `before` to load the next page further back. */
-export async function getMessages(channelId: string, before?: string): Promise<Message[] | null> {
+ *  message's created_at/id as `before`/`beforeId` to load the next page
+ *  further back.
+ *
+ *  Both the secondary `id` sort and the compound cursor below are required
+ *  together: ordering by created_at alone doesn't define a stable order for
+ *  rows sharing the exact same timestamp (a burst of images/stickers can
+ *  land in the same millisecond), so two separate calls could return them in
+ *  different relative order -- a plain `created_at < before` cursor would
+ *  then silently skip whichever of those rows didn't make the previous page,
+ *  forever, not just delay them. Adding `id` as a secondary sort key (here
+ *  and implicitly assumed by every caller) makes the ordering fully
+ *  deterministic, and the `id < beforeId` tiebreaker in the cursor then
+ *  correctly resumes from the exact same boundary every time -- the id
+ *  values themselves are random UUIDs with no semantic order, but that's
+ *  fine, they only need to be a *consistent* tiebreaker, not a meaningful
+ *  one. */
+export async function getMessages(channelId: string, before?: string, beforeId?: string): Promise<Message[] | null> {
   try {
     let query = supabase
       .from('messages')
       .select('*')
       .eq('channel_id', channelId)
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
       .limit(MESSAGES_PAGE_SIZE);
 
-    if (before) {
+    if (before && beforeId) {
+      query = query.or(`created_at.lt.${before},and(created_at.eq.${before},id.lt.${beforeId})`);
+    } else if (before) {
       query = query.lt('created_at', before);
     }
 
@@ -125,8 +143,14 @@ export type SendMessageResult =
  * message-bubble.tsx / chat/[channelId].tsx) -- reused as the real row's
  * primary key so the message's React key never changes across
  * optimistic -> confirmed, avoiding a flicker on every sent message.
- * Moderation fails open to SAFE on any error so an outage never silently
- * blocks every message in the app.
+ *
+ * Moderation and insertion happen together, server-side, inside the
+ * moderate-message edge function (service role) -- the messages table's RLS
+ * INSERT policy only allows a direct client insert for message_type <>
+ * 'text' (media), so a caller can no longer separate "get a SAFE
+ * classification" from "insert with a different status" by hitting the REST
+ * API directly. Moderation still fails open to SAFE on any error inside that
+ * function, so an outage never silently blocks every message in the app.
  */
 export async function sendMessage(
   id: string,
@@ -135,66 +159,33 @@ export async function sendMessage(
   messageText: string
 ): Promise<SendMessageResult> {
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { success: false, blocked: false, reason: 'Not authenticated' };
-
-    let moderationStatus: ModerationStatus = 'SAFE';
-    try {
-      const { data, error } = await invokeSupabaseFunctionWithTimeout(
-        () =>
-          supabase.functions.invoke<{ status: ModerationStatus }>('moderate-message', {
-            body: { messageText },
-          }),
-        15000
-      );
-      if (!error && data?.status) moderationStatus = data.status;
-    } catch (modErr) {
-      console.warn('[chats] moderation call failed, failing open to SAFE:', modErr);
-    }
-
-    if (moderationStatus === 'ILLEGAL') {
-      return {
-        success: false,
-        blocked: true,
-        reason: 'Message violates community guidelines and cannot be sent.',
-      };
-    }
-
-    const { error } = await withTimeout(
-      Promise.resolve(
-        supabase.from('messages').insert({
-          id,
-          sender_id: user.id,
-          receiver_id: receiverId,
-          message_text: messageText,
-          channel_id: channelId,
-          moderation_status: moderationStatus,
-        })
-      ),
-      15000,
-      'sendMessage timed out'
+    const { data, error } = await invokeSupabaseFunctionWithTimeout(
+      () =>
+        supabase.functions.invoke<
+          { success: true; moderationStatus: ModerationStatus } | { success: false; blocked: boolean; reason: string }
+        >('moderate-message', {
+          body: { id, channelId, receiverId, messageText },
+        }),
+      15000
     );
 
     if (error) {
-      console.warn('[chats] sendMessage insert failed:', error.message);
-      const isDbBlocked = error.message?.includes('Message blocked');
-      return {
-        success: false,
-        blocked: isDbBlocked, // Set blocked: true for DB blocklist rejections
-        reason: isDbBlocked ? 'Message violates community guidelines.' : error.message,
-      };
+      console.warn('[chats] sendMessage invoke failed:', error.message);
+      return { success: false, blocked: false, reason: error.message };
     }
-
-    return { success: true, moderationStatus };
+    if (!data) {
+      return { success: false, blocked: false, reason: 'No response from server' };
+    }
+    if (!data.success) {
+      return { success: false, blocked: data.blocked, reason: data.reason };
+    }
+    return { success: true, moderationStatus: data.moderationStatus };
   } catch (err: any) {
     console.warn('[chats] sendMessage exception:', err?.message ?? err);
-    const isDbBlocked = err?.message?.includes('Message blocked');
     return {
       success: false,
-      blocked: isDbBlocked,
-      reason: isDbBlocked ? 'Message violates community guidelines.' : (err?.message ?? 'Failed to send message'),
+      blocked: false,
+      reason: err?.message ?? 'Failed to send message',
     };
   }
 }

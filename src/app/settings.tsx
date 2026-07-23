@@ -185,6 +185,10 @@ export default function SettingsScreen() {
         onPress: async () => {
           setSigningOut(true);
           await signOut();
+          // dismissAll first: (tabs)/chat/etc. stay mounted in the stack
+          // otherwise, reachable again via back-gesture/hardware-back with
+          // the previous account's data still showing.
+          router.dismissAll();
           router.replace('/create-account');
           setSigningOut(false);
         },
@@ -220,6 +224,7 @@ export default function SettingsScreen() {
               return;
             }
             await signOut();
+            router.dismissAll();
             router.replace('/create-account');
             setDeleting(false);
           },

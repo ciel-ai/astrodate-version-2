@@ -75,6 +75,13 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  // A real user JWT only ever needs to warm its OWN queued candidate pairs
+  // (the onboarding fire-and-forget call) -- scope the claim to that user so
+  // a signed-in caller can't drain and trigger paid-API processing of other
+  // users' queued pairs. The cron path (no user JWT, proven by the scoped
+  // secret instead) is intentionally left unscoped -- its whole job is to
+  // drain the entire queue.
+  let callerUserId: string | null = null;
   if (authHeader) {
     const authClient = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false },
@@ -84,6 +91,7 @@ Deno.serve(async (req) => {
     if (authError || !authData.user) {
       return json({ error: "Unauthorized" }, 401);
     }
+    callerUserId = authData.user.id;
   }
 
   let batchSize = 10;
@@ -98,7 +106,7 @@ Deno.serve(async (req) => {
 
   const { data: jobs, error: claimError } = await db.rpc(
     "claim_synastry_prewarm_jobs",
-    { p_limit: batchSize }
+    { p_limit: batchSize, p_user_id: callerUserId }
   );
 
   if (claimError) {

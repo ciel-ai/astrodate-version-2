@@ -55,7 +55,7 @@ export function PhotoGridCard({ photos, isDark, onChanged }: PhotoGridCardProps)
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
-        alert('Photo picker unavailable', 'This dev build is missing the image-picker module. Rebuild the app to enable photo uploads.');
+        alert('Photo picker unavailable', 'This dev build is missing the image-picker module. Rebuild the app (npx expo run:ios / npx expo run:android) to enable photo uploads.');
         return;
       }
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();

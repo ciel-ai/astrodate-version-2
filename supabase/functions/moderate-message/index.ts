@@ -1,19 +1,26 @@
 /**
  * moderate-message Edge Function
  *
- * Classifies a chat message with Gemini before it's stored, so the Chats
- * feature never ships unmoderated. Ported from the legacy reference project
- * (D:\ciel-project\Astrodate\supabase\functions\moderate-message), adapted to
- * this project's conventions (jsr: imports, shared corsHeaders/json() shape
- * matching compute-synastry/index.ts).
+ * Classifies a chat TEXT message with Gemini and inserts it, so the two steps
+ * can never be split apart by a caller hitting the REST API directly with a
+ * forged moderation_status. Previously this function only returned a status
+ * and trusted the client to insert the row itself with that status attached
+ * -- nothing stopped a modified/direct-API client from inserting with
+ * moderation_status: 'SAFE' regardless of what Gemini would have said. Media
+ * messages (image/audio) are unaffected by this change -- there's no text to
+ * classify, so they still insert directly from the client (see
+ * 20260723120000_require_server_side_text_moderation.sql, which restricts the
+ * messages INSERT policy's direct-client path to message_type <> 'text').
  *
- * Fails open to SAFE on any error/misconfiguration (missing key, upstream
- * error, malformed response) -- a moderation outage must never silently
- * block every message in the app.
+ * Fails open to SAFE on any moderation error/misconfiguration (missing key,
+ * upstream error, malformed response) -- a moderation outage must never
+ * silently block every message in the app. Match/block checks below mirror
+ * the messages table's RLS INSERT policy exactly, since this function uses
+ * the service role (which bypasses RLS) to perform the insert.
  *
  * Required Edge Function secret: GEMINI_API_KEY
- * Request body: { messageText: string }
- * Response: { status: 'SAFE' | 'SPAM' | 'HARASSMENT' | 'ILLEGAL', warning?: string }
+ * Request body: { id: string, channelId: string, receiverId: string, messageText: string }
+ * Response: { success: true, moderationStatus } | { success: false, blocked: boolean, reason: string }
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -36,15 +43,12 @@ function json(payload: unknown, status = 200): Response {
 // response -- moderation must still fail open to SAFE even if this write
 // itself fails (e.g. table momentarily unreachable).
 async function logModerationOutage(
-  supabaseUrl: string,
-  serviceKey: string,
+  // deno-lint-ignore no-explicit-any
+  serviceClient: any,
   reason: string,
   detail?: string,
 ): Promise<void> {
   try {
-    const serviceClient = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
     await serviceClient.from("moderation_outages").insert({ reason, detail });
   } catch (err) {
     console.error("moderate-message: failed to log moderation outage", err);
@@ -72,56 +76,20 @@ Rules:
 type ModerationStatus = "SAFE" | "SPAM" | "HARASSMENT" | "ILLEGAL";
 const VALID_STATUSES = new Set<ModerationStatus>(["SAFE", "SPAM", "HARASSMENT", "ILLEGAL"]);
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!supabaseUrl || !serviceKey) {
-    return json({ error: "Server configuration error" }, 500);
-  }
-
-  // Require a real authenticated caller -- moderation is only ever invoked
-  // as part of the authenticated send-message flow, never anonymously.
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
-  const authClient = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: authData, error: authError } = await authClient.auth.getUser();
-  if (authError || !authData.user) {
-    return json({ error: "Unauthorized" }, 401);
-  }
-
-  let body: { messageText?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
-
-  const messageText = body.messageText;
-  if (!messageText || typeof messageText !== "string") {
-    return json({ error: "messageText is required and must be a string" }, 400);
-  }
-
-  // Trivially SAFE -- skip the API call entirely.
+async function classifyMessage(
+  // deno-lint-ignore no-explicit-any
+  serviceClient: any,
+  messageText: string,
+): Promise<{ status: ModerationStatus; warning?: string }> {
   if (messageText.trim().length === 0) {
-    return json({ status: "SAFE" });
+    return { status: "SAFE" };
   }
 
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
   if (!geminiApiKey) {
     console.error("moderate-message: GEMINI_API_KEY is not set -- failing open to SAFE");
-    await logModerationOutage(supabaseUrl, serviceKey, "missing_api_key");
-    return json({ status: "SAFE", warning: "Moderation service unavailable" });
+    await logModerationOutage(serviceClient, "missing_api_key");
+    return { status: "SAFE", warning: "Moderation service unavailable" };
   }
 
   try {
@@ -140,8 +108,8 @@ Deno.serve(async (req) => {
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => "");
       console.error("moderate-message: Gemini API error", geminiRes.status, errText);
-      await logModerationOutage(supabaseUrl, serviceKey, "gemini_api_error", `status=${geminiRes.status} body=${errText.slice(0, 500)}`);
-      return json({ status: "SAFE", warning: "Moderation service error" });
+      await logModerationOutage(serviceClient, "gemini_api_error", `status=${geminiRes.status} body=${errText.slice(0, 500)}`);
+      return { status: "SAFE", warning: "Moderation service error" };
     }
 
     const geminiData = await geminiRes.json();
@@ -150,10 +118,113 @@ Deno.serve(async (req) => {
     const status: ModerationStatus = VALID_STATUSES.has(classification) ? classification : "SAFE";
 
     console.log(`moderate-message: "${messageText.slice(0, 40)}..." -> ${status}`);
-    return json({ status });
+    return { status };
   } catch (err) {
     console.error("moderate-message: exception, failing open to SAFE", err);
-    await logModerationOutage(supabaseUrl, serviceKey, "exception", err instanceof Error ? err.message : String(err));
-    return json({ status: "SAFE", warning: "Moderation service error" });
+    await logModerationOutage(serviceClient, "exception", err instanceof Error ? err.message : String(err));
+    return { status: "SAFE", warning: "Moderation service error" };
   }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceKey) {
+    return json({ error: "Server configuration error" }, 500);
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
+  const authClient = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: authData, error: authError } = await authClient.auth.getUser();
+  if (authError || !authData.user) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  const senderId = authData.user.id;
+
+  let body: { id?: string; channelId?: string; receiverId?: string; messageText?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { id, channelId, receiverId, messageText } = body;
+  if (!id || !channelId || !receiverId || typeof messageText !== "string") {
+    return json({ error: "id, channelId, receiverId, and messageText are required" }, 400);
+  }
+
+  const serviceClient = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false },
+  });
+
+  // Mirror the messages table's RLS INSERT policy: an active match between
+  // sender and receiver on this channel, and no block in either direction.
+  // Required here because this insert runs as service_role, which bypasses
+  // RLS entirely.
+  const { data: matchRow } = await serviceClient
+    .from("user_matches")
+    .select("channel_id")
+    .eq("channel_id", channelId)
+    .or(
+      `and(user1_id.eq.${senderId},user2_id.eq.${receiverId}),and(user1_id.eq.${receiverId},user2_id.eq.${senderId})`,
+    )
+    .maybeSingle();
+  if (!matchRow) {
+    return json({ success: false, blocked: false, reason: "Not matched with this user" }, 403);
+  }
+
+  const { data: blockRow } = await serviceClient
+    .from("block_users")
+    .select("blocker_id")
+    .or(
+      `and(blocker_id.eq.${senderId},blocked_id.eq.${receiverId}),and(blocker_id.eq.${receiverId},blocked_id.eq.${senderId})`,
+    )
+    .maybeSingle();
+  if (blockRow) {
+    return json({ success: false, blocked: false, reason: "Cannot message a blocked user" }, 403);
+  }
+
+  const { status: moderationStatus } = await classifyMessage(serviceClient, messageText);
+
+  if (moderationStatus === "ILLEGAL") {
+    return json({
+      success: false,
+      blocked: true,
+      reason: "Message violates community guidelines and cannot be sent.",
+    });
+  }
+
+  const { error: insertError } = await serviceClient.from("messages").insert({
+    id,
+    sender_id: senderId,
+    receiver_id: receiverId,
+    message_text: messageText,
+    channel_id: channelId,
+    message_type: "text",
+    moderation_status: moderationStatus,
+  });
+
+  if (insertError) {
+    console.error("moderate-message: insert failed", insertError);
+    const isDbBlocked = insertError.message?.includes("Message blocked");
+    return json({
+      success: false,
+      blocked: isDbBlocked,
+      reason: isDbBlocked ? "Message violates community guidelines." : insertError.message,
+    });
+  }
+
+  return json({ success: true, moderationStatus });
 });

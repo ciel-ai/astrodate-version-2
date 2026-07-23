@@ -1,8 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform, NativeModules } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 
 // SecureStore is native-only; fall back to AsyncStorage on web/Expo Go.
 const isWeb = Platform.OS === 'web';
+
+// A native SecureStore fallback (module missing, or a read/write/delete
+// throwing) means session tokens end up in plaintext AsyncStorage instead of
+// the keychain/keystore -- previously only a console.warn, invisible once a
+// real device is in the wild. Report it once per app session (not every
+// call) so a systemic issue is discoverable via Sentry without flooding it.
+let hasReportedNativeFallback = false;
+function reportNativeFallback(reason: string, err?: unknown) {
+  console.warn(`[secure-storage] ${reason}`, err);
+  if (hasReportedNativeFallback) return;
+  hasReportedNativeFallback = true;
+  Sentry.captureMessage(`[secure-storage] falling back to AsyncStorage: ${reason}`, 'warning');
+}
 
 /**
  * Check if the native module for SecureStore is linked and registered in the binary.
@@ -30,7 +44,7 @@ function getSecureStore() {
   // Safely check if the native module is registered in this binary before attempting to require it,
   // preventing native-level JSI crashes that bypass JavaScript try/catch blocks.
   if (!hasNativeSecureStore()) {
-    console.warn('[secure-storage] ExpoSecureStore native module is not registered in this binary, using AsyncStorage fallback.');
+    reportNativeFallback('ExpoSecureStore native module is not registered in this binary');
     return null;
   }
 
@@ -40,7 +54,7 @@ function getSecureStore() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('expo-secure-store');
   } catch (e) {
-    console.warn('[secure-storage] expo-secure-store not available in this environment, using AsyncStorage fallback:', e);
+    reportNativeFallback('expo-secure-store not available in this environment', e);
     return null;
   }
 }
@@ -72,7 +86,7 @@ export async function getSecureItem(key: string): Promise<string | null> {
       return legacy;
     }
   } catch (e) {
-    console.warn('[secure-storage] SecureStore read failed, falling back:', e);
+    reportNativeFallback('SecureStore read failed', e);
     return AsyncStorage.getItem(key);
   }
 
@@ -97,7 +111,7 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(key, value);
   } catch (e) {
-    console.warn('[secure-storage] SecureStore write failed, falling back:', e);
+    reportNativeFallback('SecureStore write failed', e);
     await AsyncStorage.setItem(key, value);
   }
 }
@@ -117,7 +131,7 @@ export async function deleteSecureItem(key: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(key);
   } catch (e) {
-    console.warn('[secure-storage] SecureStore delete failed, falling back:', e);
+    reportNativeFallback('SecureStore delete failed', e);
     await AsyncStorage.removeItem(key);
   }
 }

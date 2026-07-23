@@ -4,6 +4,7 @@
  * ASTROLOGY_API_KEY
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,8 @@ Deno.serve(async (req) => {
   try {
     const userId = Deno.env.get('ASTROLOGY_API_USER_ID');
     const apiKey = Deno.env.get('ASTROLOGY_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!userId || !apiKey) {
       console.error('❌ MISSING ASTROLOGY API CREDENTIALS');
@@ -41,6 +44,37 @@ Deno.serve(async (req) => {
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
+      });
+    }
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    // Requires a real signed-in user -- this proxies a paid external API with
+    // no rate limiting of its own, so without this check anyone holding the
+    // bundled (effectively public) anon key could drive unlimited billed
+    // calls (the gateway's own JWT check accepts the anon key, not just a
+    // real user session).
+    const reqAuthHeader = req.headers.get('Authorization');
+    if (!reqAuthHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    const userAuthClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+      global: { headers: { Authorization: reqAuthHeader } },
+    });
+    const { data: userAuthData, error: userAuthError } = await userAuthClient.auth.getUser();
+    if (userAuthError || !userAuthData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
       });
     }
 

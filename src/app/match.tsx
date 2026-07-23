@@ -60,11 +60,9 @@ export default function MatchScreen() {
     ? { uri: myPhotoUrl } 
     : { uri: DEFAULT_MY_AVATAR };
 
-  const otherPhotoSource = otherUserPhoto === 'mock-dinesh'
-    ? require('@/assets/images/dinesh.png')
-    : (otherUserPhoto && otherUserPhoto.startsWith('http')
-        ? { uri: otherUserPhoto }
-        : (otherUserPhoto ? { uri: otherUserPhoto } : { uri: DEFAULT_OTHER_AVATAR }));
+  const otherPhotoSource = otherUserPhoto
+    ? { uri: otherUserPhoto }
+    : { uri: DEFAULT_OTHER_AVATAR };
 
   const handleSendMessage = useCallback(() => {
     // Replace current route with the chat route so we don't return to the match page on back press
