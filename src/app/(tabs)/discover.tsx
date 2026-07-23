@@ -76,6 +76,19 @@ export default function DiscoverScreen() {
     loadDeck();
   }, [loadDeck]);
 
+  // Tab screens stay mounted across sign-out (see comment below), so without
+  // this the previous user's deck keeps rendering to whoever signs in next
+  // on the same device until a swipe/reload happens to replace it.
+  useEffect(() => {
+    if (!user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCards(null);
+      setMeta(null);
+      setIndex(0);
+      setLimitReached(false);
+    }
+  }, [user]);
+
   // Tab screens stay mounted when you switch away (see (tabs)/_layout.tsx),
   // so the plain mount-only effect above never re-runs -- a card already
   // sitting in `cards` from earlier in the session keeps showing even after

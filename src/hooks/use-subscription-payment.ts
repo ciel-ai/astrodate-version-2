@@ -12,6 +12,12 @@ import {
   type RevenueCatPlanSlug,
 } from '@/lib/iap-products';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/network';
+
+// RevenueCat SDK calls have no built-in timeout -- a hang here (bad network,
+// captive portal) previously left paymentStatus stuck at 'purchasing'
+// forever with no way out but leaving the screen.
+const RC_CALL_TIMEOUT_MS = 20000;
 
 export type PaymentStatus = 'idle' | 'purchasing' | 'active' | 'failed';
 
@@ -21,6 +27,7 @@ export interface UseSubscriptionPaymentReturn {
   startPayment: (planSlug: RevenueCatPlanSlug) => Promise<void>;
   resetPayment: () => void;
   restorePurchases: () => Promise<boolean>;
+  restoringPurchases: boolean;
   packages: any[];
   loadingPackages: boolean;
   packagesError: string | null;
@@ -77,7 +84,26 @@ function isPurchaseCancelled(error: unknown) {
   );
 }
 
+// Friendlier copy for the codes a user is actually likely to hit -- everything
+// else falls back to error.message, which can be raw StoreKit/Play Billing
+// text (still shown, just not specially worded).
+const FRIENDLY_ERROR_MESSAGES: Partial<Record<PURCHASES_ERROR_CODE, string>> = {
+  [PURCHASES_ERROR_CODE.NETWORK_ERROR]: 'No internet connection. Please check your network and try again.',
+  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR]: 'No internet connection. Please check your network and try again.',
+  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR]: 'There was a problem connecting to the store. Please try again shortly.',
+  [PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR]: 'You already own this subscription. Try Restore Purchases instead.',
+  [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR]: 'Your payment is pending approval. This can take a moment to complete.',
+  [PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR]: 'This purchase is already linked to a different account.',
+  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR]: 'A purchase is already in progress. Please wait a moment.',
+  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR]: 'Purchases are not allowed on this device. Check your device restrictions.',
+  [PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR]: 'The store took too long to respond. Please try again.',
+};
+
 function getErrorMessage(error: unknown) {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const friendly = FRIENDLY_ERROR_MESSAGES[(error as { code: PURCHASES_ERROR_CODE }).code];
+    if (friendly) return friendly;
+  }
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -92,7 +118,11 @@ async function syncPurchaseWithBackend(): Promise<boolean> {
   for (const delay of delaysMs) {
     if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
     try {
-      const { data, error } = await supabase.functions.invoke('confirm-purchase');
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('confirm-purchase'),
+        RC_CALL_TIMEOUT_MS,
+        'confirm-purchase timed out'
+      );
       if (!error && data?.success) return true;
     } catch (err) {
       console.warn('[confirm-purchase] attempt failed:', err);
@@ -109,7 +139,12 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
   const [packages, setPackages] = useState<any[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [packagesError, setPackagesError] = useState<string | null>(null);
+  const [restoringPurchases, setRestoringPurchases] = useState(false);
   const isMountedRef = useRef(true);
+  // Synchronous guard against a fast double-tap firing two concurrent
+  // purchasePackage() calls before the isBusy/'purchasing' state (set inside
+  // this same async function) has actually re-rendered the disabled button.
+  const purchaseInProgressRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -134,7 +169,7 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
           return;
         }
 
-        const offerings = await Purchases.getOfferings();
+        const offerings = await withTimeout(Purchases.getOfferings(), RC_CALL_TIMEOUT_MS, 'getOfferings timed out');
         if (offerings.current) {
           if (active) {
             setPackages(offerings.current.availablePackages);
@@ -164,6 +199,8 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
 
   const startPayment = useCallback(
     async (planSlug: RevenueCatPlanSlug) => {
+      if (purchaseInProgressRef.current) return;
+      purchaseInProgressRef.current = true;
       setPaymentError(null);
       setPaymentStatus('purchasing');
 
@@ -186,7 +223,7 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
         }
 
         const productId = REVENUECAT_PRODUCT_IDS[planSlug];
-        const offerings = await Purchases.getOfferings();
+        const offerings = await withTimeout(Purchases.getOfferings(), RC_CALL_TIMEOUT_MS, 'getOfferings timed out');
         const allPackages = Object.values(offerings.all).flatMap((offering) => offering.availablePackages);
 
         if (allPackages.length === 0) {
@@ -206,7 +243,11 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
           );
         }
 
-        const { customerInfo } = await Purchases.purchasePackage(selectedPackage);
+        const { customerInfo } = await withTimeout(
+          Purchases.purchasePackage(selectedPackage),
+          RC_CALL_TIMEOUT_MS,
+          'The store took too long to respond. Please check your connection and try again.'
+        );
         const entitlementId = REVENUECAT_ENTITLEMENT_IDS[planSlug];
         if (!customerInfo.entitlements.active[entitlementId]) {
           throw new Error('Purchase completed, but no active entitlement was returned.');
@@ -239,31 +280,52 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
           setPaymentStatus('failed');
           setPaymentError(getErrorMessage(error));
         }
+      } finally {
+        purchaseInProgressRef.current = false;
       }
     },
     [user, refetchMembership]
   );
 
   const restorePurchases = useCallback(async () => {
-    await ensureRevenueCatConfigured();
-    if (!_rcActive) {
-      console.warn('[RevenueCat] restorePurchases skipped — SDK not initialized (missing API key).');
+    setPaymentError(null);
+    setRestoringPurchases(true);
+    try {
+      await ensureRevenueCatConfigured();
+      if (!_rcActive) {
+        console.warn('[RevenueCat] restorePurchases skipped — SDK not initialized (missing API key).');
+        return false;
+      }
+      if (user) {
+        try {
+          await Purchases.logIn(user.id);
+        } catch {
+          // non-fatal
+        }
+      }
+      const customerInfo = await withTimeout(
+        Purchases.restorePurchases(),
+        RC_CALL_TIMEOUT_MS,
+        'The store took too long to respond. Please check your connection and try again.'
+      );
+      const hasActiveEntitlement = Object.keys(customerInfo.entitlements.active).length > 0;
+      if (hasActiveEntitlement) {
+        await syncPurchaseWithBackend();
+        void refetchMembership();
+      } else if (isMountedRef.current) {
+        setPaymentError('No active purchases found to restore.');
+      }
+      return hasActiveEntitlement;
+    } catch (error) {
+      if (isMountedRef.current) {
+        setPaymentError(getErrorMessage(error));
+      }
       return false;
-    }
-    if (user) {
-      try {
-        await Purchases.logIn(user.id);
-      } catch {
-        // non-fatal
+    } finally {
+      if (isMountedRef.current) {
+        setRestoringPurchases(false);
       }
     }
-    const customerInfo = await Purchases.restorePurchases();
-    const hasActiveEntitlement = Object.keys(customerInfo.entitlements.active).length > 0;
-    if (hasActiveEntitlement) {
-      await syncPurchaseWithBackend();
-      void refetchMembership();
-    }
-    return hasActiveEntitlement;
   }, [user, refetchMembership]);
 
   const resetPayment = useCallback(() => {
@@ -277,6 +339,7 @@ export function useSubscriptionPayment(): UseSubscriptionPaymentReturn {
     startPayment,
     resetPayment,
     restorePurchases,
+    restoringPurchases,
     packages,
     loadingPackages,
     packagesError,

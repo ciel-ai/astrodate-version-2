@@ -115,6 +115,30 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+    // Requires a real signed-in user -- this proxies a paid external API with
+    // no rate limiting of its own, so without this check anyone holding the
+    // bundled (effectively public) anon key could drive unlimited billed
+    // calls (the gateway's own JWT check accepts the anon key, not just a
+    // real user session).
+    const reqAuthHeader = req.headers.get('Authorization');
+    if (!reqAuthHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    const userAuthClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { persistSession: false },
+      global: { headers: { Authorization: reqAuthHeader } },
+    });
+    const { data: userAuthData, error: userAuthError } = await userAuthClient.auth.getUser();
+    if (userAuthError || !userAuthData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
     const authHeader = 'Basic ' + btoa(userId + ':' + apiKey);
     const commonHeaders = {
       'Authorization': authHeader,

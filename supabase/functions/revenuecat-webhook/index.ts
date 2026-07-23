@@ -135,6 +135,14 @@ Deno.serve(async (req: Request) => {
 
       case "RENEWAL":
       case "UNCANCELLATION":
+      case "PRODUCT_CHANGE":
+        // A plan upgrade/downgrade (e.g. Astro+ -> AstroX) done through the
+        // store's native subscription management screen never touches the
+        // app -- confirm-purchase only fires right after an in-app purchase
+        // call, so this webhook event is the ONLY place that learns about
+        // it. handleRenewal already re-resolves plan_id from the event's
+        // current product_id/entitlement_ids on every call (see its own
+        // comment), so it's the correct handler here too, not just a renewal.
         await handleRenewal(supabase, userId, event);
         break;
 
@@ -151,7 +159,14 @@ Deno.serve(async (req: Request) => {
         break;
 
       default:
-        // PRODUCT_CHANGE, TRANSFER, SUBSCRIBER_ALIAS, etc.
+        // TRANSFER, SUBSCRIBER_ALIAS, etc. -- not handled. Low priority, not
+        // zero: src/hooks/use-subscription-payment.ts calls
+        // Purchases.logIn(user.id) before every purchase, but catches a
+        // logIn failure and lets the purchase proceed anonymously rather
+        // than blocking it -- so an anonymous-app-user-id purchase (and thus
+        // a later TRANSFER/alias-merge event) is possible, just rare. Worth
+        // real handling if that logIn failure path turns out to fire often
+        // in practice, not addressed here.
         console.log(`revenuecat-webhook: unhandled event type ${event.type} — skipping`);
     }
 

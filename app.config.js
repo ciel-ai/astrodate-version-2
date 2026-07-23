@@ -73,6 +73,8 @@ export default ({ config }) => ({
       {
         photosPermission:
           'Astro date uses your photo library so you can choose profile photos to show other users.',
+        cameraPermission:
+          'Astro date uses your camera so you can take a photo to send in chat.',
       },
     ],
     'expo-secure-store',

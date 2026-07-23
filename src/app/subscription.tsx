@@ -29,6 +29,7 @@ export default function SubscriptionScreen() {
     startPayment,
     resetPayment,
     restorePurchases,
+    restoringPurchases,
     packages,
     loadingPackages,
     packagesError,
@@ -146,14 +147,18 @@ export default function SubscriptionScreen() {
         )}
 
         <Pressable
-          disabled={isBusy}
+          disabled={isBusy || restoringPurchases}
           onPress={async () => {
             const restored = await restorePurchases();
             if (restored) router.back();
           }}
           accessibilityRole="button"
         >
-          <Text style={[styles.restoreText, { color: T.dim }]}>Restore purchases</Text>
+          {restoringPurchases ? (
+            <ActivityIndicator color={T.dim} />
+          ) : (
+            <Text style={[styles.restoreText, { color: T.dim }]}>Restore purchases</Text>
+          )}
         </Pressable>
 
         {/* Legal links required by Apple Guideline 3.1.2 */}

@@ -211,6 +211,10 @@ export default function ChatThreadScreen() {
   // isRecording + durationMillis for the recording UI.
   const recorder = useSafeAudioRecorder(SAFE_RECORDING_PRESETS.HIGH_QUALITY);
   const recorderState = useSafeAudioRecorderState(recorder);
+  const isRecordingRef = useRef(false);
+  useEffect(() => {
+    isRecordingRef.current = recorderState.isRecording;
+  }, [recorderState.isRecording]);
 
   const isFocusedRef = useRef(false);
   const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -266,7 +270,7 @@ export default function ChatThreadScreen() {
     if (loadingMore || !hasMore || messages.length === 0) return;
     setLoadingMore(true);
     const oldest = messages[messages.length - 1];
-    const page = await getMessages(channelId, oldest.created_at);
+    const page = await getMessages(channelId, oldest.created_at, oldest.id);
     if (page && page.length > 0) {
       setMessages((prev) => [...prev, ...page]);
       setHasMore(page.length === 30);
@@ -307,7 +311,13 @@ export default function ChatThreadScreen() {
 
     await sendMessage(id, channelId, otherUser.id, text);
     void refreshChatsList();
-  }, [channelId, otherUser, user, refreshChatsList]);
+    // Keyed on user?.id, not the user object -- see the realtime-subscription
+    // effect below for why: a token refresh produces a new `user` object
+    // (same id) on every onAuthStateChange, and re-creating this callback
+    // would cascade into re-creating handleIncomingCallSignal, which that
+    // effect also depends on, tearing down and rebuilding the channel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, otherUser, user?.id, refreshChatsList]);
 
   const handleIncomingCallSignal = useCallback((signal: any) => {
     if (!user) return;
@@ -350,7 +360,9 @@ export default function ChatThreadScreen() {
         });
         break;
     }
-  }, [user, deliverCallLogMessage]);
+    // Keyed on user?.id -- same reasoning as deliverCallLogMessage above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, deliverCallLogMessage]);
 
   // Realtime: new messages from the other participant. My own sends are
   // handled by the optimistic flow in handleSend, so this ignores anything
@@ -410,10 +422,27 @@ export default function ChatThreadScreen() {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active' && isFocusedRef.current) {
         void loadInitial();
+      } else if (state !== 'active' && isRecordingRef.current) {
+        // Backgrounded mid-recording -- discard rather than leave the native
+        // audio session open (stuck mic indicator, lost/corrupt recording).
+        recorder.stop().catch(() => {});
+        safeSetAudioModeAsync({ allowsRecording: false }).catch(() => {});
       }
     });
     return () => sub.remove();
-  }, [loadInitial]);
+  }, [loadInitial, recorder]);
+
+  // Same discard-in-progress-recording logic for unmount (user navigates
+  // away mid-recording via back gesture/tab switch rather than backgrounding).
+  useEffect(() => {
+    return () => {
+      if (isRecordingRef.current) {
+        recorder.stop().catch(() => {});
+        safeSetAudioModeAsync({ allowsRecording: false }).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ringing animation effect
   useEffect(() => {

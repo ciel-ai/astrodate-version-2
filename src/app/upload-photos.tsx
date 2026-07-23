@@ -25,7 +25,7 @@ const SERIF = 'Baskerville-Old-Face';
 // expo-image-picker's native module (ExponentImagePicker) can be absent from an
 // out-of-date dev client. Load it lazily so this screen still renders and photo
 // picking fails with a friendly message instead of crashing the whole bundle.
-// The permanent fix is to rebuild the dev client: `npx expo run:android`.
+// The permanent fix is to rebuild the dev client: `npx expo run:ios` / `npx expo run:android`.
 function getImagePicker(): typeof import('expo-image-picker') | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -77,7 +77,7 @@ export default function UploadPhotosScreen() {
       if (!ImagePicker) {
         alert(
           'Photo picker unavailable',
-          'This dev build is missing the image-picker module. Rebuild the app (npx expo run:android) to enable photo uploads.'
+          'This dev build is missing the image-picker module. Rebuild the app (npx expo run:ios / npx expo run:android) to enable photo uploads.'
         );
         return;
       }

@@ -19,8 +19,9 @@
  *   ASTROLOGY_API_KEY
  *
  * Request body: { user_id: string }
- * Trust model matches compute-synastry: requires an Authorization header,
- * trusts user_id in the body, uses the service role for all DB access.
+ * Trust model matches compute-synastry: requires an Authorization header
+ * belonging to the same user as user_id in the body (verified via
+ * auth.getUser()), then uses the service role for all DB access.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -101,6 +102,22 @@ Deno.serve(async (req) => {
   const { user_id } = body;
   if (!user_id) {
     return json({ error: "user_id is required" }, 400);
+  }
+
+  // Verify the bearer token actually belongs to user_id -- previously this
+  // only checked that *some* Authorization header was present, letting any
+  // caller pass an arbitrary user_id and read that user's nakshatra, birth
+  // data, and approximate current location.
+  const authClient = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: authData, error: authError } = await authClient.auth.getUser();
+  if (authError || !authData.user) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+  if (authData.user.id !== user_id) {
+    return json({ error: "Forbidden" }, 403);
   }
 
   const { data: astroRec } = await db
