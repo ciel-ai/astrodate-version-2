@@ -40,6 +40,23 @@ import {
   requestAndSyncLocation,
 } from '@/lib/location';
 import { supabase } from '@/lib/supabase';
+import {
+  DiamondIcon,
+  HeartIcon,
+  InfoIcon,
+  LockIcon,
+  LogOutIcon,
+  MessageIcon,
+  MoonStarIcon,
+  PaletteIcon,
+  PhoneIcon,
+  PinIcon,
+  RefreshIcon,
+  ScrollIcon,
+  ShieldIcon,
+  SparkleIcon,
+  TrashIcon,
+} from '@/components/settings/setting-icons';
 
 const SERIF = 'Baskerville-Old-Face';
 const SUPPORT_EMAIL = 'hello@astrodate.in';
@@ -51,6 +68,12 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { membership } = useSubscriptionStatus();
   const { restorePurchases } = useSubscriptionPayment();
+
+  // Every row icon shares this tint (purple, matching the app's accent
+  // everywhere else) except the two destructive rows below, which use the
+  // same red as their destructiveText.
+  const iconColor = theme === 'dark' ? '#A855F7' : '#7C3AED';
+  const destructiveIconColor = '#F87171';
 
   const [fontsLoaded] = useFonts({
     [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
@@ -260,7 +283,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
             <View style={[styles.row, styles.rowTopAlign]}>
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>📱</Text>
+                <View style={styles.rowIcon}><PhoneIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Phone number</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>Your login credential — contact support to change it.</Text>
@@ -278,7 +301,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>🚪</Text>
+                <View style={styles.rowIcon}><LogOutIcon color={destructiveIconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, styles.destructiveText]}>Sign out</Text>
                 </View>
@@ -295,7 +318,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>🗑️</Text>
+                <View style={styles.rowIcon}><TrashIcon color={destructiveIconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, styles.destructiveText]}>Delete account</Text>
                 </View>
@@ -313,7 +336,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>✦</Text>
+                <View style={styles.rowIcon}><DiamondIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Manage subscription</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>Current plan: {planDisplay}</Text>
@@ -331,7 +354,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>♻️</Text>
+                <View style={styles.rowIcon}><RefreshIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Restore purchases</Text>
                 </View>
@@ -347,7 +370,7 @@ export default function SettingsScreen() {
             {/* Location sharing row */}
             <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>📍</Text>
+                <View style={styles.rowIcon}><PinIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Share My Location</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -381,7 +404,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>🛡️</Text>
+                <View style={styles.rowIcon}><ShieldIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Blocked Accounts</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -401,7 +424,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>🔒</Text>
+                <View style={styles.rowIcon}><LockIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Privacy Policy</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -424,7 +447,7 @@ export default function SettingsScreen() {
               <>
                 <View style={styles.row}>
                   <View style={styles.rowLeft}>
-                    <Text style={styles.rowIcon}>✨</Text>
+                    <View style={styles.rowIcon}><SparkleIcon color={iconColor} /></View>
                     <View style={styles.rowText}>
                       <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>New Matches</Text>
                     </View>
@@ -444,7 +467,7 @@ export default function SettingsScreen() {
 
                 <View style={styles.row}>
                   <View style={styles.rowLeft}>
-                    <Text style={styles.rowIcon}>💬</Text>
+                    <View style={styles.rowIcon}><MessageIcon color={iconColor} /></View>
                     <View style={styles.rowText}>
                       <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Messages</Text>
                     </View>
@@ -464,7 +487,7 @@ export default function SettingsScreen() {
 
                 <View style={styles.row}>
                   <View style={styles.rowLeft}>
-                    <Text style={styles.rowIcon}>❤️</Text>
+                    <View style={styles.rowIcon}><HeartIcon color={iconColor} /></View>
                     <View style={styles.rowText}>
                       <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Likes</Text>
                       <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -487,7 +510,7 @@ export default function SettingsScreen() {
 
                 <View style={styles.row}>
                   <View style={styles.rowLeft}>
-                    <Text style={styles.rowIcon}>🔮</Text>
+                    <View style={styles.rowIcon}><MoonStarIcon color={iconColor} /></View>
                     <View style={styles.rowText}>
                       <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Astrology Updates</Text>
                       <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -514,7 +537,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: theme === 'dark' ? 'rgba(13, 9, 32, 0.75)' : 'rgba(255, 255, 255, 0.85)', borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
             <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>🎨</Text>
+                <View style={styles.rowIcon}><PaletteIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Theme Mode</Text>
                   <Text style={[styles.rowSub, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>
@@ -559,7 +582,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>📜</Text>
+                <View style={styles.rowIcon}><ScrollIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Terms of Service</Text>
                 </View>
@@ -575,7 +598,7 @@ export default function SettingsScreen() {
               style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
             >
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>💬</Text>
+                <View style={styles.rowIcon}><MessageIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>Contact support</Text>
                 </View>
@@ -587,7 +610,7 @@ export default function SettingsScreen() {
 
             <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Text style={styles.rowIcon}>ℹ️</Text>
+                <View style={styles.rowIcon}><InfoIcon color={iconColor} /></View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>App version</Text>
                 </View>
@@ -679,7 +702,7 @@ const styles = StyleSheet.create({
   rowTopAlign: { alignItems: 'flex-start' },
   rowValueTopAlign: { marginTop: 2 },
   rowLeft: { flexDirection: 'row', alignItems: 'flex-start', flex: 1, gap: 12 },
-  rowIcon: { fontSize: 22, marginTop: 1 },
+  rowIcon: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   rowText: { flex: 1 },
   rowTitle: {
     color: '#FFFFFF',
