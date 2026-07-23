@@ -101,6 +101,11 @@ export function LikeCard({
 
   const showFreePeekTag = item.reveal_source === 'free_reveal' && !isPaid;
   const showSubscriptionRevealPill = locked && subscriptionRevealsRemaining != null && subscriptionRevealsRemaining > 0;
+  // action_type is sent for locked cards too (not part of what reveal
+  // gates), so this shows even before the profile itself unlocks -- a
+  // super like is a stronger signal to entice the reveal, same reasoning
+  // most dating apps use for "someone super liked you" teasers.
+  const isSuperLike = item.action_type === 'super_like';
 
   return (
     <View style={styles.card}>
@@ -123,11 +128,18 @@ export function LikeCard({
           </View>
         )}
 
-        {showFreePeekTag && (
-          <View style={styles.freePeekTag}>
-            <Text style={styles.freePeekText}>✨ Free peek</Text>
-          </View>
-        )}
+        <View style={styles.topRightBadges}>
+          {isSuperLike && (
+            <View style={styles.superLikeTag}>
+              <Text style={styles.superLikeText}>⭐ Super liked you</Text>
+            </View>
+          )}
+          {showFreePeekTag && (
+            <View style={styles.freePeekTag}>
+              <Text style={styles.freePeekText}>✨ Free peek</Text>
+            </View>
+          )}
+        </View>
 
         <Pressable
           onPress={handleHeartPress}
@@ -162,7 +174,7 @@ export function LikeCard({
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
-          {locked ? 'Someone liked you' : item.full_name}
+          {locked ? (isSuperLike ? 'Someone super liked you' : 'Someone liked you') : item.full_name}
         </Text>
         {!locked && onOpenMenu && (
           <Pressable
@@ -225,10 +237,14 @@ const styles = StyleSheet.create({
   scoreDot: { width: 7, height: 7, borderRadius: 4 },
   scoreText: { color: '#D4B8FF', fontSize: 11, fontWeight: '700' },
 
-  freePeekTag: {
+  topRightBadges: {
     position: 'absolute',
     top: 10,
     right: 10,
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  freePeekTag: {
     backgroundColor: 'rgba(246, 185, 59, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(246, 185, 59, 0.45)',
@@ -237,6 +253,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   freePeekText: { color: '#F6B93B', fontSize: 10, fontWeight: '700' },
+
+  superLikeTag: {
+    backgroundColor: 'rgba(74, 127, 255, 0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 127, 255, 0.45)',
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  superLikeText: { color: '#8CA9E8', fontSize: 10, fontWeight: '700' },
 
   heartBtn: {
     position: 'absolute',

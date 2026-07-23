@@ -162,7 +162,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           setSigningOut(true);
           await signOut();
-          router.replace('/');
+          router.replace('/create-account');
           setSigningOut(false);
         },
       },
@@ -197,7 +197,7 @@ export default function SettingsScreen() {
               return;
             }
             await signOut();
-            router.replace('/');
+            router.replace('/create-account');
             setDeleting(false);
           },
         },

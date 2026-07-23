@@ -63,8 +63,6 @@ function RootLayout() {
             <Stack.Screen name="birth-details" options={{ headerShown: false }} />
             {/* Profile preview review screen */}
             <Stack.Screen name="profile-preview" options={{ headerShown: false }} />
-            {/* Sign back in third-party account link option screen */}
-            <Stack.Screen name="sign-back-in" options={{ headerShown: false }} />
             {/* Cosmic identity: Vedic / Western / Nakshatra reveal */}
             <Stack.Screen name="cosmic-identity" options={{ headerShown: false }} />
             {/* Onboarding Questionnaire Pages */}
@@ -92,8 +90,6 @@ function RootLayout() {
             <Stack.Screen name="chat/[channelId]" options={{ headerShown: false }} />
             {/* Match page — beautiful transition overlay */}
             <Stack.Screen name="match" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade' }} />
-            {/* Verification — placeholder entry point linked from Profile's Hero card */}
-            <Stack.Screen name="verification" options={{ headerShown: false, presentation: 'modal' }} />
             {/* Profile's prompts editor — reuses PromptEditorForm, pushed from PromptsCard */}
             <Stack.Screen name="edit-prompts" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>

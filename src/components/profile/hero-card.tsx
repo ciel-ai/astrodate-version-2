@@ -14,11 +14,10 @@ interface HeroCardProps {
   profile: ProfileData;
   membership: MembershipSummary | null;
   isDark: boolean;
-  onGetVerified: () => void;
   onEditPhoto?: () => void;
 }
 
-export function HeroCard({ profile, isDark, onGetVerified, onEditPhoto }: HeroCardProps) {
+export function HeroCard({ profile, isDark, onEditPhoto }: HeroCardProps) {
   const primaryPhoto = profile.photos.find((p) => p.is_primary) ?? profile.photos[0] ?? null;
   const initials = profile.fullName
     .split(' ')
@@ -74,17 +73,7 @@ export function HeroCard({ profile, isDark, onGetVerified, onEditPhoto }: HeroCa
           <Text style={styles.verifiedPillIcon}>✓</Text>
           <Text style={styles.verifiedPillText}>Verified</Text>
         </View>
-      ) : (
-        <Pressable
-          id="btn-hero-get-verified"
-          onPress={onGetVerified}
-          style={({ pressed }) => [styles.pill, styles.getVerifiedPill, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Get verified"
-        >
-          <Text style={styles.getVerifiedText}>Get verified</Text>
-        </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -130,8 +119,6 @@ const styles = StyleSheet.create({
   verifiedPillIcon: { fontSize: 11, color: '#34D399', fontWeight: '800' },
   verifiedPillText: { fontSize: 12.5, fontWeight: '700', color: '#34D399' },
 
-  getVerifiedPill: { backgroundColor: 'rgba(96, 165, 250, 0.12)', borderColor: 'rgba(96, 165, 250, 0.30)' },
-  getVerifiedText: { fontSize: 12.5, fontWeight: '700', color: '#60A5FA' },
   pressed: { opacity: 0.85 },
   avatarContainer: {
     position: 'relative',

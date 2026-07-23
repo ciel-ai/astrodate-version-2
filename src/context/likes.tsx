@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { useAuth } from './auth';
 import { getWhoLikedMe, markLikesSeen, type WhoLikedMeResponse } from '@/lib/likes';
@@ -50,6 +51,26 @@ export function LikesProvider({ children }: { children: ReactNode }) {
     } else {
       setData(null);
     }
+  }, [user, refresh]);
+
+  // Unlike ChatsProvider, this can't subscribe to postgres_changes on
+  // user_likes directly -- RLS only grants SELECT where auth.uid() =
+  // user_id (the liker), deliberately NOT liked_user_id (the recipient),
+  // so reveal/paywall gating stays enforced only through get_who_liked_me()
+  // and can't be bypassed by a client-side realtime filter. Foreground
+  // AppState refresh (same pattern as ChatsProvider) is the safe middle
+  // ground: not instant-push, but the badge/list stop being frozen for the
+  // rest of a session just because the Likes tab hasn't been revisited.
+  useEffect(() => {
+    if (!user) return;
+
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        void refresh();
+      }
+    });
+
+    return () => sub.remove();
   }, [user, refresh]);
 
   const markSeen = useCallback(async () => {

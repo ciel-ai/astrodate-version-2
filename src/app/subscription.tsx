@@ -20,15 +20,20 @@ type PlanCard = {
 };
 
 // Static display copy mirroring plan_catalog's seeded `features` JSON
-// (supabase/migrations/20260630120200_subscriptions.sql) — prices shown here
-// are fallbacks; the store charges whatever price is configured against each
+// (supabase/migrations/20260630120200_subscriptions.sql, trimmed by
+// 20260721120000_remove_dead_plan_features.sql) — prices shown here are
+// fallbacks; the store charges whatever price is configured against each
 // product ID in App Store Connect / Google Play Console.
 //
-// Only bullets backed by an actual enforced RPC/gate are listed here. Several
-// plan_catalog.features keys (advanced_filters, dealbreakers, incognito_mode,
-// full_synastry_report, deep_synastry, ai_match_reading, weekly_boost,
-// priority_likes, skip_the_line) are not read by any RPC or component today.
-// Don't add them back to this copy until they're actually implemented —
+// Only bullets backed by an actual enforced RPC/gate are listed here.
+// plan_catalog.features now only contains the 8 keys real RPCs actually
+// read (daily_likes, see_who_likes_you, weekly_super_likes, daily_rewinds,
+// deck_size, high_match_quota, high_match_percent, top_match_of_day) — the
+// unenforced marketing keys that used to sit alongside them (advanced_filters,
+// dealbreakers, incognito_mode, full_synastry_report, deep_synastry,
+// ai_match_reading, weekly_boost, priority_likes, skip_the_line,
+// astrologer_chat, reading_packages) were removed rather than fixed. Don't
+// add bullets for any of those back until the feature is actually built —
 // listing unenforced features here is a false-advertising / refund risk.
 const PLANS: PlanCard[] = [
   {
