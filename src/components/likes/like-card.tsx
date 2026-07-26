@@ -125,9 +125,20 @@ export function LikeCard({
     <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
       <View style={[styles.photoWrap, { backgroundColor: T.photoPlaceholder }]}>
         {locked ? (
-          <View style={[styles.lockedPlaceholder, { backgroundColor: T.photoPlaceholder }]}>
-            <LockIcon />
-          </View>
+          item.blurred_photo_url ? (
+            <>
+              <Image source={{ uri: item.blurred_photo_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <View style={styles.lockOverlay}>
+                <View style={styles.lockBadgeCircle}>
+                  <LockIcon />
+                </View>
+              </View>
+            </>
+          ) : (
+            <View style={[styles.lockedPlaceholder, { backgroundColor: T.photoPlaceholder }]}>
+              <LockIcon />
+            </View>
+          )
         ) : item.photo_url ? (
           <Image source={{ uri: item.photo_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
@@ -253,6 +264,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(30, 15, 60, 0.85)',
   },
   initialsFallback: { color: 'rgba(255,255,255,0.25)', fontSize: 44, fontWeight: '700' },
+  lockOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(9, 3, 28, 0.30)',
+  },
+  lockBadgeCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(9, 3, 28, 0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
 
   // All top badges (score/super-like/free-peek) stack in one top-left column
   // instead of splitting into opposing corners -- this card renders at only

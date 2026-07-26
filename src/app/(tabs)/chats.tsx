@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { FlatList, ImageBackground, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, ImageBackground, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -93,15 +93,39 @@ function EmptyChats({ isDark }: { isDark: boolean }) {
   );
 }
 
+// Distinct from EmptyChats -- a failed fetch (getConversations returned null,
+// e.g. network/timeout) used to render the exact same "No conversations yet"
+// copy as a genuinely empty inbox, which reads as "you have no matches"
+// instead of "something went wrong, try again".
+function ErrorChats({ isDark, onRetry }: { isDark: boolean; onRetry: () => void }) {
+  const T = {
+    title: isDark ? '#FFFFFF' : '#1B1528',
+    body: isDark ? '#8B8D99' : '#6B7280',
+  };
+  return (
+    <View style={styles.emptyWrap}>
+      <Text style={styles.emptyEmoji}>⚠</Text>
+      <Text style={[styles.emptyTitle, { color: T.title }]}>Couldn&apos;t load your chats</Text>
+      <Text style={[styles.emptyBody, { color: T.body }]}>Check your connection and try again.</Text>
+      <Pressable
+        onPress={onRetry}
+        style={({ pressed }) => [styles.emptyCta, pressed && styles.emptyCtaPressed]}
+      >
+        <Text style={styles.emptyCtaText}>Retry</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function ChatsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
   const isDark = theme === 'dark';
-  const { conversations, loading, refresh } = useChats();
+  const { conversations, loading, refreshing, fetchFailed, refresh, refreshSilently } = useChats();
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
+      void refreshSilently();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
@@ -119,9 +143,19 @@ export default function ChatsScreen() {
           conversations.length === 0 && styles.listContentEmpty,
         ]}
         ListHeaderComponent={<Text style={[styles.header, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Chats</Text>}
-        ListEmptyComponent={!loading ? <EmptyChats isDark={isDark} /> : null}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.emptyWrap}>
+              <ActivityIndicator color="#A855F7" size="large" />
+            </View>
+          ) : fetchFailed ? (
+            <ErrorChats isDark={isDark} onRetry={refresh} />
+          ) : (
+            <EmptyChats isDark={isDark} />
+          )
+        }
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#A855F7" />
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#A855F7" />
         }
         showsVerticalScrollIndicator={false}
         // Chat list rows are small/uniform -- default windowing tuning is

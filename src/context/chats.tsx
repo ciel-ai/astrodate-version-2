@@ -34,42 +34,74 @@ type ChatsContextValue = {
   conversations: ConversationSummary[];
   totalUnread: number;
   loading: boolean;
+  /** True only while a user-initiated pull-to-refresh is in flight -- drives
+   *  RefreshControl's spinner. */
+  refreshing: boolean;
+  /** True when the most recent fetch failed (network/timeout) -- distinct
+   *  from a genuinely empty inbox (getConversations returns null on failure,
+   *  [] on a real empty list), so the UI can show "couldn't load, retry"
+   *  instead of silently rendering the same copy as "no conversations yet". */
+  fetchFailed: boolean;
   refresh: () => Promise<void>;
+  /** Same fetch, but doesn't toggle `refreshing` -- for focus/realtime/
+   *  AppState triggers, so returning to the tab never pops the native
+   *  pull-to-refresh spinner (and the list-content jump that comes with it)
+   *  when the user didn't ask for a refresh. */
+  refreshSilently: () => Promise<void>;
 };
 
 const ChatsContext = createContext<ChatsContextValue>({
   conversations: [],
   totalUnread: 0,
   loading: false,
+  refreshing: false,
+  fetchFailed: false,
   refresh: async () => {},
+  refreshSilently: async () => {},
 });
 
 export function ChatsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
 
   const userRef = useRef(user);
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
-  const refresh = useCallback(async () => {
+  const fetchConversations = useCallback(async () => {
     if (!userRef.current) return;
-    setLoading(true);
     const result = await getConversations();
-    if (result) setConversations(result);
-    setLoading(false);
+    if (result) {
+      setConversations(result);
+      setFetchFailed(false);
+    } else {
+      setFetchFailed(true);
+    }
   }, []);
+
+  const refreshSilently = useCallback(async () => {
+    await fetchConversations();
+  }, [fetchConversations]);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchConversations();
+    setRefreshing(false);
+  }, [fetchConversations]);
 
   useEffect(() => {
     if (user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      void refresh();
+      setLoading(true);
+      void fetchConversations().finally(() => setLoading(false));
     } else {
       setConversations([]);
     }
-  }, [user, refresh]);
+  }, [user, fetchConversations]);
 
   // Realtime: a new message addressed to me, or a new match I'm part of,
   // should refresh the list (last-message preview / unread badge / a brand
@@ -104,21 +136,21 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` },
           () => {
-            void refresh();
+            void refreshSilently();
           }
         )
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user1_id=eq.${userId}` },
           () => {
-            void refresh();
+            void refreshSilently();
           }
         )
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'user_matches', filter: `user2_id=eq.${userId}` },
           () => {
-            void refresh();
+            void refreshSilently();
           }
         )
         .subscribe();
@@ -132,7 +164,7 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
     // every token refresh, and depending on the whole object would tear down + rebuild this
     // channel on every refresh instead of only on actual login/logout.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, refresh]);
+  }, [user?.id, refreshSilently]);
 
   // Realtime websockets commonly drop when the app backgrounds -- refresh on
   // foreground return (same AppState pattern already used in context/auth.tsx
@@ -142,17 +174,17 @@ export function ChatsProvider({ children }: { children: ReactNode }) {
 
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
-        void refresh();
+        void refreshSilently();
       }
     });
 
     return () => sub.remove();
-  }, [user, refresh]);
+  }, [user, refreshSilently]);
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
 
   return (
-    <ChatsContext.Provider value={{ conversations, totalUnread, loading, refresh }}>
+    <ChatsContext.Provider value={{ conversations, totalUnread, loading, refreshing, fetchFailed, refresh, refreshSilently }}>
       {children}
     </ChatsContext.Provider>
   );

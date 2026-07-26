@@ -32,6 +32,47 @@ export default ({ config }) => ({
       // answer rather than leaving Apple to ask it per-build.
       ITSAppUsesNonExemptEncryption: false,
     },
+    // Apple's "required reason" API declarations (effective for all App
+    // Store submissions since Spring 2024) -- several dependencies in this
+    // app's native tree (RevenueCat's SDK, AsyncStorage, expo-secure-store's
+    // fallback, react-native-keyboard-controller, expo-file-system) actually
+    // call these APIs, and Expo/EAS Build doesn't reliably auto-merge every
+    // static CocoaPod's own PrivacyInfo.xcprivacy (see
+    // https://docs.expo.dev/guides/apple-privacy/), so declaring the
+    // aggregate set here is the safe path rather than relying on that. Reason
+    // codes are Apple's own published ones for each category -- if a fresh
+    // Xcode Archive / App Store Connect privacy report ever flags an
+    // undeclared API, add its category+reason here rather than guessing
+    // preemptively at more than this.
+    privacyManifests: {
+      NSPrivacyAccessedAPITypes: [
+        {
+          // expo-secure-store's AsyncStorage fallback, AsyncStorage itself
+          // (theme preference), and RevenueCat's own SDK all read/write
+          // UserDefaults-backed storage that never leaves the app.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+          NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+        },
+        {
+          // expo-file-system reads local file bytes (voice messages, photo
+          // uploads) without ever displaying their timestamps to the user.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+          NSPrivacyAccessedAPITypeReasons: ['0A2A.1'],
+        },
+        {
+          // Used internally for elapsed-time calculations (animation/retry
+          // timing), not to display the device's actual boot time.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+          NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
+        },
+        {
+          // react-native-keyboard-controller reads the active keyboard to
+          // drive KeyboardAvoidingView's layout math.
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryActiveKeyboard',
+          NSPrivacyAccessedAPITypeReasons: ['3EC4.1'],
+        },
+      ],
+    },
   },
   android: {
     adaptiveIcon: {

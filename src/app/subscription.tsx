@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscriptionStatus } from '@/context/subscription';
 import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
 import { matchesProductId, REVENUECAT_PRODUCT_IDS } from '@/lib/iap-products';
-import { PLANS } from '@/lib/plan-display';
+import { PLANS, darkenPlanColor, lightenPlanColor, planCardShadow } from '@/lib/plan-display';
 import { useAppTheme } from '@/lib/theme-context';
 
 export default function SubscriptionScreen() {
@@ -95,52 +96,72 @@ export default function SubscriptionScreen() {
             const isPlanUnavailable = !matchedPackage;
 
             return (
-              <View key={plan.slug} style={[styles.card, { backgroundColor: T.card, borderColor: plan.borderColor }, isPlanUnavailable && styles.cardUnavailable]}>
-                {plan.popular && !isPlanUnavailable && (
-                  <View style={[styles.popularTag, { backgroundColor: plan.accentColor }]}>
-                    <Text style={styles.popularTagText}>MOST POPULAR</Text>
-                  </View>
-                )}
-                <Text style={[styles.planBadge, { color: plan.accentColor }]}>{plan.badge}</Text>
+              <View
+                key={plan.slug}
+                style={[styles.cardShadowWrap, planCardShadow(plan.accentColor), isPlanUnavailable && styles.cardUnavailable]}
+              >
+                <View style={styles.card}>
+                  <LinearGradient
+                    colors={[lightenPlanColor(plan.accentColor), plan.accentColor, darkenPlanColor(plan.accentColor)]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  {/* Soft diagonal glass-sheen highlight, top-left corner --
+                      matches Profile's plan carousel exactly. */}
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.32)', 'rgba(255,255,255,0)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0.7, y: 0.7 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
 
-                {isPlanUnavailable ? (
-                  <Text style={[styles.planPrice, { color: T.text }]}>Unavailable</Text>
-                ) : (
-                  <Text style={[styles.planPrice, { color: T.text }]}>{matchedPackage.product.priceString}/mo</Text>
-                )}
-
-                <Text style={[styles.planTagline, { color: T.dim }]}>{plan.tagline}</Text>
-
-                <View style={styles.featureList}>
-                  {plan.features.map((feature) => (
-                    <View key={feature} style={styles.featureRow}>
-                      <Text style={[styles.featureCheck, { color: plan.accentColor }]}>✓</Text>
-                      <Text style={[styles.featureText, { color: T.text }]}>{feature}</Text>
+                  {plan.popular && !isPlanUnavailable && (
+                    <View style={styles.popularTag}>
+                      <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
                     </View>
-                  ))}
-                </View>
-
-                <Pressable
-                  disabled={isBusy || isCurrentPlan || isPlanUnavailable}
-                  onPress={() => {
-                    resetPayment();
-                    void startPayment(plan.slug);
-                  }}
-                  style={({ pressed }) => [
-                    styles.cta,
-                    { backgroundColor: plan.accentColor },
-                    (pressed || isBusy) && styles.ctaPressed,
-                    (isCurrentPlan || isPlanUnavailable) && styles.ctaDisabled,
-                  ]}
-                >
-                  {isBusy ? (
-                    <ActivityIndicator color="#1A1030" />
-                  ) : (
-                    <Text style={styles.ctaText}>
-                      {isCurrentPlan ? 'Current plan' : isPlanUnavailable ? 'Plan unavailable' : `Get ${plan.name}`}
-                    </Text>
                   )}
-                </Pressable>
+                  <Text style={styles.planBadge}>{plan.badge}</Text>
+
+                  {isPlanUnavailable ? (
+                    <Text style={styles.planPrice}>Unavailable</Text>
+                  ) : (
+                    <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                  )}
+
+                  <Text style={styles.planTagline}>{plan.tagline}</Text>
+
+                  <View style={styles.featureList}>
+                    {plan.features.map((feature) => (
+                      <View key={feature} style={styles.featureRow}>
+                        <Text style={styles.featureCheck}>✓</Text>
+                        <Text style={styles.featureText}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <Pressable
+                    disabled={isBusy || isCurrentPlan || isPlanUnavailable}
+                    onPress={() => {
+                      resetPayment();
+                      void startPayment(plan.slug);
+                    }}
+                    style={({ pressed }) => [
+                      styles.cta,
+                      (pressed || isBusy) && styles.ctaPressed,
+                      (isCurrentPlan || isPlanUnavailable) && styles.ctaDisabled,
+                    ]}
+                  >
+                    {isBusy ? (
+                      <ActivityIndicator color={plan.accentColor} />
+                    ) : (
+                      <Text style={[styles.ctaText, { color: plan.accentColor }]}>
+                        {isCurrentPlan ? 'Current plan' : isPlanUnavailable ? 'Plan unavailable' : `Get ${plan.name}`}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
               </View>
             );
           })
@@ -219,10 +240,14 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: { color: '#F87171', fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  // Gradient card styling (purple for Astro+, gold for AstroX) matches
+  // Profile's plan carousel exactly -- see plans-carousel.tsx and the shared
+  // lightenPlanColor/darkenPlanColor/planCardShadow helpers in plan-display.ts.
+  cardShadowWrap: { borderRadius: 20 },
   card: {
-    borderWidth: 1,
     borderRadius: 20,
     padding: 20,
+    overflow: 'hidden',
     gap: 4,
   },
   cardUnavailable: {
@@ -232,22 +257,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: 20,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  popularTagText: { color: '#1A1030', fontSize: 11, fontWeight: '800' },
-  planBadge: { fontSize: 18, fontWeight: '800' },
-  planPrice: { fontSize: 22, fontWeight: '800', marginTop: 2 },
-  planTagline: { fontSize: 14, marginBottom: 12 },
+  popularTagText: { fontSize: 11, fontWeight: '800' },
+  planBadge: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
+  planPrice: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 2 },
+  planTagline: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginBottom: 12 },
   featureList: { gap: 8, marginBottom: 16 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureCheck: { fontSize: 14, fontWeight: '800' },
-  featureText: { fontSize: 14, flexShrink: 1 },
-  cta: { borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
+  featureCheck: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  featureText: { color: 'rgba(255,255,255,0.95)', fontSize: 14, flexShrink: 1 },
+  cta: { backgroundColor: '#FFFFFF', borderRadius: 24, paddingVertical: 14, alignItems: 'center' },
   ctaPressed: { opacity: 0.85 },
   ctaDisabled: { opacity: 0.4 },
-  ctaText: { color: '#1A1030', fontSize: 15, fontWeight: '800' },
+  ctaText: { fontSize: 15, fontWeight: '800' },
   restoreText: { fontSize: 14, textAlign: 'center', marginTop: 4, textDecorationLine: 'underline' },
 
   // Loading Packages style

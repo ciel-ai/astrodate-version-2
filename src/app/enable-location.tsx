@@ -15,6 +15,7 @@ import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
+import { alert } from '@/lib/themed-alert';
 import { requestAndSyncLocation } from '@/lib/location';
 
 const SERIF = 'Baskerville-Old-Face';
@@ -50,8 +51,22 @@ export default function EnableLocationScreen() {
 
   const handleEnable = async () => {
     setLoading(true);
-    await requestAndSyncLocation();
+    const result = await requestAndSyncLocation();
     setLoading(false);
+
+    // 'denied' is already a deliberate, visible choice (the OS's own
+    // permission dialog) -- but 'error' means permission was granted and it
+    // still failed (GPS timeout, save request failed), which otherwise looks
+    // exactly like "Enable Location" silently did nothing.
+    if (result === 'error') {
+      alert(
+        "Couldn't get your location",
+        'You can try again anytime from Settings > Privacy & Location.',
+        [{ text: 'OK', onPress: () => router.push('/birth-details') }]
+      );
+      return;
+    }
+
     router.push('/birth-details');
   };
 

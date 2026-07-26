@@ -126,10 +126,12 @@ interface DiscoverActionBarProps {
   onSuperLike?: () => void;
   onRewind?: () => void;
   rewindLocked?: boolean;
+  superLikeLocked?: boolean;
   /** True while any request is in flight -- disables all four buttons. */
   disabled?: boolean;
   /** True when there's no current card to act on (deck exhausted) -- disables only pass/like/super-like. */
   swipeDisabled?: boolean;
+  isDark?: boolean;
 }
 
 export function DiscoverActionBar({
@@ -138,31 +140,38 @@ export function DiscoverActionBar({
   onSuperLike,
   onRewind,
   rewindLocked = true,
+  superLikeLocked = false,
   disabled,
   swipeDisabled,
+  isDark = true,
 }: DiscoverActionBarProps) {
   const swipeBtnDisabled = disabled || swipeDisabled;
+  const labelStyle = [styles.btnLabel, { color: isDark ? '#f7f6f8' : '#1B1528' }];
 
   return (
     <View style={styles.bar}>
       <View style={styles.btnColumn}>
         <ActionButton locked={rewindLocked} onPress={disabled ? undefined : onRewind} badge={<RewindBadge />} />
-        <Text style={styles.btnLabel}>Rewind</Text>
+        <Text style={labelStyle}>Rewind</Text>
       </View>
 
       <View style={styles.btnColumn}>
         <ActionButton onPress={swipeBtnDisabled ? undefined : onPass} badge={<PassBadge />} />
-        <Text style={styles.btnLabel}>Pass</Text>
+        <Text style={labelStyle}>Pass</Text>
       </View>
 
       <View style={styles.btnColumn}>
-        <ActionButton onPress={swipeBtnDisabled ? undefined : onSuperLike} badge={<SuperLikeBadge />} />
-        <Text style={styles.btnLabel}>Super Like</Text>
+        <ActionButton
+          locked={superLikeLocked}
+          onPress={swipeBtnDisabled ? undefined : onSuperLike}
+          badge={<SuperLikeBadge />}
+        />
+        <Text style={labelStyle}>Super Like</Text>
       </View>
 
       <View style={styles.btnColumn}>
         <ActionButton onPress={swipeBtnDisabled ? undefined : onLike} badge={<LikeBadge />} />
-        <Text style={styles.btnLabel}>Like</Text>
+        <Text style={labelStyle}>Like</Text>
       </View>
     </View>
   );
@@ -190,7 +199,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: -4,
     textAlign: 'center',
-    color: '#f7f6f8',
   },
   lockBadge: {
     position: 'absolute',

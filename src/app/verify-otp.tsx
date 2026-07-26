@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   ImageBackground,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -18,6 +19,7 @@ import { alert } from '@/lib/themed-alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
+import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
 import { supabase } from '@/lib/supabase';
 import { getOnboardingResumeRoute } from '@/lib/user-profile';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -32,7 +34,7 @@ export default function VerifyOtpScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const phone = (params.phone as string) || '+91 98765 43210';
+  const phone = (params.phone as string) || '';
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(29);
@@ -52,6 +54,28 @@ export default function VerifyOtpScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  // iOS's number-pad keyboard has no Done/Return key, so once all 6 digits
+  // are in there's nothing left to type -- dismiss so the Verify button
+  // (otherwise stuck behind the keyboard) becomes reachable.
+  useEffect(() => {
+    if (code.length === 6) {
+      inputRef.current?.blur();
+      Keyboard.dismiss();
+    }
+  }, [code]);
+
+  // A missing phone param (stale nav state, direct deep link) used to fall
+  // back to a hardcoded dummy number and silently try to verify against it
+  // -- send the user back to re-enter their number instead.
+  useEffect(() => {
+    if (!phone) {
+      alert('Session Expired', "We couldn't find a phone number to verify. Please sign in again.", [
+        { text: 'OK', onPress: () => router.replace('/login') },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone]);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
@@ -177,7 +201,11 @@ export default function VerifyOtpScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      >
         {/* Logo lockup */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
           <Image
@@ -308,7 +336,7 @@ export default function VerifyOtpScreen() {
             </Pressable>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 }

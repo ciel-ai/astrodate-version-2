@@ -9,10 +9,12 @@ import { DiscoverCard } from '@/components/discover-card';
 import { DiscoverActionBar } from '@/components/discover-action-bar';
 import { useAuth } from '@/context/auth';
 import { useChats } from '@/context/chats';
+import { useSubscriptionStatus } from '@/context/subscription';
 import { useAppTheme } from '@/lib/theme-context';
 import {
   getDiscoverDeck,
   getRewindsRemaining,
+  getSuperLikesRemaining,
   recordSwipe,
   rewindLastSwipe,
   type DiscoverCardData,
@@ -35,6 +37,8 @@ export default function DiscoverScreen() {
   };
   const { user } = useAuth();
   const { conversations } = useChats();
+  const { membership } = useSubscriptionStatus();
+  const planSlug = membership?.plan_slug ?? 'free';
   const [cards, setCards] = useState<DiscoverCardData[] | null>(null);
   const [meta, setMeta] = useState<DiscoverDeckMeta | null>(null);
   const [tier, setTier] = useState<string>('free');
@@ -43,6 +47,7 @@ export default function DiscoverScreen() {
   const [swiping, setSwiping] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [rewindLocked, setRewindLocked] = useState(true);
+  const [superLikeLocked, setSuperLikeLocked] = useState(true);
 
   const [isCosmicOpen, setIsCosmicOpen] = useState(false);
 
@@ -66,8 +71,11 @@ export default function DiscoverScreen() {
     if (user?.id) {
       const remaining = await getRewindsRemaining(user.id);
       setRewindLocked((remaining ?? 0) <= 0);
+      const superLikesRemaining = await getSuperLikesRemaining(user.id);
+      setSuperLikeLocked((superLikesRemaining ?? 0) <= 0);
     } else {
       setRewindLocked(true);
+      setSuperLikeLocked(true);
     }
   }, [user]);
 
@@ -146,6 +154,7 @@ export default function DiscoverScreen() {
         if (result.reason === 'swipe_limit_reached') {
           setLimitReached(true);
         } else if (result.reason === 'super_like_limit_reached') {
+          setSuperLikeLocked(true);
           alert(
             "You're out of super likes this week",
             'Astro+ gets 3 a week, AstroX gets 5 — yours refresh soon either way.',
@@ -182,6 +191,14 @@ export default function DiscoverScreen() {
     },
     [currentCard, swiping]
   );
+
+  const handleSuperLike = useCallback(() => {
+    if (superLikeLocked) {
+      openPaywall('super_like_limit');
+      return;
+    }
+    void handleSwipe('super_like');
+  }, [superLikeLocked, handleSwipe]);
 
 
   const handleRewind = useCallback(async () => {
@@ -354,10 +371,29 @@ export default function DiscoverScreen() {
           {/* Filter button removed -- it was a dead placeholder, its only
               action was an Alert saying "coming soon". */}
 
-          {/* AstroX Premium Badge */}
-          <Pressable style={styles.astroXBadge} onPress={() => openPaywall('discover_header_astrox')}>
-            <Text style={styles.crownEmoji}>👑</Text>
-            <Text style={styles.astroXBadgeText}>AstroX</Text>
+          {/* Plan badge — reflects the user's actual plan. Free users see a
+              locked Astro+ upsell in Astro+'s own purple (that's the plan
+              being sold, so it should look like it -- not a desaturated
+              gray "disabled" look that undersells what tapping it gets you).
+              Always opens the plan picker. */}
+          <Pressable
+            style={[
+              styles.astroXBadge,
+              planSlug !== 'astro_x' && styles.astroPlusBadge,
+            ]}
+            onPress={() => router.push('/subscription')}
+          >
+            <Text style={styles.crownEmoji}>
+              {planSlug === 'astro_x' ? '👑' : planSlug === 'astro_plus' ? '✦' : '🔒'}
+            </Text>
+            <Text
+              style={[
+                styles.astroXBadgeText,
+                planSlug !== 'astro_x' && styles.astroPlusBadgeText,
+              ]}
+            >
+              {planSlug === 'astro_x' ? 'AstroX' : 'Astro+'}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -379,9 +415,10 @@ export default function DiscoverScreen() {
           <DiscoverActionBar
             onPass={() => handleSwipe('pass')}
             onLike={() => handleSwipe('like')}
-            onSuperLike={() => handleSwipe('super_like')}
+            onSuperLike={handleSuperLike}
             onRewind={handleRewind}
             rewindLocked={rewindLocked}
+            superLikeLocked={superLikeLocked}
             disabled={swiping}
             swipeDisabled={!currentCard}
             isDark={isDark}
@@ -447,6 +484,13 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontSize: 12,
     fontWeight: '700',
+  },
+  astroPlusBadge: {
+    backgroundColor: 'rgba(168, 85, 247, 0.12)',
+    borderColor: '#A855F7',
+  },
+  astroPlusBadgeText: {
+    color: '#A855F7',
   },
 
   actionBarSpacer: { height: 100 },

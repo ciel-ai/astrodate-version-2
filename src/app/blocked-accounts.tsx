@@ -19,15 +19,23 @@ import { alert } from '@/lib/themed-alert';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/lib/theme-context';
 
+import { ShieldIcon } from '@/components/settings/setting-icons';
 import { getMyBlockedUsers, unblockUser, type BlockedUser } from '@/lib/chats';
+
+const SERIF = 'Baskerville-Old-Face';
 
 export default function BlockedAccountsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
+
+  const [fontsLoaded] = useFonts({
+    [SERIF]: require('@/assets/fonts/LibreBaskerville-Regular.ttf'),
+  });
 
   const [blocked, setBlocked] = useState<BlockedUser[] | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
@@ -66,6 +74,10 @@ export default function BlockedAccountsScreen() {
     );
   };
 
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: '#09031C' }} />;
+  }
+
   const isDark = theme === 'dark';
   const bgSource = isDark
     ? require('@/assets/images/create-bg.png')
@@ -93,7 +105,7 @@ export default function BlockedAccountsScreen() {
       </Pressable>
 
       <View style={[styles.container, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}>
-        <Text style={[styles.title, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>Blocked Accounts</Text>
+        <Text style={[styles.title, { fontFamily: SERIF, color: isDark ? '#FFFFFF' : '#1B1528' }]}>Blocked Accounts</Text>
 
         {blocked === null ? (
           <View style={styles.loadingWrap}>
@@ -101,7 +113,7 @@ export default function BlockedAccountsScreen() {
           </View>
         ) : blocked.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>🛡️</Text>
+            <ShieldIcon color={isDark ? '#A855F7' : '#7C3AED'} size={36} />
             <Text style={[styles.emptyTitle, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>No blocked accounts</Text>
             <Text style={[styles.emptyBody, { color: isDark ? '#7C7796' : '#6B7280' }]}>
               People you block won&apos;t be able to see you or contact you, and you won&apos;t see them either.
@@ -179,12 +191,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 20 },
+  title: { fontSize: 26, marginBottom: 20 },
 
   loadingWrap: { paddingTop: 80, alignItems: 'center' },
 
   emptyWrap: { alignItems: 'center', paddingTop: 60, gap: 8, paddingHorizontal: 24 },
-  emptyIcon: { fontSize: 36, marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontWeight: '700' },
   emptyBody: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
 

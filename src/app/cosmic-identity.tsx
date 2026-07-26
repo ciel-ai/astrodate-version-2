@@ -566,14 +566,12 @@ const getPersonalityDescription = (type: 'western' | 'vedic' | 'nakshatra', sign
 const enqueueSynastryPrewarm = (userId: string) => {
   void (async () => {
     try {
-      const { data, error } = await supabase.rpc('enqueue_synastry_prewarm', { p_user_id: userId });
+      const { error } = await supabase.rpc('enqueue_synastry_prewarm', { p_user_id: userId });
 
       if (error) {
         console.warn('Synastry prewarm enqueue failed:', error.message);
         return;
       }
-
-      console.log('Synastry prewarm enqueue requested:', data);
 
       const { error: invokeError } = await supabase.functions.invoke('process-synastry-prewarm', {
         body: { batch_size: 10 },
@@ -1089,14 +1087,13 @@ export default function ZodiacPreviewScreen() {
 
       if (error) throw error;
 
-      console.log('✨ Astro details saved successfully');
       setHasSaved(true);
       if (data?.user_id) {
         enqueueSynastryPrewarm(data.user_id);
       }
       router.push('/profile-preview');
     } catch (error) {
-      console.error('❌ Error saving astro details:', error);
+      console.warn('Error saving astro details:', error);
       alert('Error', 'Failed to save your details. Please try again.');
       setIsSaving(false);
     }

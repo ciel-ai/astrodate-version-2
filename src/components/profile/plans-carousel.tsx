@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,35 +11,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { PLANS } from '@/lib/plan-display';
+import { PLANS, darkenPlanColor, lightenPlanColor, planCardShadow } from '@/lib/plan-display';
 
 interface PlansCarouselProps {
   isDark: boolean;
-}
-
-/** Mixes a hex color toward white (target=255) or black (target=0) by
- *  `amount` (0-1). Used to derive the gradient's light/dark stops from each
- *  plan's single accentColor instead of hand-picking a second color per plan. */
-function mix(hex: string, target: number, amount: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const blend = (c: number) => Math.round(c + (target - c) * amount).toString(16).padStart(2, '0');
-  return `#${blend(r)}${blend(g)}${blend(b)}`;
-}
-const lighten = (hex: string, amount = 0.32) => mix(hex, 255, amount);
-const darken = (hex: string, amount = 0.28) => mix(hex, 0, amount);
-
-/** Colored drop shadow behind the card, matching the pattern already used
- *  elsewhere in this app (e.g. hero-card.tsx's avatar glow) -- Android's
- *  elevation can't be tinted, so it falls back to a plain gray shadow there,
- *  same tradeoff already accepted throughout this codebase. */
-function cardShadow(color: string) {
-  return Platform.select({
-    ios: { shadowColor: color, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
-    android: { elevation: 8 },
-    web: { boxShadow: `0 8px 24px ${color}59` } as any,
-  });
 }
 
 // Matches profile.tsx's outer ScrollView contentContainerStyle paddingHorizontal
@@ -97,7 +71,7 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
                 width: cardWidth,
                 marginRight: index < PLANS.length - 1 ? CARD_GAP : 0,
               },
-              cardShadow(plan.accentColor),
+              planCardShadow(plan.accentColor),
               pressed && styles.pressed,
             ]}
             accessibilityRole="button"
@@ -109,7 +83,7 @@ export function PlansCarousel({ isDark }: PlansCarouselProps) {
                 on this separate inner view instead. */}
             <View style={styles.card}>
               <LinearGradient
-                colors={[lighten(plan.accentColor), plan.accentColor, darken(plan.accentColor)]}
+                colors={[lightenPlanColor(plan.accentColor), plan.accentColor, darkenPlanColor(plan.accentColor)]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}

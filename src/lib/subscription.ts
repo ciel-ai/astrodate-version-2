@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Json, Tables } from './database.types';
+import { withTimeout } from './network';
 
 type JsonObject = Extract<Json, { [key: string]: Json | undefined }>;
 type PlanCatalogRow = Tables<'plan_catalog'>;
@@ -22,7 +23,11 @@ export async function getCurrentMembership(): Promise<{ success: boolean; data?:
     if (authErr || !user) {
       return { success: false, error: 'User not authenticated' };
     }
-    const { data, error } = await supabase.rpc('get_my_membership');
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase.rpc('get_my_membership')),
+      15000,
+      'getCurrentMembership timed out'
+    );
     if (error) return { success: false, error: error.message };
     const row = isMembershipSummary(data) ? data : null;
     return { success: true, data: row };
@@ -65,12 +70,18 @@ export async function getMembershipOrFree(): Promise<MembershipSummary> {
 
 export async function getPlanCatalog(): Promise<Pick<PlanCatalogRow, 'id' | 'plan_slug' | 'plan_name' | 'plan_badge' | 'amount_paise' | 'interval' | 'features'>[] | null> {
   try {
-    const { data, error } = await supabase
-      .from('plan_catalog')
-      .select('id, plan_slug, plan_name, plan_badge, amount_paise, interval, features')
-      .eq('is_active', true)
-      .neq('plan_slug', 'free') // exclude free plan from purchase UI
-      .order('amount_paise', { ascending: true });
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('plan_catalog')
+          .select('id, plan_slug, plan_name, plan_badge, amount_paise, interval, features')
+          .eq('is_active', true)
+          .neq('plan_slug', 'free') // exclude free plan from purchase UI
+          .order('amount_paise', { ascending: true })
+      ),
+      15000,
+      'getPlanCatalog timed out'
+    );
     if (error) return null;
     return data;
   } catch {

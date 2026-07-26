@@ -47,7 +47,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
   const { membership } = useSubscriptionStatus();
-  const { profile, loading, refreshing, refresh, refetch, completionPercent, error } = useProfileData();
+  const { profile, loading, refreshing, refresh, refreshSilently, refetch, completionPercent, error } = useProfileData();
   const isDark = theme === 'dark';
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -61,7 +61,7 @@ export default function ProfileScreen() {
   // `loading` spinner and would flash on every return to this tab).
   useFocusEffect(
     useCallback(() => {
-      void refresh();
+      void refreshSilently();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );

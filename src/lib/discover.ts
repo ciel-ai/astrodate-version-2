@@ -183,6 +183,31 @@ export async function getRewindsRemaining(userId: string): Promise<number | null
   }
 }
 
+/** Weekly (Free/Astro+) or unlimited (AstroX, returned as 999) super-like
+ *  quota remaining -- used to set the Super Like button's locked state
+ *  proactively, same convention as getRewindsRemaining. Returns null on
+ *  network/timeout; callers should fall back to treating it as locked
+ *  rather than optimistically unlocked. */
+export async function getSuperLikesRemaining(userId: string): Promise<number | null> {
+  try {
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase.rpc('get_super_likes_remaining', { p_user_id: userId })),
+      15000,
+      'getSuperLikesRemaining timed out'
+    );
+
+    if (error) {
+      console.warn('[discover] get_super_likes_remaining failed:', error.message);
+      return null;
+    }
+
+    return data as number;
+  } catch (err: any) {
+    console.warn('[discover] getSuperLikesRemaining exception (non-fatal):', err?.message ?? err);
+    return null;
+  }
+}
+
 export type RewindResult =
   | { success: true; restored_user_id: string; restored_action: string }
   | { success: false; reason: 'rewind_not_available' | 'rewind_limit_reached' | 'nothing_to_rewind' | 'already_matched' };

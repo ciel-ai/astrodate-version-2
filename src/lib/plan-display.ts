@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { RevenueCatPlanSlug } from '@/lib/iap-products';
 
 export type PlanCard = {
@@ -7,7 +8,6 @@ export type PlanCard = {
   price: string;
   tagline: string;
   accentColor: string;
-  borderColor: string;
   popular?: boolean;
   features: string[];
 };
@@ -40,7 +40,6 @@ export const PLANS: PlanCard[] = [
     price: '₹299/mo',
     tagline: 'See who already likes you',
     accentColor: '#A855F7',
-    borderColor: 'rgba(168, 85, 247, 0.4)',
     popular: true,
     features: [
       '40 likes per day',
@@ -57,7 +56,6 @@ export const PLANS: PlanCard[] = [
     price: '₹599/mo',
     tagline: 'The full cosmic picture',
     accentColor: '#F6B93B',
-    borderColor: 'rgba(246, 185, 59, 0.4)',
     features: [
       'Unlimited likes',
       'See everyone who liked you',
@@ -67,3 +65,31 @@ export const PLANS: PlanCard[] = [
     ],
   },
 ];
+
+/** Mixes a hex color toward white (target=255) or black (target=0) by
+ *  `amount` (0-1). Used to derive a plan card gradient's light/dark stops
+ *  from its single accentColor instead of hand-picking a second color per
+ *  plan -- shared by the Profile plan carousel and the /subscription plan
+ *  picker so both render the exact same purple-for-Astro+/gold-for-AstroX
+ *  gradient card treatment. */
+function mix(hex: string, target: number, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const blend = (c: number) => Math.round(c + (target - c) * amount).toString(16).padStart(2, '0');
+  return `#${blend(r)}${blend(g)}${blend(b)}`;
+}
+export const lightenPlanColor = (hex: string, amount = 0.32) => mix(hex, 255, amount);
+export const darkenPlanColor = (hex: string, amount = 0.28) => mix(hex, 0, amount);
+
+/** Colored drop shadow behind a plan card, matching the pattern already used
+ *  elsewhere in this app (e.g. hero-card.tsx's avatar glow) -- Android's
+ *  elevation can't be tinted, so it falls back to a plain gray shadow there,
+ *  same tradeoff already accepted throughout this codebase. */
+export function planCardShadow(color: string) {
+  return Platform.select({
+    ios: { shadowColor: color, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+    android: { elevation: 8 },
+    web: { boxShadow: `0 8px 24px ${color}59` } as any,
+  });
+}

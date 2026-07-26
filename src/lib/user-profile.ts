@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { withTimeout } from './network';
 
 export interface UserProfile {
   phone_number?: string;
@@ -49,11 +50,11 @@ export const saveUserProfile = async (profile: UserProfile) => {
     const hasPhoneInput = Boolean(profile.phone_number && profile.phone_number.trim().length > 0);
     const normalizedPhone = hasPhoneInput ? normalizePhoneToE164(profile.phone_number!) : '';
 
-    const { data: existingProfile } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data: existingProfile } = await withTimeout(
+      Promise.resolve(supabase.from('user_profiles').select('id').eq('user_id', userId).maybeSingle()),
+      15000,
+      'saveUserProfile lookup timed out'
+    );
 
     let result;
 
@@ -67,31 +68,38 @@ export const saveUserProfile = async (profile: UserProfile) => {
       if (profile.sexual_orientation !== undefined) updatePayload.sexual_orientation = profile.sexual_orientation;
       if (hasPhoneInput) updatePayload.phone_number = normalizedPhone;
 
-      result = await supabase
-        .from('user_profiles')
-        .update(updatePayload)
-        .eq('user_id', userId)
-        .select()
-        .single();
+      result = await withTimeout(
+        Promise.resolve(
+          supabase.from('user_profiles').update(updatePayload).eq('user_id', userId).select().single()
+        ),
+        15000,
+        'saveUserProfile update timed out'
+      );
     } else {
       if (!profile.full_name || !profile.full_name.trim()) {
         return { success: false, error: 'Missing required field: full_name' };
       }
 
-      result = await supabase
-        .from('user_profiles')
-        .insert({
-          user_id: userId,
-          phone_number: normalizedPhone,
-          full_name: profile.full_name,
-          email: profile.email ?? '',
-          gender: profile.gender ?? null,
-          gender_detail: profile.gender_detail ?? null,
-          location: profile.location ?? null,
-          sexual_orientation: profile.sexual_orientation ?? null,
-        })
-        .select()
-        .single();
+      result = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('user_profiles')
+            .insert({
+              user_id: userId,
+              phone_number: normalizedPhone,
+              full_name: profile.full_name,
+              email: profile.email ?? '',
+              gender: profile.gender ?? null,
+              gender_detail: profile.gender_detail ?? null,
+              location: profile.location ?? null,
+              sexual_orientation: profile.sexual_orientation ?? null,
+            })
+            .select()
+            .single()
+        ),
+        15000,
+        'saveUserProfile insert timed out'
+      );
     }
 
     if (result.error) {
@@ -138,15 +146,24 @@ export const getOnboardingResumeRoute = async (): Promise<OnboardingResumeRoute>
 
   const userId = user.id;
 
-  const [profileRes, astroRes, section1Res, personalityRes, photosRes] = await Promise.all([
-    supabase.from('user_profiles').select('full_name, location').eq('user_id', userId).maybeSingle(),
-    supabase.from('astro_details').select('western_sign, indian_sign, nakshatra_name').eq('user_id', userId).maybeSingle(),
-    // partner_preference is only written by onboarding-ques-07.tsx, the last screen of that block.
-    supabase.from('section1_qns').select('partner_preference').eq('user_id', userId).maybeSingle(),
-    // how_often_do_you_overthink_relationships is only written by onboarding-ques-10.tsx, the last screen of that block.
-    supabase.from('personality_qns').select('how_often_do_you_overthink_relationships').eq('user_id', userId).maybeSingle(),
-    supabase.from('user_photos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-  ]);
+  // Called right after every OTP verification (see verify-otp.tsx) -- the
+  // highest-traffic path in the app. A network hang here used to have no
+  // timeout at all, leaving the "Verification Successful" alert stuck
+  // forever instead of falling back to /onboarding the way a thrown error
+  // already does.
+  const [profileRes, astroRes, section1Res, personalityRes, photosRes] = await withTimeout(
+    Promise.all([
+      supabase.from('user_profiles').select('full_name, location').eq('user_id', userId).maybeSingle(),
+      supabase.from('astro_details').select('western_sign, indian_sign, nakshatra_name').eq('user_id', userId).maybeSingle(),
+      // partner_preference is only written by onboarding-ques-07.tsx, the last screen of that block.
+      supabase.from('section1_qns').select('partner_preference').eq('user_id', userId).maybeSingle(),
+      // how_often_do_you_overthink_relationships is only written by onboarding-ques-10.tsx, the last screen of that block.
+      supabase.from('personality_qns').select('how_often_do_you_overthink_relationships').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_photos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    ]),
+    15000,
+    'getOnboardingResumeRoute timed out'
+  );
 
   if (!profileRes.data?.full_name) return '/onboarding';
   if (!profileRes.data?.location) return '/address';
@@ -166,11 +183,11 @@ export const getUserProfile = async () => {
       return { success: false, error: 'User not authenticated' };
     }
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase.from('user_profiles').select('*').eq('user_id', user.id).maybeSingle()),
+      15000,
+      'getUserProfile timed out'
+    );
 
     if (error) {
       return { success: false, error: error.message };

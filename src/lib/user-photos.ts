@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { invokeSupabaseFunctionWithTimeout } from './network';
 
 /** Onboarding (upload-photos.tsx) requires at least this many before continuing --
  *  the Profile photo manager enforces the same floor on delete so a user can
@@ -14,6 +15,19 @@ export interface UserPhoto {
   thumbnail_url?: string | null;
   display_order: number;
   is_primary: boolean;
+}
+
+/** Kicks off blurred-thumbnail generation for one photo. Fire-and-forget by
+ *  design -- callers must not await this on the upload/reorder hot path.
+ *  generate-photo-thumbnail is idempotent, so calling this more than once
+ *  for the same photo (e.g. re-promoting an old primary photo) is harmless. */
+function triggerPhotoThumbnailGeneration(photoId: string): void {
+  void invokeSupabaseFunctionWithTimeout(
+    () => supabase.functions.invoke('generate-photo-thumbnail', { body: { photo_id: photoId } }),
+    15000
+  ).catch((err: any) => {
+    console.warn('[user-photos] thumbnail generation request failed (non-fatal):', err?.message ?? err);
+  });
 }
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
@@ -116,25 +130,43 @@ export async function uploadUserPhoto(params: {
       });
     if (uploadError) return { success: false, error: uploadError.message };
 
-    const { data: { publicUrl } } = supabase.storage.from('user-photos').getPublicUrl(filePath);
-
     // Primary is whichever photo lands first, not whichever fills slot 0 --
     // matches upload-photos.tsx's existing rule.
     const isFirstPhoto = !(existing.data ?? []).some((p) => p.is_primary);
 
-    const { error: dbError } = await supabase.from('user_photos').insert({
-      user_id: user.id,
-      photo_url: publicUrl,
-      storage_path: filePath,
-      display_order: params.displayOrder,
-      is_primary: isFirstPhoto,
-    });
-
-    if (dbError) {
-      // The storage object already succeeded -- remove it so it doesn't become
-      // a permanently orphaned file with no DB row pointing to it.
+    // The DB row is created by moderate-photo, not inserted directly here --
+    // user_photos' INSERT policy is service_role-only (see
+    // 20260726120000_require_server_side_photo_moderation.sql) precisely so
+    // every photo is Gemini-classified before it ever becomes visible
+    // anywhere in the app.
+    let modResult: { success: boolean; photo?: { id: string }; reason?: string } | undefined;
+    try {
+      modResult = await invokeSupabaseFunctionWithTimeout(
+        () => supabase.functions.invoke('moderate-photo', {
+          body: { storage_path: filePath, display_order: params.displayOrder, is_primary: isFirstPhoto },
+        }).then(({ data, error }) => {
+          if (error) throw error;
+          return data;
+        }),
+        20000
+      );
+    } catch (invokeErr: any) {
       await supabase.storage.from('user-photos').remove([filePath]).catch(() => {});
-      return { success: false, error: dbError.message };
+      return { success: false, error: invokeErr?.message ?? 'Upload failed. Please try again.' };
+    }
+
+    if (!modResult?.success) {
+      // moderate-photo already deletes the storage object itself on a
+      // genuine content rejection -- this call only cleans up for the (rarer)
+      // case where the DB insert failed after passing moderation.
+      await supabase.storage.from('user-photos').remove([filePath]).catch(() => {});
+      return { success: false, error: modResult?.reason ?? 'Upload failed. Please try again.' };
+    }
+
+    // Locked "who liked me" cards only ever show the primary photo, blurred --
+    // no reason to spend the image-processing work on the other five.
+    if (isFirstPhoto && modResult.photo?.id) {
+      triggerPhotoThumbnailGeneration(modResult.photo.id);
     }
 
     return { success: true };
@@ -220,6 +252,12 @@ export async function setPrimaryPhoto(photoId: string): Promise<{ success: boole
       .update({ is_primary: true })
       .eq('id', photoId);
     if (setError) return { success: false, error: setError.message };
+
+    // Covers both direct promotion (Profile's photo manager) and the
+    // auto-promotion deleteUserPhoto does when the old primary is removed --
+    // idempotent server-side, so no need to check blurred_thumbnail_url
+    // first (a photo promoted a second time just short-circuits).
+    triggerPhotoThumbnailGeneration(photoId);
 
     return { success: true };
   } catch (error) {

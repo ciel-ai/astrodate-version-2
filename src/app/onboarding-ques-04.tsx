@@ -112,6 +112,17 @@ export default function OnboardingQues4Screen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
+      {/* Back Button */}
+      <Pressable
+        onPress={() => router.back()}
+        style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
+      </Pressable>
+
       <ScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
@@ -177,15 +188,6 @@ export default function OnboardingQues4Screen() {
 
           {/* Bottom Nav Area */}
           <View style={styles.bottomNav}>
-            {/* Back Button */}
-            <Pressable
-              id="btn-back-page4"
-              onPress={() => router.back()}
-              style={({ pressed }) => [styles.backNavBtn, { backgroundColor: isDark ? 'rgba(20, 12, 40, 0.55)' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : '#E5E7EB' }, pressed && styles.backNavBtnPressed]}
-            >
-              <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
-            </Pressable>
-
             {/* Action Continue Button */}
             <Pressable
               id="btn-hobbies-continue"
@@ -286,22 +288,22 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 32,
   },
-  backNavBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backgroundColor: 'rgba(20, 12, 40, 0.55)',
-    justifyContent: 'center',
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
-  },
-  backNavBtnPressed: {
-    opacity: 0.7,
+    justifyContent: 'center',
   },
   backChevron: {
-    width: 12,
-    height: 12,
+    width: 10,
+    height: 10,
     borderLeftWidth: 2.5,
     borderBottomWidth: 2.5,
     transform: [{ rotate: '45deg' }],

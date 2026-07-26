@@ -212,7 +212,16 @@ export function useProfileData() {
     setRefreshing(false);
   }, [fetchAll]);
 
+  // Same fetch as `refresh`, but doesn't toggle `refreshing` -- for the
+  // useFocusEffect trigger on every return to this tab, so it never pops the
+  // native pull-to-refresh spinner (and the content jump that comes with it)
+  // when the user didn't actually pull. `refresh` stays reserved for the
+  // RefreshControl's own onRefresh.
+  const refreshSilently = useCallback(async () => {
+    await fetchAll();
+  }, [fetchAll]);
+
   const completionPercent = useMemo(() => calculateProfileCompletion(profile), [profile]);
 
-  return { profile, loading, refreshing, error, refresh, refetch: fetchAll, completionPercent };
+  return { profile, loading, refreshing, error, refresh, refreshSilently, refetch: fetchAll, completionPercent };
 }

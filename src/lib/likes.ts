@@ -19,6 +19,10 @@ export type LikeCardData = {
   reveal_source: 'free_reveal' | 'subscription' | 'one_time_purchase' | null;
   full_name: string | null;
   photo_url: string | null;
+  /** Server-blurred stand-in for photo_url on locked rows (see
+   *  generate-photo-thumbnail edge function) -- null once revealed, since
+   *  photo_url itself is the real photo at that point. */
+  blurred_photo_url: string | null;
   compatibility_score: number | null;
   seen: boolean;
   created_at: string;

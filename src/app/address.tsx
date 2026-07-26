@@ -80,8 +80,17 @@ export default function AddressScreen() {
       {/* Back button */}
       <Pressable
         onPress={() => router.back()}
-        style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
+        style={[
+          styles.backBtn,
+          {
+            top: Math.max(insets.top, 16),
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          },
+        ]}
         hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
       >
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
