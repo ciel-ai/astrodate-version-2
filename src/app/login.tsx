@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
@@ -157,7 +158,7 @@ export default function LoginScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => safeBack(router)}
         style={[
           styles.backBtn, 
           { 

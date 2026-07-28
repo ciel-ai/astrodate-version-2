@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import {
   ImageBackground,
@@ -58,7 +59,7 @@ export default function PrivacyScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => safeBack(router)}
         style={[styles.backBtn, { top: insets.top + 8, backgroundColor: T.backBtnBg, borderColor: T.backBtnBorder }]}
         hitSlop={10}
         accessibilityRole="button"

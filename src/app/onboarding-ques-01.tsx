@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -128,7 +129,7 @@ export default function OnboardingQuesScreen() {
 
       {/* Back Button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => safeBack(router)}
         style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
         hitSlop={10}
         accessibilityRole="button"

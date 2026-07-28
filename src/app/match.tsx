@@ -11,9 +11,10 @@ import {
   useColorScheme,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, Ellipse, G, Defs, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import Glitters from '@/components/glitters';
@@ -78,7 +79,7 @@ export default function MatchScreen() {
   }, [channelId, otherUserId, otherUserName, otherUserPhoto]);
 
   const handleKeepDiscovering = useCallback(() => {
-    router.back();
+    safeBack(router);
   }, []);
 
   if (!fontsLoaded) {

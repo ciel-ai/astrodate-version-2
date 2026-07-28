@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -395,7 +396,7 @@ export default function AstroXFeaturesScreen() {
       {/* ── HEADER ── */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => router.back()} style={[styles.menuBtn, { backgroundColor: T.menuBtnBg }]}>
+          <Pressable onPress={() => safeBack(router)} style={[styles.menuBtn, { backgroundColor: T.menuBtnBg }]}>
             <Text style={[styles.menuIcon, { color: T.text }]}>☰</Text>
           </Pressable>
           <View>

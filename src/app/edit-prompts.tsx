@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -52,7 +53,7 @@ export default function EditPromptsScreen() {
       alert('Save Failed', result.error || 'Could not save prompts.');
       return;
     }
-    router.back();
+    safeBack(router);
   };
 
   const T = {
@@ -83,7 +84,7 @@ export default function EditPromptsScreen() {
           <View style={styles.header}>
             <Pressable
               id="btn-edit-prompts-back"
-              onPress={() => router.back()}
+              onPress={() => safeBack(router)}
               style={[styles.backBtn, { backgroundColor: T.card, borderColor: T.border }]}
               hitSlop={10}
               accessibilityRole="button"

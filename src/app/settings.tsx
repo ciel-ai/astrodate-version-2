@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -262,7 +263,7 @@ export default function SettingsScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => safeBack(router)}
         style={[
           styles.backBtn,
           {

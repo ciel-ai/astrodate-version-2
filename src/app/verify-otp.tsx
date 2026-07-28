@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -185,7 +186,7 @@ export default function VerifyOtpScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => safeBack(router)}
         style={[
           styles.backBtn, 
           { 
@@ -241,7 +242,7 @@ export default function VerifyOtpScreen() {
             <Text style={[styles.subtitle, { color: isDark ? '#9A93B5' : '#5C5478' }]}>{"We've sent a 6-digit code to"}</Text>
             <View style={styles.phoneEditRow}>
               <Text style={[styles.phoneNumberText, { color: isDark ? '#FFFFFF' : '#1B1528' }]}>{phone}</Text>
-              <Pressable onPress={() => router.back()} hitSlop={10}>
+              <Pressable onPress={() => safeBack(router)} hitSlop={10}>
                 <Text style={{ color: isDark ? '#B57BFF' : '#7C3AED', fontSize: 13, marginLeft: 6, marginTop: -2 }}>✎</Text>
               </Pressable>
             </View>

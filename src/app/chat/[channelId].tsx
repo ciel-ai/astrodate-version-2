@@ -14,6 +14,7 @@ import { alert } from '@/lib/themed-alert';
 import { KeyboardAvoidingView, useKeyboardState } from '@/lib/keyboard-controller';
 import { AppState, type AppStateStatus } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -580,7 +581,7 @@ export default function ChatThreadScreen() {
           const ok = await blockAndLeave(otherUser.id);
           if (ok) {
             await refreshChatsList();
-            router.back();
+            safeBack(router);
           } else {
             alert("Couldn't block", 'Please check your connection and try again.');
           }
@@ -620,7 +621,7 @@ export default function ChatThreadScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: T.border }]}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => safeBack(router)}
           hitSlop={10}
           style={[styles.backBtn, { backgroundColor: T.backBtnBg }]}
           accessibilityRole="button"
