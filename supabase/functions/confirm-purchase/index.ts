@@ -65,6 +65,23 @@ interface RevenueCatSubscriberResponse {
   };
 }
 
+// Picks which plan (if any) to activate from RevenueCat's own reported
+// entitlements -- expired entitlements are filtered out, unrecognized
+// entitlement ids are ignored, and AstroX outranks Astro+ if a user somehow
+// holds both active at once (e.g. mid-upgrade). Pure and exported so it can
+// be tested without mocking fetch/Supabase/auth for the whole request.
+export function resolveActivePlanSlug(
+  entitlements: Record<string, { expires_date: string | null }>,
+  now: number = Date.now(),
+): string | undefined {
+  const activeSlugs = Object.entries(entitlements)
+    .filter(([, e]) => e.expires_date === null || new Date(e.expires_date).getTime() > now)
+    .map(([entitlementId]) => ENTITLEMENT_TO_PLAN_SLUG[entitlementId])
+    .filter((slug): slug is string => Boolean(slug));
+
+  return activeSlugs.includes("astro_x") ? "astro_x" : activeSlugs[0];
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -116,13 +133,7 @@ Deno.serve(async (req: Request) => {
   const entitlements = rcData.subscriber?.entitlements ?? {};
 
   const now = Date.now();
-  // AstroX outranks Astro+ if a user somehow holds both active entitlements.
-  const activeSlugs = Object.entries(entitlements)
-    .filter(([, e]) => e.expires_date === null || new Date(e.expires_date).getTime() > now)
-    .map(([entitlementId]) => ENTITLEMENT_TO_PLAN_SLUG[entitlementId])
-    .filter((slug): slug is string => Boolean(slug));
-
-  const planSlug = activeSlugs.includes("astro_x") ? "astro_x" : activeSlugs[0];
+  const planSlug = resolveActivePlanSlug(entitlements, now);
 
   if (!planSlug) {
     console.log(`confirm-purchase: no active entitlement found yet for user ${userId} — deferring to webhook`);

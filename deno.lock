@@ -1,10 +1,25 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/encoding@*": "1.0.11",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
     "jsr:@supabase/functions-js@*": "2.110.0",
     "jsr:@supabase/supabase-js@2": "2.110.0"
   },
   "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/encoding@1.0.11": {
+      "integrity": "e7cef2f0b3153bccc17431e7c864a1de03a4b6d9647389c43e08aaa775d37385"
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
     "@supabase/functions-js@2.110.0": {
       "integrity": "e7a3ce2b6fcb91462079634655b872980e3596971bc07e77cf8ccc5a6fc09803"
     },
@@ -17,8 +32,11 @@
       "dependencies": [
         "npm:@expo/ui@~56.0.22",
         "npm:@react-native-async-storage/async-storage@2.2.0",
+        "npm:@react-native/jest-preset@~0.85.3",
         "npm:@sentry/react-native@7.11",
         "npm:@supabase/supabase-js@^2.108.2",
+        "npm:@testing-library/react-native@^13.3.3",
+        "npm:@types/jest@29.5.14",
         "npm:@types/react@~19.2.2",
         "npm:eslint-config-expo@~56.0.4",
         "npm:eslint@9",
@@ -46,6 +64,8 @@
         "npm:expo-updates@~56.0.22",
         "npm:expo-web-browser@~56.0.5",
         "npm:expo@~56.0.16",
+        "npm:jest-expo@~56.0.5",
+        "npm:jest@29.7",
         "npm:react-dom@19.2.3",
         "npm:react-native-gesture-handler@~2.31.1",
         "npm:react-native-keyboard-controller@1.21.6",

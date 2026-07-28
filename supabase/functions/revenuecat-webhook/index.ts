@@ -33,7 +33,7 @@ import { activateSubscription, normalisePlanSlug, setSubscriptionStatus } from "
 // practical timing side-channel here, but this costs nothing). Walks the
 // longer of the two byte arrays so the loop length never itself leaks which
 // input was shorter.
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   const aBytes = new TextEncoder().encode(a);
   const bBytes = new TextEncoder().encode(b);
   const len = Math.max(aBytes.length, bBytes.length);
