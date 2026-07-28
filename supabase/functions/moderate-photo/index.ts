@@ -69,7 +69,7 @@ Rules:
 
 type ModerationStatus = "SAFE" | "UNSAFE";
 
-async function classifyPhoto(
+export async function classifyPhoto(
   // deno-lint-ignore no-explicit-any
   serviceClient: any,
   imageBytes: Uint8Array,

@@ -34,26 +34,26 @@ function json(payload: unknown, status = 200): Response {
 }
 
 /** Parse "UTC+5.5", "UTC-8", "+5.5", "5.5" → numeric offset. */
-function parseTzNum(tz: string | null | undefined): number | null {
+export function parseTzNum(tz: string | null | undefined): number | null {
   if (!tz) return null;
   const n = parseFloat(tz.replace(/^UTC/i, ""));
   return isFinite(n) ? n : null;
 }
 
 /** Parse "YYYY-MM-DD" → { year, month, day } */
-function parseDate(s: string): { year: number; month: number; day: number } {
+export function parseDate(s: string): { year: number; month: number; day: number } {
   const [year, month, day] = s.split("-").map(Number);
   return { year, month, day };
 }
 
 /** Parse "HH:MM:SS" → { hour, min } */
-function parseTime(s: string): { hour: number; min: number } {
+export function parseTime(s: string): { hour: number; min: number } {
   const [hour, min] = s.split(":").map(Number);
   return { hour, min };
 }
 
 /** Build a human-readable summary from the Ashtakoota score. */
-function buildSummary(score: number, detail: Record<string, unknown>): string {
+export function buildSummary(score: number, detail: Record<string, unknown>): string {
   const kootas = (detail as any)?.ashtakoota_points ?? detail;
   if (score >= 32) {
     return "Exceptional cosmic alignment — a rare and profound connection blessed by the stars.";
@@ -71,7 +71,7 @@ function buildSummary(score: number, detail: Record<string, unknown>): string {
 }
 
 /** Build badges from Ashtakoota result. */
-function buildBadges(score: number, kootas: Record<string, any>): string[] {
+export function buildBadges(score: number, kootas: Record<string, any>): string[] {
   const badges: string[] = [];
   if (score >= 32) badges.push("Cosmic Soulmates");
   else if (score >= 27) badges.push("Harmonious Souls");

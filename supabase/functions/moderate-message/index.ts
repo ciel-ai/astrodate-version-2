@@ -76,7 +76,7 @@ Rules:
 type ModerationStatus = "SAFE" | "SPAM" | "HARASSMENT" | "ILLEGAL";
 const VALID_STATUSES = new Set<ModerationStatus>(["SAFE", "SPAM", "HARASSMENT", "ILLEGAL"]);
 
-async function classifyMessage(
+export async function classifyMessage(
   // deno-lint-ignore no-explicit-any
   serviceClient: any,
   messageText: string,

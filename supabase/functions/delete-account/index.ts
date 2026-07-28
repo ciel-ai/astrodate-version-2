@@ -43,8 +43,9 @@ function json(payload: unknown, status = 200): Response {
   });
 }
 
-async function purgeUserStorage(
-  supabase: ReturnType<typeof createClient>,
+export async function purgeUserStorage(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   bucket: string,
   userId: string,
 ) {
@@ -55,7 +56,7 @@ async function purgeUserStorage(
   }
   if (!files || files.length === 0) return;
 
-  const paths = files.map((f) => `${userId}/${f.name}`);
+  const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
   const { error: removeError } = await supabase.storage.from(bucket).remove(paths);
   if (removeError) {
     console.error(`delete-account: removing ${bucket}/${userId} objects failed:`, removeError.message);

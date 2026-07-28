@@ -69,7 +69,7 @@ interface ClaimedLog {
   attempt_count: number;
 }
 
-interface PreferenceRow {
+export interface PreferenceRow {
   user_id: string;
   new_matches_enabled: boolean;
   new_messages_enabled: boolean;
@@ -90,7 +90,7 @@ type ExpoTicket =
   | { status: "ok"; id: string }
   | { status: "error"; message: string; details?: { error?: string } };
 
-function preferenceAllows(pref: PreferenceRow | undefined, type: ClaimedLog["notification_type"]): boolean {
+export function preferenceAllows(pref: PreferenceRow | undefined, type: ClaimedLog["notification_type"]): boolean {
   if (!pref) return true; // no row yet == defaults, which are all-enabled except marketing
   if (type === "new_match") return pref.new_matches_enabled;
   if (type === "new_message") return pref.new_messages_enabled;
@@ -124,7 +124,7 @@ function parseClockMinutes(t: string): number {
   return h * 60 + m;
 }
 
-function isInQuietHours(pref: PreferenceRow | undefined, now: Date): boolean {
+export function isInQuietHours(pref: PreferenceRow | undefined, now: Date): boolean {
   if (!pref?.quiet_hours_start || !pref?.quiet_hours_end) return false;
   const startMin = parseClockMinutes(pref.quiet_hours_start);
   const endMin = parseClockMinutes(pref.quiet_hours_end);
@@ -136,7 +136,7 @@ function isInQuietHours(pref: PreferenceRow | undefined, now: Date): boolean {
 }
 
 /** Minutes from `now` until quiet hours end, for rescheduling a deferred send. */
-function minutesUntilQuietHoursEnd(pref: PreferenceRow, now: Date): number {
+export function minutesUntilQuietHoursEnd(pref: PreferenceRow, now: Date): number {
   const endMin = parseClockMinutes(pref.quiet_hours_end!);
   const nowMin = localMinuteOfDay(pref.timezone || "UTC", now);
   const delta = endMin - nowMin;

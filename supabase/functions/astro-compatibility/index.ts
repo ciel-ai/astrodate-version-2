@@ -21,7 +21,7 @@ const BASE_URL = 'https://json.astrologyapi.com/v1';
 
 // ─── Adapter ──────────────────────────────────────────────────────────────────
 
-function parseKoota(raw: Record<string, unknown>): VedicKootaDetail {
+export function parseKoota(raw: Record<string, unknown>): VedicKootaDetail {
   return {
     description: String(raw.description ?? ''),
     male_koot_attribute: String(raw.male_koot_attribute ?? ''),
@@ -33,7 +33,7 @@ function parseKoota(raw: Record<string, unknown>): VedicKootaDetail {
   };
 }
 
-function adaptDetailedReport(raw: unknown): VedicMatchReport {
+export function adaptDetailedReport(raw: unknown): VedicMatchReport {
   const r = raw as Record<string, unknown>;
   const ak = r.ashtakoota as Record<string, unknown>;
   const total = ak.total as Record<string, unknown>;
@@ -78,7 +78,7 @@ function adaptDetailedReport(raw: unknown): VedicMatchReport {
 
 // ─── Compatibility Report Builder ─────────────────────────────────────────────
 
-function buildCompatibilityReport(score: number): string {
+export function buildCompatibilityReport(score: number): string {
   if (score >= 0.80) return "An exceptionally harmonious pairing. Shared elemental energy creates natural understanding and strong emotional resonance.";
   if (score >= 0.70) return "A complementary match. Your elemental energies support and invigorate each other in meaningful ways.";
   if (score >= 0.55) return "A balanced pairing with room for growth. Differences in elemental energy can spark curiosity and mutual learning.";
