@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   Image,
   ImageBackground,
@@ -8,8 +8,8 @@ import {
   Text,
   View,
   useWindowDimensions,
-  useColorScheme,
 } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Glitters from '@/components/glitters';
 import { useOnboardingFonts } from '@/hooks/use-onboarding-fonts';
 import { useProfileData } from '@/hooks/use-profile-data';
+import { requestAndRegisterPushToken } from '@/lib/push-notifications';
 
 const DEFAULT_MY_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400';
 const DEFAULT_OTHER_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400';
@@ -41,6 +42,15 @@ export default function MatchScreen() {
 
   // Current user profile data
   const { profile } = useProfileData();
+
+  // First contextual moment worth asking for notification permission --
+  // right when getting notified about a reply is obviously relevant, rather
+  // than unconditionally the instant the tab bar mounts. Safe to call every
+  // time this screen is reached: the OS only shows its own prompt once a
+  // user has never decided, then no-ops on repeat calls.
+  useEffect(() => {
+    void requestAndRegisterPushToken();
+  }, []);
 
   const isDesktopWeb = Platform.OS === 'web' && screenW > 768;
   const deviceW = isDesktopWeb ? 390 : screenW;

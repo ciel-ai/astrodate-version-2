@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { syncLocationIfGranted } from '@/lib/location';
@@ -24,6 +25,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Tracks whether we've ever had a session, so we can tell "session was lost"
+  // (expired/revoked refresh token, or a stale onAuthStateChange firing after
+  // a background tab quietly falls out of auth) apart from "never signed in
+  // yet" -- only the former should force-navigate the user anywhere.
+  const hadSessionRef = useRef(false);
 
   useEffect(() => {
     // Get initial session. Wrapped in withTimeout (same convention as every
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // showing a spinner indefinitely with no way out.
     withTimeout(supabase.auth.getSession(), 10000, 'getSession timed out')
       .then(({ data: { session } }) => {
+        hadSessionRef.current = !!session;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -46,9 +53,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const hadSession = hadSessionRef.current;
+      hadSessionRef.current = !!session;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Session was lost while we previously had one -- an expired/revoked
+      // refresh token, or a raw deep link landing inside (tabs) while signed
+      // out. Without this, tab screens are left to their own per-screen null
+      // checks (silently empty deck, permanent "no user found" error, or
+      // nothing at all), never actually returning the user to a sign-in
+      // screen. Manual sign-out (settings.tsx) already does the same
+      // dismissAll+replace itself; redoing it here on that same SIGNED_OUT
+      // event is a harmless no-op double-navigation to the same destination.
+      if (hadSession && !session) {
+        router.dismissAll();
+        router.replace('/create-account');
+      }
     });
 
     return () => {

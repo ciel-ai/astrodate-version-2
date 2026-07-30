@@ -8,7 +8,7 @@ import { ChatsTabIcon } from '@/components/chats/chats-tab-icon';
 import { LikesProvider } from '@/context/likes';
 import { ChatsProvider } from '@/context/chats';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { requestAndRegisterPushToken } from '@/lib/push-notifications';
+import { syncPushTokenIfGranted } from '@/lib/push-notifications';
 
 // Every tab screen is mounted once and frozen (not unmounted) when it loses
 // focus — switching tabs is instant and background tabs never re-render or
@@ -17,13 +17,13 @@ export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  // First authenticated screen a user reaches, so this is the one place that
-  // fires once per app session. requestPermissionsAsync is safe to call
-  // every time it remounts (sign-out/sign-in) -- the OS only shows the
-  // prompt itself once a user has never decided; after that it's a no-op
-  // that just resolves with the existing status.
+  // Silent only -- never shows the OS permission prompt here. The actual
+  // opt-in ask (requestAndRegisterPushToken) is contextual: it fires from
+  // the match screen, right when getting notified is obviously relevant,
+  // rather than unconditionally the instant a user reaches the tab bar
+  // before anything worth being notified about has happened.
   useEffect(() => {
-    void requestAndRegisterPushToken();
+    void syncPushTokenIfGranted();
   }, []);
 
   return (

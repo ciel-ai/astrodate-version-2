@@ -1,7 +1,7 @@
 // app.config.js — reads sensitive keys from .env
 export default ({ config }) => ({
   ...config,
-  name: 'astro-date',
+  name: 'AstroDate',
   slug: 'astro-date',
   version: '1.0.0',
   // 'fingerprint' computes compatibility from the actual native code/config
@@ -94,6 +94,12 @@ export default ({ config }) => ({
       'expo-splash-screen',
       {
         backgroundColor: '#208AEF',
+        // iOS reads `image`/`imageWidth` from the top level of this config
+        // block, NOT from an `ios:` sub-key -- without it here, the plugin
+        // silently skips generating the iOS splash asset entirely, so only
+        // Android (which has its own explicit block below) showed a logo.
+        image: './assets/images/splash-icon.png',
+        imageWidth: 76,
         android: {
           image: './assets/images/splash-icon.png',
           imageWidth: 76,

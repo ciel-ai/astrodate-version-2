@@ -163,8 +163,19 @@ export default function ChatThreadScreen() {
       ? { id: params.otherUserId, name: params.otherUserName || 'Someone', photo: params.otherUserPhoto || null }
       : null
   );
+  // Set when we arrived without params (e.g. a push-notification tap) and the
+  // getConversations() fallback lookup below completes without finding a
+  // match -- the other user may have blocked us since the notification fired,
+  // or the lookup itself failed. Without this, the header is stuck on
+  // "Loading…" forever and Send silently no-ops with zero feedback.
+  const [resolveFailed, setResolveFailed] = useState(false);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  // getMessages() returns null (not []) on a network/timeout failure -- without
+  // tracking that distinctly, loadInitial collapsed both to an empty array, so
+  // opening an existing, populated conversation while offline rendered the
+  // "You matched! Say hello" empty-state copy instead of any load-failure hint.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [inputText, setInputText] = useState('');
@@ -184,6 +195,10 @@ export default function ChatThreadScreen() {
 
   const isFocusedRef = useRef(false);
   const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // setInputText('') only takes effect on the next render/commit, so two Send
+  // taps landing before that commit both read the same inputText and would
+  // otherwise fire two separate sendMessage calls with identical text.
+  const sendingRef = useRef(false);
 
   const debouncedMarkRead = useCallback(() => {
     if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
@@ -205,6 +220,8 @@ export default function ChatThreadScreen() {
       const match = conversations?.find((c) => c.channel_id === channelId);
       if (match) {
         setOtherUser({ id: match.other_user_id, name: match.other_user_name ?? 'Someone', photo: match.other_user_photo });
+      } else {
+        setResolveFailed(true);
       }
     })();
   }, [channelId, otherUser]);
@@ -229,6 +246,7 @@ export default function ChatThreadScreen() {
     const page = await getMessages(channelId);
     setMessages(page ?? []);
     setHasMore((page?.length ?? 0) === 30);
+    setLoadFailed(page === null);
     setLoadingInitial(false);
   }, [channelId]);
 
@@ -264,7 +282,14 @@ export default function ChatThreadScreen() {
     let channel: any = null;
 
     const setup = async () => {
-      const existing = supabase.getChannels().find(c => c.topic === channelName);
+      // supabase.channel() always registers under a "realtime:" prefixed
+      // topic (see context/chats.tsx) -- comparing against the bare
+      // channelName here always misses, so the stale-channel-removal guard
+      // below never ran, and re-entering a thread quickly (removeChannel is
+      // async) could hand back the still-joining old channel object, whose
+      // .on() throws and silently kills live delivery for that mount.
+      const topic = `realtime:${channelName}`;
+      const existing = supabase.getChannels().find(c => c.topic === topic);
       if (existing) {
         await supabase.removeChannel(existing);
       }
@@ -329,7 +354,13 @@ export default function ChatThreadScreen() {
 
   const handleSend = async () => {
     const text = inputText.trim();
-    if (!text || !otherUser || !user) return;
+    if (!text || !user) return;
+    if (!otherUser) {
+      alert("Couldn't send", 'This conversation is unavailable right now.');
+      return;
+    }
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setInputText('');
 
     const id = generateUUID();
@@ -346,21 +377,25 @@ export default function ChatThreadScreen() {
     };
     setMessages((prev) => [optimistic, ...prev]);
 
-    const result = await sendMessage(id, channelId, otherUser.id, text);
-    void refreshChatsList();
+    try {
+      const result = await sendMessage(id, channelId, otherUser.id, text);
+      void refreshChatsList();
 
-    if (!result.success) {
-      if (result.blocked) {
-        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'blocked' } : m)));
-      } else {
-        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'failed' } : m)));
+      if (!result.success) {
+        if (result.blocked) {
+          setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'blocked' } : m)));
+        } else {
+          setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, status: 'failed' } : m)));
+        }
+        return;
       }
-      return;
-    }
 
-    setMessages((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, status: 'sent', moderation_status: result.moderationStatus } : m))
-    );
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, status: 'sent', moderation_status: result.moderationStatus } : m))
+      );
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   const handleRetry = async (msg: DisplayMessage) => {
@@ -423,7 +458,10 @@ export default function ChatThreadScreen() {
     contentType: string,
     durationMs?: number
   ) => {
-    if (!otherUser) return;
+    if (!otherUser) {
+      alert("Couldn't send", 'This conversation is unavailable right now.');
+      return;
+    }
     try {
       const bytes = await getBytes();
       const result = await sendMediaMessage(id, channelId, otherUser.id, { kind, bytes, ext, contentType, durationMs });
@@ -453,7 +491,11 @@ export default function ChatThreadScreen() {
     getBytes: () => Promise<ArrayBuffer>,
     durationMs?: number
   ) => {
-    if (!otherUser || !user) return;
+    if (!user) return;
+    if (!otherUser) {
+      alert("Couldn't send", 'This conversation is unavailable right now.');
+      return;
+    }
     const id = generateUUID();
     const optimistic: DisplayMessage = {
       id,
@@ -637,7 +679,7 @@ export default function ChatThreadScreen() {
           </View>
         )}
         <Text style={[styles.headerName, { color: T.text }]} numberOfLines={1}>
-          {otherUser?.name ?? 'Loading…'}
+          {otherUser?.name ?? (resolveFailed ? 'Conversation unavailable' : 'Loading…')}
         </Text>
 
         <View style={{ flex: 1 }} />
@@ -711,7 +753,14 @@ export default function ChatThreadScreen() {
           ListFooterComponent={loadingMore ? <ActivityIndicator color={T.dim} style={{ marginVertical: 12 }} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyThreadWrap}>
-              {icebreaker && !icebreakerDismissed ? (
+              {loadFailed ? (
+                <>
+                  <Text style={[styles.emptyThreadText, { color: T.dim }]}>Couldn&apos;t load messages</Text>
+                  <Pressable onPress={() => void loadInitial()} style={styles.icebreakerDismiss}>
+                    <Text style={[styles.icebreakerDismissText, { color: T.dim }]}>Tap to retry</Text>
+                  </Pressable>
+                </>
+              ) : icebreaker && !icebreakerDismissed ? (
                 <>
                   <Text style={[styles.icebreakerLabel, { color: T.dim }]}>✦ COSMIC ICEBREAKER ✦</Text>
                   <Pressable

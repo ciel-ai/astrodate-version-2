@@ -14,6 +14,12 @@ import { getWhoLikedMe, markLikesSeen, type WhoLikedMeResponse } from '@/lib/lik
 type LikesContextValue = {
   data: WhoLikedMeResponse | null;
   loading: boolean;
+  /** True when the most recent getWhoLikedMe() call failed/timed out --
+   *  distinct from `data` being null-but-not-yet-fetched, so the screen can
+   *  tell "nobody likes you yet" apart from "we couldn't load your likes"
+   *  instead of silently rendering an empty grid for both. Same pattern as
+   *  ChatsProvider's fetchFailed. */
+  fetchFailed: boolean;
   refresh: () => Promise<void>;
   /** Optimistically clears the badge locally, then confirms with the server. */
   markSeen: () => Promise<void>;
@@ -22,6 +28,7 @@ type LikesContextValue = {
 const LikesContext = createContext<LikesContextValue>({
   data: null,
   loading: false,
+  fetchFailed: false,
   refresh: async () => {},
   markSeen: async () => {},
 });
@@ -30,6 +37,7 @@ export function LikesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [data, setData] = useState<WhoLikedMeResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
 
   const userRef = useRef(user);
   useEffect(() => {
@@ -40,7 +48,12 @@ export function LikesProvider({ children }: { children: ReactNode }) {
     if (!userRef.current) return;
     setLoading(true);
     const result = await getWhoLikedMe();
-    if (result) setData(result);
+    if (result) {
+      setData(result);
+      setFetchFailed(false);
+    } else {
+      setFetchFailed(true);
+    }
     setLoading(false);
   }, []);
 
@@ -83,7 +96,7 @@ export function LikesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <LikesContext.Provider value={{ data, loading, refresh, markSeen }}>
+    <LikesContext.Provider value={{ data, loading, fetchFailed, refresh, markSeen }}>
       {children}
     </LikesContext.Provider>
   );

@@ -99,13 +99,15 @@ function ActionButton({
   onPress,
   locked,
   badge,
+  accessibilityLabel,
 }: {
   onPress?: () => void;
   locked?: boolean;
   badge: React.ReactNode;
+  accessibilityLabel: string;
 }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
       {({ pressed }) => (
         <View style={[styles.btnWrap, pressed && styles.btnPressed]}>
           {badge}
@@ -151,12 +153,21 @@ export function DiscoverActionBar({
   return (
     <View style={styles.bar}>
       <View style={styles.btnColumn}>
-        <ActionButton locked={rewindLocked} onPress={disabled ? undefined : onRewind} badge={<RewindBadge />} />
+        <ActionButton
+          locked={rewindLocked}
+          onPress={disabled ? undefined : onRewind}
+          badge={<RewindBadge />}
+          accessibilityLabel={rewindLocked ? 'Rewind (locked)' : 'Rewind'}
+        />
         <Text style={labelStyle}>Rewind</Text>
       </View>
 
       <View style={styles.btnColumn}>
-        <ActionButton onPress={swipeBtnDisabled ? undefined : onPass} badge={<PassBadge />} />
+        <ActionButton
+          onPress={swipeBtnDisabled ? undefined : onPass}
+          badge={<PassBadge />}
+          accessibilityLabel="Pass"
+        />
         <Text style={labelStyle}>Pass</Text>
       </View>
 
@@ -165,12 +176,17 @@ export function DiscoverActionBar({
           locked={superLikeLocked}
           onPress={swipeBtnDisabled ? undefined : onSuperLike}
           badge={<SuperLikeBadge />}
+          accessibilityLabel={superLikeLocked ? 'Super Like (locked)' : 'Super Like'}
         />
         <Text style={labelStyle}>Super Like</Text>
       </View>
 
       <View style={styles.btnColumn}>
-        <ActionButton onPress={swipeBtnDisabled ? undefined : onLike} badge={<LikeBadge />} />
+        <ActionButton
+          onPress={swipeBtnDisabled ? undefined : onLike}
+          badge={<LikeBadge />}
+          accessibilityLabel="Like"
+        />
         <Text style={labelStyle}>Like</Text>
       </View>
     </View>

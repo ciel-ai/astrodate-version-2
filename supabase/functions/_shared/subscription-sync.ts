@@ -87,6 +87,15 @@ export async function setSubscriptionStatus(
   supabase: SupabaseClient,
   userId: string,
   status: "canceled" | "expired" | "past_due",
+  // Only meaningful for "past_due": RevenueCat's BILLING_ISSUE event usually
+  // carries the grace-period-extended expiration in expiration_at_ms. Without
+  // writing it here, current_period_end stays at the original (already-past
+  // or about-to-pass) renewal date, and get_my_membership() requires
+  // current_period_end > now() to select the row at all -- so a paying user
+  // in an active billing-retry window was immediately downgraded to the free
+  // tier the moment the issue fired, despite the platform still intending to
+  // give them access while it retries the charge.
+  periodEnd?: string,
 ): Promise<void> {
   const { data: rowToUpdate } = await supabase
     .from("user_subscriptions")
@@ -101,9 +110,12 @@ export async function setSubscriptionStatus(
     return;
   }
 
+  const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+  if (periodEnd) update.current_period_end = periodEnd;
+
   const { error } = await supabase
     .from("user_subscriptions")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(update)
     .eq("id", rowToUpdate.id);
 
   if (error) console.error(`setSubscriptionStatus(${status}) UPDATE error:`, error);

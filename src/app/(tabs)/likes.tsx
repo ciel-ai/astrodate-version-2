@@ -21,6 +21,30 @@ function openPaywall(reason: string) {
   router.push({ pathname: '/paywall', params: { reason } } as any);
 }
 
+// Distinct from EmptyState -- a failed fetch (getWhoLikedMe returned null,
+// e.g. network/timeout) used to render the same "no likes yet" empty grid as
+// a genuinely empty result, which reads as "nobody likes you" instead of
+// "something went wrong, try again". Same pattern as chats.tsx's ErrorChats.
+function ErrorLikes({ isDark, onRetry }: { isDark: boolean; onRetry: () => void }) {
+  const T = {
+    title: isDark ? '#FFFFFF' : '#1B1528',
+    body: isDark ? '#B0A8C4' : '#6B7280',
+  };
+  return (
+    <View style={styles.loadingWrap}>
+      <Text style={{ fontSize: 40, marginBottom: 6 }}>⚠</Text>
+      <Text style={[styles.errorTitle, { color: T.title }]}>Couldn&apos;t load your likes</Text>
+      <Text style={[styles.errorBody, { color: T.body }]}>Check your connection and try again.</Text>
+      <Pressable
+        onPress={onRetry}
+        style={({ pressed }) => [styles.errorCta, pressed && styles.errorCtaPressed]}
+      >
+        <Text style={styles.errorCtaText}>Retry</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function LikesScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useAppTheme();
@@ -32,7 +56,7 @@ export default function LikesScreen() {
     dim: isDark ? '#8B8D99' : '#6B7280',
     labelActive: isDark ? '#FFFFFF' : '#3B0764',
   };
-  const { data, loading, refresh, markSeen } = useLikes();
+  const { data, loading, fetchFailed, refresh, markSeen } = useLikes();
 
   const [subTab, setSubTab] = useState<SubTab>('liked-you');
   const [sortActive, setSortActive] = useState(false);
@@ -208,6 +232,8 @@ export default function LikesScreen() {
             <View style={styles.loadingWrap}>
               <ActivityIndicator color="#A855F7" size="large" />
             </View>
+          ) : fetchFailed ? (
+            <ErrorLikes isDark={isDark} onRetry={refresh} />
           ) : data && data.likes.length === 0 ? (
             <EmptyState variant="liked-you" isDark={isDark} />
           ) : (
@@ -286,6 +312,17 @@ const styles = StyleSheet.create({
   tabLabel: { color: '#8B8D99', fontSize: 13, fontWeight: '700' },
   tabLabelActive: { color: '#FFFFFF' },
   loadingWrap: { paddingTop: 60, alignItems: 'center' },
+  errorTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center', paddingHorizontal: 24 },
+  errorBody: { fontSize: 14, lineHeight: 20, textAlign: 'center', paddingHorizontal: 24, marginTop: 6 },
+  errorCta: {
+    marginTop: 16,
+    backgroundColor: 'rgba(168, 85, 247, 0.85)',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  errorCtaPressed: { opacity: 0.85 },
+  errorCtaText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   sortRow: { paddingHorizontal: 16, marginBottom: 12 },
   grid: {
     flexDirection: 'row',
