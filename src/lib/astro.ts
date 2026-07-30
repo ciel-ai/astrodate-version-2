@@ -1,4 +1,3 @@
-import type { VedicMatchReport } from '@/lib/astro-types';
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/supabase';
 import { invokeSupabaseFunctionWithTimeout, withTimeout } from './network';
 
@@ -142,48 +141,6 @@ export async function getDailyHoroscope(payload: DailyHoroscopeRequest) {
   }
 }
 
-export type ZodiacCompatibilityResult = {
-  compatibility_percentage: number;
-  compatibility_report: string;
-};
-
-export async function getZodiacCompatibility(
-  userSign: string,
-  partnerSign: string
-): Promise<ZodiacCompatibilityResult | null> {
-  try {
-    const { data, error } = await invokeSupabaseFunctionWithTimeout(
-      () =>
-        supabase.functions.invoke('astro-compatibility', {
-          body: { type: 'western_signs', userSign, partnerSign },
-        }),
-      20000
-    );
-    if (error) return null;
-    return data as ZodiacCompatibilityResult;
-  } catch {
-    return null;
-  }
-}
-
-export async function getVedicMatchReport(
-  male: BirthPayload,
-  female: BirthPayload
-): Promise<VedicMatchReport | null> {
-  try {
-    const { data, error } = await invokeSupabaseFunctionWithTimeout(
-      () =>
-        supabase.functions.invoke('astro-compatibility', {
-          body: { type: 'vedic_match', male, female },
-        }),
-      30000
-    );
-    if (error) return null;
-    return data as VedicMatchReport;
-  } catch {
-    return null;
-  }
-}
 export type DailyPrediction = {
   health: string;
   emotions: string;
@@ -228,5 +185,3 @@ export async function getDailyInsight(userId: string): Promise<DailyInsight> {
   }
   return data as DailyInsight;
 }
-
-export type { VedicKootaDetail, VedicMatchReport } from '@/lib/astro-types';

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { fetchWithTimeout } from "../_shared/fetch-with-timeout.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,22 +65,68 @@ Deno.serve(async (req) => {
       'Accept-Language': 'en'
     };
 
+    // Separate admin client (service role key, no user JWT override) for the
+    // cache table and quota RPC -- userAuthClient above carries the caller's
+    // own JWT in its Authorization header, which resolves to the
+    // `authenticated` role, not service_role. increment_ai_usage is locked to
+    // service_role only (20260710160000_function_grant_lockdown.sql), and
+    // place_search_cache has no client-facing policy at all.
+    const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
     const payload = await req.json();
     const { type } = payload;
 
     if (type === 'search') {
       const { place } = payload;
 
+      // Place-name search results are static (a place's coordinates don't
+      // change), so cache indefinitely keyed on the normalized query --
+      // place names repeat heavily across a whole user base, so this avoids
+      // paying for the same lookup over and over. Collapsed whitespace +
+      // lowercase so "New York", " new york ", and "new  york" all hit the
+      // same cache row.
+      const queryKey = String(place ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!queryKey) {
+        return new Response(JSON.stringify({ results: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: cached } = await serviceClient
+        .from('place_search_cache')
+        .select('results')
+        .eq('query_key', queryKey)
+        .maybeSingle();
+
+      if (cached) {
+        return new Response(JSON.stringify({ results: cached.results }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Only a cache miss actually spends quota -- repeated searches for
+      // already-cached places (the common case) stay free.
+      const { data: withinQuota, error: quotaError } = await serviceClient.rpc(
+        'increment_ai_usage',
+        { p_user: userAuthData.user.id, p_endpoint: 'astro-geo-search', p_limit: 60 },
+      );
+      if (!quotaError && !withinQuota) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+        });
+      }
+
       const body = JSON.stringify({
         place,
         maxRows: 10
       });
 
-      const res = await fetch(`${BASE_URL}/geo_details`, {
+      const res = await fetchWithTimeout(`${BASE_URL}/geo_details`, {
         method: 'POST',
         headers: commonHeaders,
         body
-      });
+      }, 15000);
 
       if (!res.ok) {
         let apiErrorBody = '';
@@ -102,6 +149,17 @@ Deno.serve(async (req) => {
         timezone_id: geo.timezone_id
       }));
 
+      // Best-effort -- a cache write failure shouldn't fail the request the
+      // user is actually waiting on.
+      if (results.length > 0) {
+        await serviceClient
+          .from('place_search_cache')
+          .upsert({ query_key: queryKey, results }, { onConflict: 'query_key' })
+          .then(({ error: cacheError }) => {
+            if (cacheError) console.error('[astro-geo] cache write failed', cacheError);
+          });
+      }
+
       return new Response(JSON.stringify({ results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -109,17 +167,34 @@ Deno.serve(async (req) => {
     } else if (type === 'timezone') {
       const { latitude, longitude, date } = payload;
 
+      // Not cached -- unlike place search, this is called at most once or
+      // twice per user (birth-details submit, occasional cosmic-identity
+      // recompute), so there's no repeat-call waste to eliminate, and
+      // rounding lat/lon for a cache key risks shifting the DST-sensitive
+      // result for anyone near a timezone boundary. Still quota-capped like
+      // every other paid-API path.
+      const { data: withinQuota, error: quotaError } = await serviceClient.rpc(
+        'increment_ai_usage',
+        { p_user: userAuthData.user.id, p_endpoint: 'astro-geo-timezone', p_limit: 15 },
+      );
+      if (!quotaError && !withinQuota) {
+        return new Response(JSON.stringify({ error: 'quota_exceeded' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+        });
+      }
+
       const body = JSON.stringify({
         latitude,
         longitude,
         date, // Expected DD-MM-YYYY
       });
 
-      const res = await fetch(`${BASE_URL}/timezone_with_dst`, {
+      const res = await fetchWithTimeout(`${BASE_URL}/timezone_with_dst`, {
         method: 'POST',
         headers: commonHeaders,
         body
-      });
+      }, 15000);
 
       if (!res.ok) {
         let apiErrorBody = '';
