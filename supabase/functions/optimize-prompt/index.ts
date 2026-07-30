@@ -13,6 +13,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { fetchWithTimeout } from "../_shared/fetch-with-timeout.ts";
 
 // An alias, not a pinned version -- Google repoints this at whatever their
 // current flash model is, so this doesn't need updating every time a
@@ -105,27 +106,37 @@ Deno.serve(async (req) => {
     ? `Prompt question: "${question}"\nDraft answer: "${answer}"`
     : `Draft answer: "${answer}"`;
 
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: instruction }] },
-        contents: [{ parts: [{ text: userContent }] }],
-      }),
-    },
-  );
+  let rawText: string | undefined;
+  try {
+    const geminiRes = await fetchWithTimeout(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: instruction }] },
+          contents: [{ parts: [{ text: userContent }] }],
+        }),
+      },
+      10000,
+    );
 
-  if (!geminiRes.ok) {
-    const errBody = await geminiRes.text().catch(() => "");
-    console.error("[optimize-prompt] Gemini API error", geminiRes.status, errBody);
+    if (!geminiRes.ok) {
+      const errBody = await geminiRes.text().catch(() => "");
+      console.error("[optimize-prompt] Gemini API error", geminiRes.status, errBody);
+      return json({ success: false, error: "ai_api_error" }, 502);
+    }
+
+    const geminiData = await geminiRes.json();
+    rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  } catch (err) {
+    // Covers the fetchWithTimeout abort as well as any other network failure
+    // -- either way Gemini didn't answer in time, so fail the request cleanly
+    // (quota is only spent below once we actually have usable text) rather
+    // than letting the exception crash the handler uncaught.
+    console.error("[optimize-prompt] Gemini call failed", err);
     return json({ success: false, error: "ai_api_error" }, 502);
   }
-
-  const geminiData = await geminiRes.json();
-  const rawText: string | undefined =
-    geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!rawText || !rawText.trim()) {
     return json({ success: false, error: "empty_ai_response" }, 502);
