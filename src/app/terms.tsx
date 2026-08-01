@@ -137,10 +137,17 @@ export default function TermsScreen() {
 
           <Text style={styles.sectionTitle}>Subscriptions and Premium Plans</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Astro Date currently offers core features free of charge. Subscription plans and premium features are planned for a future update and are not yet available in the App.
+            Astro Date offers optional paid subscription plans (Astro+ and AstroX) that unlock additional features such as increased daily likes, visibility into who has liked you, super likes, rewinds, and priority placement in the daily deck. Core features remain available on the free plan.
+          </Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>Subscriptions are billed through your Apple App Store or Google Play account, not directly by AstroDate Private Limited. By purchasing a subscription, you agree to:</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Payment being charged to your App Store or Google Play account at confirmation of purchase</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Automatic renewal for the same duration and at the then-current price, unless auto-renewal is turned off at least 24 hours before the end of the current billing period</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Your account being charged for renewal within 24 hours prior to the end of the current period</Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>
+            You can manage or cancel your subscription, and turn off auto-renewal, at any time from your App Store or Google Play account settings — cancelling within the App only stops future access from AstroDate&apos;s side and does not itself cancel the store-level subscription. Any unused portion of a subscription period is non-refundable except where required by Apple, Google, or applicable law; refunds for purchases are handled by Apple or Google in accordance with their own policies, not by AstroDate Private Limited directly.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            When premium features are introduced, this section will be updated to include full details on pricing, billing, auto-renewal, and refund policies. Users will be notified of any such changes through the App or by email before they take effect.
+            Prices are shown in the App at the time of purchase and may vary by region. AstroDate Private Limited may change subscription pricing or features going forward; existing subscribers will be notified through the App or by email before any change takes effect for their next renewal.
           </Text>
 
           <Text style={styles.sectionTitle}>Compatibility Scores — Disclaimer</Text>

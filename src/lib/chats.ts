@@ -191,18 +191,22 @@ export async function sendMessage(
 }
 
 export type SendMediaResult =
-  | { success: true; mediaUrl: string }
-  | { success: false; reason: string };
+  | { success: true; mediaUrl: string; moderationStatus: ModerationStatus }
+  | { success: false; blocked: boolean; reason: string };
 
 /**
- * Uploads a photo or voice note to the `messages` storage bucket, then inserts
- * a media message row. `id` is the client-generated UUID already used for the
- * optimistic bubble (same contract as sendMessage). Media rows skip text
- * moderation -- there's no text to classify -- and are stored under the
- * sender's uid folder, which the bucket's INSERT policy requires. The bucket
- * is public (see the migration), so the returned URL is readable by the
- * receiver too. The screen swaps its optimistic local-file bubble for this URL
- * on success.
+ * Uploads a photo or voice note to the `messages` storage bucket, then hands
+ * off to the moderate-chat-media edge function to classify it and insert the
+ * message row (service role) -- same shape as sendMessage's text path.
+ * `id` is the client-generated UUID already used for the optimistic bubble
+ * (same contract as sendMessage). The bucket is public (see
+ * 20260714120000_chat_media_messages.sql), so the returned URL is readable by
+ * the receiver too. The screen swaps its optimistic local-file bubble for
+ * this URL on success.
+ *
+ * The messages table has no client-facing INSERT policy at all anymore (see
+ * the migration alongside moderate-chat-media) -- every row, text or media,
+ * is written server-side after classification.
  */
 export async function sendMediaMessage(
   id: string,
@@ -220,7 +224,7 @@ export async function sendMediaMessage(
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return { success: false, reason: 'Not authenticated' };
+    if (!user) return { success: false, blocked: false, reason: 'Not authenticated' };
 
     const filePath = `${user.id}/${id}.${media.ext}`;
 
@@ -233,41 +237,58 @@ export async function sendMediaMessage(
     );
     if (uploadError) {
       console.warn('[chats] media upload failed:', uploadError.message);
-      return { success: false, reason: uploadError.message };
+      return { success: false, blocked: false, reason: uploadError.message };
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from('messages').getPublicUrl(filePath);
-
-    const { error } = await withTimeout(
-      Promise.resolve(
-        supabase.from('messages').insert({
-          id,
-          sender_id: user.id,
-          receiver_id: receiverId,
-          channel_id: channelId,
-          message_type: media.kind,
-          media_url: publicUrl,
-          media_duration_ms: media.durationMs ?? null,
-          moderation_status: 'SAFE',
-        })
-      ),
-      15000,
-      'sendMediaMessage timed out'
-    );
+    // Own try/catch (rather than falling through to the outer one) so a
+    // thrown exception here -- timeout, network failure -- still cleans up
+    // the just-uploaded object; the outer catch has no access to filePath.
+    let data: { success: true; mediaUrl: string; moderationStatus: ModerationStatus } | { success: false; blocked: boolean; reason: string } | null;
+    let error: { message: string } | null;
+    try {
+      ({ data, error } = await invokeSupabaseFunctionWithTimeout(
+        () =>
+          supabase.functions.invoke<
+            | { success: true; mediaUrl: string; moderationStatus: ModerationStatus }
+            | { success: false; blocked: boolean; reason: string }
+          >('moderate-chat-media', {
+            body: {
+              id,
+              channelId,
+              receiverId,
+              storagePath: filePath,
+              mediaKind: media.kind,
+              durationMs: media.durationMs,
+            },
+          }),
+        20000
+      ));
+    } catch (invokeErr: any) {
+      await supabase.storage.from('messages').remove([filePath]).catch(() => {});
+      console.warn('[chats] sendMediaMessage invoke exception:', invokeErr?.message ?? invokeErr);
+      return { success: false, blocked: false, reason: invokeErr?.message ?? 'Failed to send media' };
+    }
 
     if (error) {
-      // Row insert failed after the object uploaded -- remove the orphan.
       await supabase.storage.from('messages').remove([filePath]).catch(() => {});
-      console.warn('[chats] sendMediaMessage insert failed:', error.message);
-      return { success: false, reason: error.message };
+      console.warn('[chats] sendMediaMessage invoke failed:', error.message);
+      return { success: false, blocked: false, reason: error.message };
+    }
+    if (!data) {
+      await supabase.storage.from('messages').remove([filePath]).catch(() => {});
+      return { success: false, blocked: false, reason: 'No response from server' };
+    }
+    if (!data.success) {
+      // Object may already be removed server-side (blocked case) or still
+      // need cleanup (match/block/insert failures) -- harmless either way.
+      await supabase.storage.from('messages').remove([filePath]).catch(() => {});
+      return { success: false, blocked: data.blocked, reason: data.reason };
     }
 
-    return { success: true, mediaUrl: publicUrl };
+    return { success: true, mediaUrl: data.mediaUrl, moderationStatus: data.moderationStatus };
   } catch (err: any) {
     console.warn('[chats] sendMediaMessage exception:', err?.message ?? err);
-    return { success: false, reason: err?.message ?? 'Failed to send media' };
+    return { success: false, blocked: false, reason: err?.message ?? 'Failed to send media' };
   }
 }
 

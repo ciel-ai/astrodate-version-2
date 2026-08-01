@@ -5,6 +5,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { fetchWithTimeout } from "../_shared/fetch-with-timeout.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,6 +89,29 @@ Deno.serve(async (req) => {
     const payload = await req.json() as AstroRequestPayload;
     const { mode } = payload;
 
+    // Per-user daily cap on this paid, per-call-billed API. The auth check
+    // above only proves the caller is a real signed-in user -- it doesn't
+    // stop a single account from driving unbounded billed calls. Separate
+    // admin client (service role key, no user JWT override) because
+    // increment_ai_usage is locked to service_role only (see
+    // 20260710160000_function_grant_lockdown.sql) -- userAuthClient carries
+    // the caller's own JWT in its Authorization header, which resolves to
+    // the `authenticated` role, not service_role, and would be rejected.
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const usageLimit = mode === 'full' ? 20 : 15;
+    const { data: withinQuota, error: quotaError } = await adminClient.rpc(
+      'increment_ai_usage',
+      { p_user: userAuthData.user.id, p_endpoint: `astro-details-${mode ?? 'unknown'}`, p_limit: usageLimit },
+    );
+    if (quotaError) {
+      console.error('[astro-details] quota RPC error', quotaError);
+    } else if (!withinQuota) {
+      return new Response(JSON.stringify({ error: 'quota_exceeded' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+      });
+    }
+
     if (mode === 'basic') {
       const { day, month, year, hour, min, lat, lon, tzone } = payload;
       const body = JSON.stringify({ day, month, year, hour, min, lat, lon, tzone });
@@ -98,8 +122,8 @@ Deno.serve(async (req) => {
       //   tropical planets). Both are computed from the exact birth day/time/place/tzone,
       //   so accuracy depends entirely on the caller passing a DST-correct `tzone`.
       const [planetsRes, nakshatraRes] = await Promise.all([
-        fetch(`${BASE_URL}/planets/tropical`, { method: 'POST', headers: commonHeaders, body }),
-        fetch(`${BASE_URL}/daily_nakshatra_prediction`, { method: 'POST', headers: commonHeaders, body })
+        fetchWithTimeout(`${BASE_URL}/planets/tropical`, { method: 'POST', headers: commonHeaders, body }, 15000),
+        fetchWithTimeout(`${BASE_URL}/daily_nakshatra_prediction`, { method: 'POST', headers: commonHeaders, body }, 15000)
       ]);
 
       if (!planetsRes.ok || !nakshatraRes.ok) {
@@ -180,7 +204,7 @@ Deno.serve(async (req) => {
         hour, min, lat, lon, tzone
       });
 
-      const res = await fetch(`${BASE_URL}/daily_nakshatra_prediction`, { method: 'POST', headers: commonHeaders, body });
+      const res = await fetchWithTimeout(`${BASE_URL}/daily_nakshatra_prediction`, { method: 'POST', headers: commonHeaders, body }, 15000);
 
       if (!res.ok) {
         let apiErrorBody = '';

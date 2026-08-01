@@ -154,9 +154,16 @@ Deno.serve(async (req: Request) => {
         await setSubscriptionStatus(supabase, userId, "expired");
         break;
 
-      case "BILLING_ISSUE":
-        await setSubscriptionStatus(supabase, userId, "past_due");
+      case "BILLING_ISSUE": {
+        // expiration_at_ms usually carries the grace-period-extended date
+        // while the store retries the charge -- see setSubscriptionStatus's
+        // own comment for why dropping it prematurely downgrades the user.
+        const graceEnd = event.expiration_at_ms
+          ? new Date(event.expiration_at_ms).toISOString()
+          : undefined;
+        await setSubscriptionStatus(supabase, userId, "past_due", graceEnd);
         break;
+      }
 
       default:
         // TRANSFER, SUBSCRIBER_ALIAS, etc. -- not handled. Low priority, not

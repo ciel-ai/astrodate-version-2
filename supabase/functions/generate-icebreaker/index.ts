@@ -22,6 +22,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { fetchWithTimeout } from "../_shared/fetch-with-timeout.ts";
 
 const GEMINI_MODEL = "gemini-flash-latest";
 
@@ -171,7 +172,7 @@ Deno.serve(async (req) => {
         `Context: ${astroContext} ` +
         "Respond with only the icebreaker question and nothing else.";
 
-      const geminiRes = await fetch(
+      const geminiRes = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
         {
           method: "POST",
@@ -181,6 +182,7 @@ Deno.serve(async (req) => {
             contents: [{ parts: [{ text: "Generate the icebreaker now." }] }],
           }),
         },
+        8000,
       );
 
       if (geminiRes.ok) {

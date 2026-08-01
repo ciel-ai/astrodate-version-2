@@ -43,23 +43,39 @@ function json(payload: unknown, status = 200): Response {
   });
 }
 
+// list() defaults to a 100-item page with no pagination -- a user with more
+// than 100 historical files in a bucket (the "messages" bucket has no
+// per-user cap, unlike "user-photos") would have files beyond the first page
+// silently survive "permanent" account deletion. Loop until a short page
+// confirms there's nothing left.
+const STORAGE_LIST_PAGE_SIZE = 100;
+
 export async function purgeUserStorage(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   bucket: string,
   userId: string,
 ) {
-  const { data: files, error } = await supabase.storage.from(bucket).list(userId);
-  if (error) {
-    console.error(`delete-account: listing ${bucket}/${userId} failed:`, error.message);
-    return;
-  }
-  if (!files || files.length === 0) return;
+  let offset = 0;
+  for (;;) {
+    const { data: files, error } = await supabase.storage
+      .from(bucket)
+      .list(userId, { limit: STORAGE_LIST_PAGE_SIZE, offset });
+    if (error) {
+      console.error(`delete-account: listing ${bucket}/${userId} failed:`, error.message);
+      return;
+    }
+    if (!files || files.length === 0) return;
 
-  const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
-  const { error: removeError } = await supabase.storage.from(bucket).remove(paths);
-  if (removeError) {
-    console.error(`delete-account: removing ${bucket}/${userId} objects failed:`, removeError.message);
+    const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
+    const { error: removeError } = await supabase.storage.from(bucket).remove(paths);
+    if (removeError) {
+      console.error(`delete-account: removing ${bucket}/${userId} objects failed:`, removeError.message);
+      return;
+    }
+
+    if (files.length < STORAGE_LIST_PAGE_SIZE) return;
+    offset += STORAGE_LIST_PAGE_SIZE;
   }
 }
 

@@ -255,9 +255,8 @@ Deno.serve(async (req) => {
   const matchData = await matchRes.json();
 
   // Extract Ashtakoota score. The API nests the koota breakdown under
-  // matchData.ashtakoota.{varna,vashya,...,total,conclusion} -- matches what
-  // astro-compatibility/index.ts's adaptDetailedReport already expects for
-  // the same endpoint. (Previously this looked for a nonexistent
+  // matchData.ashtakoota.{varna,vashya,...,total,conclusion}. (Previously
+  // this looked for a nonexistent
   // matchData.ashtakoota_points key and a top-level received_points, which
   // never matched the real shape and silently produced a score of 0 for
   // every pair -- caught by comparing a live 0.00 result against the raw

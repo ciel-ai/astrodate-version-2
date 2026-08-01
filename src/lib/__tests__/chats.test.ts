@@ -230,44 +230,77 @@ describe('sendMediaMessage', () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
     await expect(sendMediaMessage('id-1', 'chan-1', 'user-2', media)).resolves.toEqual({
       success: false,
+      blocked: false,
       reason: 'Not authenticated',
     });
     expect(mockStorageFrom).not.toHaveBeenCalled();
   });
 
-  it('uploads, inserts the row, and returns the public URL on success', async () => {
+  it('uploads, invokes moderate-chat-media, and returns the public URL on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     const bucket = makeStorageBucket();
     mockStorageFrom.mockReturnValue(bucket);
-    mockFrom.mockReturnValue(makeQueryBuilder({ data: {}, error: null }));
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { success: true, mediaUrl: 'https://cdn.example.com/file.jpg', moderationStatus: 'SAFE' },
+      error: null,
+    });
 
     const result = await sendMediaMessage('id-1', 'chan-1', 'user-2', media);
 
-    expect(result).toEqual({ success: true, mediaUrl: 'https://cdn.example.com/file.jpg' });
+    expect(result).toEqual({ success: true, mediaUrl: 'https://cdn.example.com/file.jpg', moderationStatus: 'SAFE' });
     expect(bucket.upload).toHaveBeenCalledWith('user-1/id-1.jpg', media.bytes, { contentType: 'image/jpeg' });
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith('moderate-chat-media', {
+      body: {
+        id: 'id-1',
+        channelId: 'chan-1',
+        receiverId: 'user-2',
+        storagePath: 'user-1/id-1.jpg',
+        mediaKind: 'image',
+        durationMs: undefined,
+      },
+    });
     expect(bucket.remove).not.toHaveBeenCalled();
   });
 
-  it('stops before inserting when the upload itself fails', async () => {
+  it('stops before invoking moderation when the upload itself fails', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     const bucket = makeStorageBucket({ uploadError: { message: 'storage quota exceeded' } });
     mockStorageFrom.mockReturnValue(bucket);
 
     const result = await sendMediaMessage('id-1', 'chan-1', 'user-2', media);
 
-    expect(result).toEqual({ success: false, reason: 'storage quota exceeded' });
-    expect(mockFrom).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, blocked: false, reason: 'storage quota exceeded' });
+    expect(mockFunctionsInvoke).not.toHaveBeenCalled();
   });
 
-  it('removes the orphaned storage object when the row insert fails after a successful upload', async () => {
+  it('removes the uploaded object when moderation blocks the content', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     const bucket = makeStorageBucket();
     mockStorageFrom.mockReturnValue(bucket);
-    mockFrom.mockReturnValue(makeQueryBuilder({ data: null, error: { message: 'insert failed' } }));
+    mockFunctionsInvoke.mockResolvedValue({
+      data: { success: false, blocked: true, reason: 'This content violates community guidelines and cannot be sent.' },
+      error: null,
+    });
 
     const result = await sendMediaMessage('id-1', 'chan-1', 'user-2', media);
 
-    expect(result).toEqual({ success: false, reason: 'insert failed' });
+    expect(result).toEqual({
+      success: false,
+      blocked: true,
+      reason: 'This content violates community guidelines and cannot be sent.',
+    });
+    expect(bucket.remove).toHaveBeenCalledWith(['user-1/id-1.jpg']);
+  });
+
+  it('removes the orphaned storage object when the edge function call itself fails', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    const bucket = makeStorageBucket();
+    mockStorageFrom.mockReturnValue(bucket);
+    mockFunctionsInvoke.mockRejectedValue(new Error('offline'));
+
+    const result = await sendMediaMessage('id-1', 'chan-1', 'user-2', media);
+
+    expect(result).toEqual({ success: false, blocked: false, reason: 'offline' });
     expect(bucket.remove).toHaveBeenCalledWith(['user-1/id-1.jpg']);
   });
 });

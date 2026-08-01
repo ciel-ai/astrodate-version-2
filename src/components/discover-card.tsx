@@ -309,7 +309,13 @@ export function DiscoverCard({ card, tier, isDark = true, isFlipped = false, onF
               Pressable above -- captures its own taps without triggering
               handleOpenCosmic underneath. */}
           {onOpenMenu && (
-            <Pressable onPress={onOpenMenu} hitSlop={10} style={styles.menuButton}>
+            <Pressable
+              onPress={onOpenMenu}
+              hitSlop={10}
+              style={styles.menuButton}
+              accessibilityRole="button"
+              accessibilityLabel="More options"
+            >
               <Text style={styles.menuButtonIcon}>⋯</Text>
             </Pressable>
           )}

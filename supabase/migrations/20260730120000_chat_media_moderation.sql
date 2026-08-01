@@ -1,0 +1,19 @@
+-- ============================================================================
+-- Real fix for C2 (2026-07-28 pre-launch audit): moderate chat media
+-- ============================================================================
+-- 20260728120000_close_match_like_forgery_and_media_ownership.sql shipped a
+-- stop-gap for chat images/audio: it proved media_url pointed at the sender's
+-- own storage object, closing the arbitrary-external-URL injection hole, but
+-- explicitly did NOT run any content classification (that migration's own
+-- comment tracked it as a separate follow-up).
+--
+-- moderate-chat-media (shipped alongside this migration) now classifies every
+-- chat image/voice-note with Gemini and inserts the `messages` row itself
+-- (service role) -- the same shape moderate-message already uses for text.
+-- With that in place, there is no legitimate reason left for a client to
+-- insert into `messages` directly at all: text has gone through
+-- moderate-message since 20260723120000, and media now goes through
+-- moderate-chat-media. Drop the INSERT policy entirely rather than replacing
+-- it with a narrower one -- there's nothing left for it to permit.
+-- ============================================================================
+DROP POLICY IF EXISTS "Users can insert their own messages" ON public.messages;

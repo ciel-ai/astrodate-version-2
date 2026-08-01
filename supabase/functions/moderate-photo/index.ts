@@ -26,6 +26,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
+import { fetchWithTimeout } from "../_shared/fetch-with-timeout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,11 +98,15 @@ export async function classifyPhoto(
       generationConfig: { maxOutputTokens: 10, temperature: 0 },
     };
 
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${geminiApiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload),
-    });
+    const geminiRes = await fetchWithTimeout(
+      `${GEMINI_API_URL}?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiPayload),
+      },
+      10000,
+    );
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => "");

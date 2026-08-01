@@ -141,7 +141,7 @@ export default function PrivacyScreen() {
 
           <Text style={styles.sectionTitle}>Profile Photos and Media</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Profile photos are visible to other users on the platform as part of your dating profile. You retain ownership of all photos you upload. By uploading photos, you grant AstroDate Private Limited a limited, non-exclusive license to display them within the App for the purpose of operating the platform. We do not use your photos for advertising or share them with third parties.
+            Profile photos are visible to other users on the platform as part of your dating profile. You retain ownership of all photos you upload. By uploading photos, you grant AstroDate Private Limited a limited, non-exclusive license to display them within the App for the purpose of operating the platform. We do not use your photos for advertising. Photos, and images or voice messages sent in chat, are automatically screened by Google Gemini for content moderation before being shown to other users — see Third-Party Services below.
           </Text>
 
           <Text style={styles.sectionTitle}>Sharing Your Information</Text>
@@ -160,7 +160,7 @@ export default function PrivacyScreen() {
           </Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Google Play Services and Apple App Store Services</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• RevenueCat — processes and manages in-app subscription purchases made through the Apple App Store and Google Play Store</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Google Gemini — automatically screens messages between matched users for harassment, spam, and other safety violations before they are delivered</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Google Gemini — automatically screens text messages, profile photos, and chat images/voice messages between matched users for harassment, spam, explicit content, and other safety violations before they are delivered or shown</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• AstrologyAPI.com — calculates birth charts, planetary positions, and compatibility scores from the birth date, time, and place you provide</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Supabase — used for cloud storage, database, and backend hosting</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Analytics providers — to be confirmed in a future update</Text>
