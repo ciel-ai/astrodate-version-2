@@ -80,8 +80,8 @@ export default function BlockedAccountsScreen() {
 
   const isDark = theme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   return (
     <ImageBackground source={bgSource} style={styles.bg} resizeMode="cover">

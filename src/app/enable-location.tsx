@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -33,8 +33,8 @@ export default function EnableLocationScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -82,6 +82,17 @@ export default function EnableLocationScreen() {
     >
       <StatusBar style="light" />
       <Glitters count={16} />
+
+      {/* Back button */}
+      <Pressable
+        onPress={() => router.back()}
+        style={[styles.backBtn, { top: Math.max(insets.top, 16) }]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <View style={styles.backChevron} />
+      </Pressable>
 
       <View style={[styles.container, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 }]}>
 
@@ -132,6 +143,29 @@ export default function EnableLocationScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, width: '100%', height: '100%', backgroundColor: '#09031C' },
+
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    borderColor: '#FFFFFF',
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 24,

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -103,8 +103,8 @@ export default function OnboardingQues8Screen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -179,7 +179,18 @@ export default function OnboardingQues8Screen() {
 
       {/* Back Button */}
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => {
+          // Reached via router.replace (not push) when it's the resume point
+          // for a user mid-onboarding (see getOnboardingResumeRoute in
+          // lib/user-profile.ts) -- that leaves no history entry for back()
+          // to go to, so the button did nothing. Fall back to the previous
+          // step in the flow instead.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/onboarding-ques-07');
+          }
+        }}
         style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
         hitSlop={10}
         accessibilityRole="button"
@@ -192,7 +203,7 @@ export default function OnboardingQues8Screen() {
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 25 },
+          { paddingTop: Math.max(insets.top, 20) + 60 },
         ]}
         showsVerticalScrollIndicator={false}
       >

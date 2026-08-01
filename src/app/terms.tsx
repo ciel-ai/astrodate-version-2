@@ -43,8 +43,8 @@ export default function TermsScreen() {
 
   const BG_SHIFT = Math.round(deviceH * 0.18);
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/create-bg-light.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/create-bg-light.webp');
 
   return (
     <ImageBackground

@@ -67,7 +67,7 @@ export default function ProfileScreen() {
   );
 
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
+    ? require('@/assets/images/onboard-bg.webp')
     : require('@/assets/images/tabs-bg-light.jpg');
 
   const handleSaveBio = async (bio: string) => {

@@ -184,12 +184,13 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           setSigningOut(true);
+          // No dismissAll+replace here -- signOut() triggers Supabase's
+          // SIGNED_OUT event, which auth.tsx's onAuthStateChange listener
+          // already reacts to with that exact navigation. Doing it again
+          // here raced the same POP_TO_TOP against a nav tree the listener
+          // had just collapsed, which is what "POP_TO_TOP was not handled
+          // by any navigator" was coming from.
           await signOut();
-          // dismissAll first: (tabs)/chat/etc. stay mounted in the stack
-          // otherwise, reachable again via back-gesture/hardware-back with
-          // the previous account's data still showing.
-          router.dismissAll();
-          router.replace('/create-account');
           setSigningOut(false);
         },
       },
@@ -223,9 +224,9 @@ export default function SettingsScreen() {
               );
               return;
             }
+            // No dismissAll+replace here -- see the same comment in
+            // handleSignOut above.
             await signOut();
-            router.dismissAll();
-            router.replace('/create-account');
             setDeleting(false);
           },
         },
@@ -248,8 +249,8 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   const bgSource = theme === 'dark'
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   return (
     <ImageBackground

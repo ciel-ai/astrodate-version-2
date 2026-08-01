@@ -4,8 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
-  ImageBackground,
   Keyboard,
   Platform,
   Pressable,
@@ -15,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Image, ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -167,11 +166,11 @@ export default function VerifyOtpScreen() {
   const slotWidth = Math.floor((deviceW - 48 - 40) / 6);
 
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/create-bg-light.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/create-bg-light.webp');
   const logoSource = isDark
-    ? require('@/assets/images/logo.png')
-    : require('@/assets/images/logo-dark-text.png');
+    ? require('@/assets/images/logo.webp')
+    : require('@/assets/images/logo-dark-text.webp');
 
   return (
     <ImageBackground
@@ -206,6 +205,11 @@ export default function VerifyOtpScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
+      {/* The code auto-focuses on mount, so the keyboard is up from the
+          start with no Done key to close it -- tapping anywhere outside the
+          slots/buttons (which handle their own taps) dismisses it so
+          "Resend OTP" is reachable if no SMS arrives. */}
+      <Pressable style={styles.content} onPress={() => Keyboard.dismiss()}>
         {/* Logo lockup */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
           <Image
@@ -336,6 +340,7 @@ export default function VerifyOtpScreen() {
             </Pressable>
           </View>
         </View>
+      </Pressable>
       </KeyboardAvoidingView>
     </ImageBackground>
   );

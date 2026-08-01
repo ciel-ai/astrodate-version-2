@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -655,8 +654,15 @@ export default function ChatThreadScreen() {
       // real keyboard frame via native insets, so `behavior="padding"` lifts
       // the input bar identically on iOS and on Android edge-to-edge (SDK 56),
       // where the core RN KeyboardAvoidingView has nothing to resize against.
+      //
+      // keyboardVerticalOffset shrinks the lift by that amount -- meant to
+      // compensate for fixed content ABOVE this view that isn't part of it.
+      // Nothing is: this screen's header is a child of the KeyboardAvoidingView,
+      // not external to it. Passing insets.top here (as several other screens
+      // correctly do, having *their* header rendered outside/above their own
+      // KeyboardAvoidingView) under-lifted the input bar by exactly that much,
+      // leaving a status-bar-height gap between it and the keyboard.
       behavior="padding"
-      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
 

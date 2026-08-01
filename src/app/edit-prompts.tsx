@@ -6,7 +6,7 @@
  * onboarding wizard into Discover.
  */
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Glitters from '@/components/glitters';
 import { PromptEditorForm } from '@/components/prompts/prompt-editor-form';
 import { useAppTheme } from '@/lib/theme-context';
-import { EMPTY_PROMPT_SLOTS, getUserPrompts, saveUserPrompts, type PromptSlots } from '@/lib/user-prompts';
-import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
+import { arePromptSlotsComplete, EMPTY_PROMPT_SLOTS, getUserPrompts, saveUserPrompts, type PromptSlots } from '@/lib/user-prompts';
+import { KeyboardAwareScrollView } from '@/lib/keyboard-controller';
 
 export default function EditPromptsScreen() {
   const router = useRouter();
@@ -25,8 +25,8 @@ export default function EditPromptsScreen() {
   const isDark = theme === 'dark';
 
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const [slots, setSlots] = useState<PromptSlots>(EMPTY_PROMPT_SLOTS);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,11 @@ export default function EditPromptsScreen() {
     load();
   }, []);
 
+  const promptsComplete = arePromptSlotsComplete(slots);
+
   const handleSave = async () => {
+    if (!promptsComplete) return;
+
     setSaving(true);
     const result = await saveUserPrompts(slots);
     setSaving(false);
@@ -70,16 +74,12 @@ export default function EditPromptsScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={12} />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <KeyboardAwareScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+        bottomOffset={24}
       >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
-          showsVerticalScrollIndicator={false}
-        >
           <View style={styles.header}>
             <Pressable
               id="btn-edit-prompts-back"
@@ -106,16 +106,32 @@ export default function EditPromptsScreen() {
                 <Pressable
                   id="btn-edit-prompts-save"
                   onPress={handleSave}
-                  disabled={saving || loading}
-                  style={({ pressed }) => [styles.saveButton, pressed && styles.savePressed]}
+                  disabled={saving || loading || !promptsComplete}
+                  style={({ pressed }) => [
+                    styles.saveButton,
+                    !promptsComplete && {
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#D1D5DB',
+                    },
+                    pressed && styles.savePressed,
+                  ]}
                 >
-                  {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveText}>Save</Text>}
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.saveText,
+                        !promptsComplete && { color: isDark ? '#5A5478' : '#6B7280' },
+                      ]}
+                    >
+                      {promptsComplete ? 'Save' : 'Complete All 3 Prompts'}
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </ImageBackground>
   );
 }

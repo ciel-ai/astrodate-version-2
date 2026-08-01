@@ -117,11 +117,6 @@ export default function SubscriptionScreen() {
                     pointerEvents="none"
                   />
 
-                  {plan.popular && !isPlanUnavailable && (
-                    <View style={styles.popularTag}>
-                      <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
-                    </View>
-                  )}
                   <Text style={styles.planBadge}>{plan.badge}</Text>
 
                   {isPlanUnavailable ? (
@@ -162,6 +157,17 @@ export default function SubscriptionScreen() {
                     )}
                   </Pressable>
                 </View>
+
+                {/* Rendered as a sibling of the card, not a child -- the card
+                    needs overflow: hidden to clip its gradient fills to the
+                    rounded corners, which was also clipping this badge's
+                    deliberate top: -10 overhang down to a barely-visible
+                    sliver. cardShadowWrap (this view) has no overflow set. */}
+                {plan.popular && !isPlanUnavailable && (
+                  <View style={styles.popularTag}>
+                    <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
+                  </View>
+                )}
               </View>
             );
           })

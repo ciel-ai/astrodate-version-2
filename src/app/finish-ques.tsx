@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -18,7 +17,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import Glitters from '@/components/glitters';
 import { PromptEditorForm } from '@/components/prompts/prompt-editor-form';
-import { EMPTY_PROMPT_SLOTS, getUserPrompts, saveUserPrompts, type PromptSlots } from '@/lib/user-prompts';
+import { arePromptSlotsComplete, EMPTY_PROMPT_SLOTS, getUserPrompts, saveUserPrompts, type PromptSlots } from '@/lib/user-prompts';
+import { KeyboardAwareScrollView } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -26,8 +26,8 @@ export default function FinishQuesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -55,7 +55,11 @@ export default function FinishQuesScreen() {
     return <View style={{ flex: 1, backgroundColor: isDark ? '#09031C' : '#F0E6FF' }} />;
   }
 
+  const promptsComplete = arePromptSlotsComplete(slots);
+
   const handleSave = async () => {
+    if (!promptsComplete) return;
+
     setSaving(true);
     const result = await saveUserPrompts(slots);
     setSaving(false);
@@ -72,13 +76,43 @@ export default function FinishQuesScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={16} />
 
-      <ScrollView
+      {/* Back button */}
+      <Pressable
+        onPress={() => {
+          // /finish-ques is now also an onboarding resume-route target
+          // (getOnboardingResumeRoute in lib/user-profile.ts), reached via
+          // router.replace when prompts are the first incomplete step for a
+          // returning user -- that leaves no history entry for back() to go
+          // to. Fall back to the previous step in the flow instead.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/upload-photos');
+          }
+        }}
+        style={[
+          styles.backBtn,
+          {
+            top: Math.max(insets.top, 16),
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          },
+        ]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
+      </Pressable>
+
+      <KeyboardAwareScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 38, paddingBottom: 40 },
+          { paddingTop: Math.max(insets.top, 20) + 60, paddingBottom: 40 },
         ]}
         showsVerticalScrollIndicator={false}
+        bottomOffset={24}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -95,22 +129,37 @@ export default function FinishQuesScreen() {
         ) : (
           <PromptEditorForm slots={slots} onChange={setSlots} isDark={isDark} />
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Continue Button at the bottom */}
       <View style={styles.footerContainer}>
         <Pressable
           id="btn-finish-ques-continue"
           onPress={handleSave}
-          disabled={saving}
-          style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
+          disabled={saving || !promptsComplete}
+          style={({ pressed }) => [
+            styles.actionButton,
+            !promptsComplete && {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#D1D5DB',
+              shadowOpacity: 0,
+              elevation: 0,
+            },
+            pressed && styles.actionPressed,
+          ]}
         >
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <View style={styles.actionButtonContent}>
-              <Text style={styles.actionText}>Continue</Text>
-              <Text style={styles.actionArrow}>→</Text>
+              <Text
+                style={[
+                  styles.actionText,
+                  !promptsComplete && { color: isDark ? '#5A5478' : '#6B7280' },
+                ]}
+              >
+                {promptsComplete ? 'Continue' : 'Complete All 3 Prompts'}
+              </Text>
+              {promptsComplete && <Text style={styles.actionArrow}>→</Text>}
             </View>
           )}
         </Pressable>
@@ -121,6 +170,28 @@ export default function FinishQuesScreen() {
 
 const styles = StyleSheet.create({
   bg: { flex: 1, width: '100%', height: '100%', backgroundColor: '#09031C' },
+
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
 
   scrollView: {
     flex: 1,

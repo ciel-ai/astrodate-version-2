@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   View,
   Image,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -51,8 +51,8 @@ export default function UploadPhotosScreen() {
 
   // Background asset based on theme
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const loadUserPhotos = async () => {
     const result = await getUserPhotos();
@@ -169,11 +169,39 @@ export default function UploadPhotosScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Glitters count={14} />
 
+      {/* Back button */}
+      <Pressable
+        onPress={() => {
+          // This is a resume-landing route (getOnboardingResumeRoute in
+          // lib/user-profile.ts), reached via router.replace when it's the
+          // resume point for a user mid-onboarding -- that leaves no history
+          // entry for back() to go to. Fall back to the previous step.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/onboarding-ques-10');
+          }
+        }}
+        style={[
+          styles.backBtn,
+          {
+            top: Math.max(insets.top, 16),
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          },
+        ]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
+      </Pressable>
+
       <ScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 20, paddingBottom: insets.bottom + 40 },
+          { paddingTop: Math.max(insets.top, 20) + 60, paddingBottom: insets.bottom + 40 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -317,6 +345,28 @@ const styles = StyleSheet.create({
   scrollStyle: { flex: 1 },
   scrollContent: { paddingBottom: 48 },
   container: { flex: 1, paddingHorizontal: 20 },
+
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
 
   // ── Header ──
   header: {

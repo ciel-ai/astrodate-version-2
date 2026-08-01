@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  Image,
-  ImageBackground,
   Platform,
   Pressable,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { Image, ImageBackground } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -91,11 +90,11 @@ export default function HomeScreen() {
   const groupTop = wheelCenterY - Math.round(LOGO_H / 2);
 
   const bgSource = isDark
-    ? require('@/assets/images/bg.png')
-    : require('@/assets/images/bg-light.png');
+    ? require('@/assets/images/bg.webp')
+    : require('@/assets/images/bg-light.webp');
   const logoSource = isDark
-    ? require('@/assets/images/logo.png')
-    : require('@/assets/images/logo-dark-text.png');
+    ? require('@/assets/images/logo.webp')
+    : require('@/assets/images/logo-dark-text.webp');
 
   // ── Content ───────────────────────────────────────────────────────────────
   const renderContent = () => (

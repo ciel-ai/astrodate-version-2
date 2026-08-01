@@ -59,7 +59,7 @@ export default function MatchScreen() {
   // Resolve background source
   const bgSource = isDark 
     ? require('@/assets/images/match-bg.png') 
-    : require('@/assets/images/onboard-light-bg.png');
+    : require('@/assets/images/onboard-light-bg.webp');
 
   // Resolve profile pictures
   const myPhotoUrl = profile?.photos?.find((p) => p.is_primary)?.photo_url 

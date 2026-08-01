@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable react-hooks/rules-of-hooks */
 import React, { useEffect, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView as RNKeyboardAvoidingView } from 'react-native';
+import { Keyboard, KeyboardAvoidingView as RNKeyboardAvoidingView, ScrollView as RNScrollView } from 'react-native';
 
 let RealController: any = null;
 try {
@@ -26,6 +26,16 @@ export function KeyboardAvoidingView(props: any) {
   // Fall back to React Native's built-in KeyboardAvoidingView
   const { children, ...rest } = props;
   return <RNKeyboardAvoidingView {...rest}>{children}</RNKeyboardAvoidingView>;
+}
+
+// Fallback KeyboardAwareScrollView -- auto-scrolls to keep the focused
+// TextInput visible above the keyboard (plain ScrollView never does this).
+export function KeyboardAwareScrollView(props: any) {
+  if (RealController?.KeyboardAwareScrollView) {
+    return <RealController.KeyboardAwareScrollView {...props} />;
+  }
+  const { children, ...rest } = props;
+  return <RNScrollView {...rest}>{children}</RNScrollView>;
 }
 
 // Fallback useKeyboardState hook
