@@ -119,7 +119,7 @@ export default function HomeScreen() {
         <ThemedText
           style={[styles.title, { fontSize: TITLE_FS, lineHeight: TITLE_LH, marginTop: -68, color: isDark ? '#FFFFFF' : '#1B1528' }]}
         >
-          Astro date
+          AstroDate
         </ThemedText>
 
         {/* Decorative divider with a tiny glowing diamond */}

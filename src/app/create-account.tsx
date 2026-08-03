@@ -226,7 +226,7 @@ export default function CreateAccountScreen() {
               }
             ]}
           >
-            Astro date
+            AstroDate
           </Text>
           <View style={styles.sepRow}>
             <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />

@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -206,6 +207,12 @@ export default function SettingsScreen() {
       `This removes your profile, photos, matches, and messages forever. This can't be undone.${subscriptionNote}`,
       [
         { text: 'Cancel', style: 'cancel' },
+        ...(membership?.is_active && Platform.OS === 'ios'
+          ? [{
+              text: 'Manage Subscription',
+              onPress: () => Linking.openURL('itms-apps://apps.apple.com/account/subscriptions'),
+            } as const]
+          : []),
         {
           text: 'Delete my account',
           style: 'destructive',
@@ -246,7 +253,8 @@ export default function SettingsScreen() {
 
   const phoneDisplay = user?.phone ? `+${user.phone}` : 'Not linked';
   const planDisplay = membership?.is_active ? membership?.plan_badge ?? membership?.plan_name ?? 'Member' : 'Free plan';
-  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+  const appVersion = Constants.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '1.0.0';
+  const buildNumber = Constants.nativeBuildVersion;
 
   const bgSource = theme === 'dark'
     ? require('@/assets/images/create-bg.webp')
@@ -621,7 +629,7 @@ export default function SettingsScreen() {
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>App version</Text>
                 </View>
               </View>
-              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{appVersion}</Text>
+              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{buildNumber ? `${appVersion} (${buildNumber})` : appVersion}</Text>
             </View>
           </View>
 

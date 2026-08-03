@@ -146,7 +146,7 @@ export default function BirthDetailsScreen() {
       (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
     if (!hasHadBirthdayThisYear) age -= 1;
     if (age < 18) {
-      alert('Must Be 18 or Older', 'You must be at least 18 years old to use Astro date.');
+      alert('Must Be 18 or Older', 'You must be at least 18 years old to use AstroDate.');
       return;
     }
 

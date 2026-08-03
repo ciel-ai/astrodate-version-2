@@ -16,7 +16,6 @@ const MIN_VISIBLE_MS = 350;
 // until the caller confirms that read is done means the swap always happens
 // while still covered by the splash.
 export function AnimatedSplashOverlay({ ready }: { ready: boolean }) {
-  const [visible, setVisible] = useState(true);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
   useEffect(() => {
@@ -24,9 +23,10 @@ export function AnimatedSplashOverlay({ ready }: { ready: boolean }) {
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
-    if (ready && minTimeElapsed) setVisible(false);
-  }, [ready, minTimeElapsed]);
+  // Derived directly from props/state instead of mirrored into its own
+  // setState-in-effect -- avoids the extra cascading render and satisfies
+  // react-hooks/set-state-in-effect.
+  const visible = !(ready && minTimeElapsed);
 
   if (!visible) return null;
 

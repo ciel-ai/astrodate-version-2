@@ -1,3 +1,4 @@
+/* global __dirname */
 // Resizes + re-encodes the cosmic-identity zodiac/nakshatra card art from
 // source PNGs to WebP. See the comment above SIGN_IMAGES in
 // src/constants/zodiac-images.ts for why: the source art comes in as ~3MB,

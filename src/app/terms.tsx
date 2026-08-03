@@ -194,7 +194,7 @@ export default function TermsScreen() {
           </Text>
           <Text style={[styles.subSubTitle, { color: T.text }]}>By You</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            You may delete your account at any time through the App settings or by contacting <Text style={styles.linkText}>hello@astrodate.in</Text>. Deletion requests are processed within 30 days.
+            You can delete your account at any time directly from Settings → Delete account. Account deletion is immediate and permanent. Certain transaction records may be retained as required by law for up to 30 days. You can also contact <Text style={styles.linkText}>hello@astrodate.in</Text> for assistance.
           </Text>
           <Text style={[styles.subSubTitle, { color: T.text }]}>Effect of Termination</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>

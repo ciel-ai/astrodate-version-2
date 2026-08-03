@@ -221,7 +221,7 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30), color: isDark ? '#FFFFFF' : '#1B1528' }]}>
-            Astro date
+            AstroDate
           </Text>
           <View style={styles.sepRow}>
             <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
@@ -210,6 +210,17 @@ export default function SubscriptionScreen() {
           <Text style={[styles.disclosureText, { color: T.dim2 }]}>
             You can manage your subscriptions and turn off auto-renewal by going to your Account Settings on the App Store after purchase.
           </Text>
+          {Platform.OS === 'ios' && (
+            <Pressable
+              onPress={() => Linking.openURL('itms-apps://apps.apple.com/account/subscriptions')}
+              accessibilityRole="link"
+              accessibilityLabel="Manage subscriptions in the App Store"
+            >
+              <Text style={[styles.disclosureText, { color: T.dim2, textDecorationLine: 'underline' }]}>
+                Manage Subscriptions in App Store →
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </View>
