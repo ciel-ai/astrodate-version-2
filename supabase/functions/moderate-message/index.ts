@@ -98,6 +98,16 @@ export async function classifyMessage(
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: "user", parts: [{ text: messageText }] }],
       generationConfig: { maxOutputTokens: 10, temperature: 0 },
+      // BLOCK_NONE is intentional: the classifier must see the actual content
+      // to classify it. Blocking at the API level before classification would
+      // cause harmful messages to silently pass through as SAFE -- the opposite
+      // of what we want. The system prompt scopes the task to pure classification.
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
     };
 
     const geminiRes = await fetchWithTimeout(

@@ -77,7 +77,7 @@ export default function PrivacyScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.paragraph, { color: T.body }]}>
-            This Privacy Policy applies to the Astro Date App operated by AstroDate Private Limited (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). Astro Date is a platform that combines astrology-based compatibility matching with a dating experience, helping users find meaningful connections through birth chart analysis and compatibility scores.
+            This Privacy Policy applies to the AstroDate App operated by AstroDate Private Limited (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). AstroDate is a platform that combines astrology-based compatibility matching with a dating experience, helping users find meaningful connections through birth chart analysis and compatibility scores.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             By using the App, you agree to the collection and use of your information as described in this Privacy Policy.
@@ -85,7 +85,7 @@ export default function PrivacyScreen() {
 
           <Text style={styles.sectionTitle}>Information We Collect</Text>
           <Text style={[styles.subSubTitle, { color: T.text }]}>Personal Information</Text>
-          <Text style={[styles.paragraph, { color: T.body }]}>When you register and use Astro Date, we collect:</Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>When you register and use AstroDate, we collect:</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Full name, date of birth, time of birth, and place of birth (used for generating your birth chart and compatibility scores)</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Gender identity and relationship preferences</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Profile photographs and any additional media you upload</Text>
@@ -179,7 +179,7 @@ export default function PrivacyScreen() {
 
           <Text style={styles.sectionTitle}>Children&apos;s Privacy</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Astro Date is strictly intended for users aged 18 and above. We do not knowingly collect information from anyone under 18. If we discover a minor has registered on the platform, the account will be immediately suspended and all associated data deleted. If you believe a minor is using the App, please contact <Text style={styles.linkText}>hello@astrodate.in</Text> immediately.
+            AstroDate is strictly intended for users aged 18 and above. We do not knowingly collect information from anyone under 18. If we discover a minor has registered on the platform, the account will be immediately suspended and all associated data deleted. If you believe a minor is using the App, please contact <Text style={styles.linkText}>hello@astrodate.in</Text> immediately.
           </Text>
 
           <Text style={styles.sectionTitle}>Security</Text>

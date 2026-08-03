@@ -13,7 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, Ellipse, G, Defs, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import Glitters from '@/components/glitters';
@@ -21,8 +21,9 @@ import { useOnboardingFonts } from '@/hooks/use-onboarding-fonts';
 import { useProfileData } from '@/hooks/use-profile-data';
 import { requestAndRegisterPushToken } from '@/lib/push-notifications';
 
-const DEFAULT_MY_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400';
-const DEFAULT_OTHER_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400';
+// No external placeholder URLs — show nothing if a user has no photos.
+// External CDN links (e.g. Unsplash) can 404 during App Review if the CDN
+// blocks automated traffic, which breaks the match animation for reviewers.
 
 export default function MatchScreen() {
   const insets = useSafeAreaInsets();
@@ -66,13 +67,9 @@ export default function MatchScreen() {
     || profile?.photos?.[0]?.photo_url 
     || null;
 
-  const myPhotoSource = myPhotoUrl 
-    ? { uri: myPhotoUrl } 
-    : { uri: DEFAULT_MY_AVATAR };
+  const myPhotoSource = myPhotoUrl ? { uri: myPhotoUrl } : undefined;
 
-  const otherPhotoSource = otherUserPhoto
-    ? { uri: otherUserPhoto }
-    : { uri: DEFAULT_OTHER_AVATAR };
+  const otherPhotoSource = otherUserPhoto ? { uri: otherUserPhoto } : undefined;
 
   const handleSendMessage = useCallback(() => {
     // Replace current route with the chat route so we don't return to the match page on back press

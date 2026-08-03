@@ -96,6 +96,15 @@ export async function classifyPhoto(
         },
       ],
       generationConfig: { maxOutputTokens: 10, temperature: 0 },
+      // BLOCK_NONE is intentional: this is a moderation classifier — it MUST
+      // see explicit content to classify it as UNSAFE. Blocking at the API
+      // level before classification causes harmful photos to silently pass.
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
     };
 
     const geminiRes = await fetchWithTimeout(
