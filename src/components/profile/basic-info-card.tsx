@@ -7,8 +7,7 @@
  * this (confirmed no onboarding screen ever wrote education/drinking/smoking).
  */
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { alert } from '@/lib/themed-alert';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChipPickerSheet, type ChipOption } from './chip-picker-sheet';
 
 export type BasicInfoField =
@@ -104,7 +103,7 @@ export function BasicInfoCard({ values, isDark, onSaveField }: BasicInfoCardProp
     setSavingField(null);
     setOpenField(null);
     if (!result.success) {
-      alert('Save Failed', result.error || `Could not save ${field}.`);
+      Alert.alert('Save Failed', result.error || `Could not save ${field}.`);
     }
   };
 
@@ -113,7 +112,7 @@ export function BasicInfoCard({ values, isDark, onSaveField }: BasicInfoCardProp
     const result = await onSaveField(field, value);
     setSavingField(null);
     if (!result.success) {
-      alert('Save Failed', result.error || `Could not save ${field}.`);
+      Alert.alert('Save Failed', result.error || `Could not save ${field}.`);
     }
   };
 

@@ -19,22 +19,22 @@ export function PromptsCard({ prompts, isDark, onEdit }: PromptsCardProps) {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+    <Pressable
+      id="btn-prompts-edit"
+      onPress={onEdit}
+      style={({ pressed }) => [styles.card, { backgroundColor: T.card, borderColor: T.border }, pressed && { opacity: 0.95 }]}
+      accessibilityRole="button"
+      accessibilityLabel="Edit prompts"
+    >
       <View style={styles.headerRow}>
         <Text style={[styles.label, { color: T.label }]}>MY PROMPTS</Text>
-        <Pressable
-          id="btn-prompts-edit"
-          onPress={onEdit}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Edit prompts"
-        >
+        <View>
           <Text style={styles.editIcon}>✎</Text>
-        </Pressable>
+        </View>
       </View>
 
       {answeredCount === 0 ? (
-        <Text style={[styles.empty, { color: T.label }]}>No prompts yet — tap ✎ to add up to 3.</Text>
+        <Text style={[styles.empty, { color: T.label }]}>No prompts yet — tap to add up to 3.</Text>
       ) : (
         <View style={styles.list}>
           {PROMPT_SLOTS.filter((id) => prompts[id].question).map((id) => (
@@ -49,7 +49,7 @@ export function PromptsCard({ prompts, isDark, onEdit }: PromptsCardProps) {
           ))}
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 

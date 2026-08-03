@@ -222,7 +222,9 @@ export default function ProfileScreen() {
                 isDark={isDark}
                 onEdit={() => {
                   setShowEditModal(false);
-                  router.push('/edit-prompts');
+                  setTimeout(() => {
+                    router.push('/edit-prompts');
+                  }, 350);
                 }}
               />
 
