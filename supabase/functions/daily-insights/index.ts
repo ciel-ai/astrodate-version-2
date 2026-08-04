@@ -29,6 +29,7 @@ import {
   computePlanetaryHours,
   cosmicWeatherScore,
   dayRuler,
+  getStaticFallbackPrediction,
   luckyAttributes,
   moonPhase,
   pickBestTime,
@@ -145,6 +146,8 @@ Deno.serve(async (req) => {
   let moonNakshatra: string | null = null;
   let prediction: DailyPrediction | null = null;
   let cached = false;
+  // 'live' | 'cache' | 'static' — tells the client which layer served the data
+  let fallback_source: "live" | "cache" | "static" = "live";
 
   const { data: cacheRow } = await db
     .from("daily_insights_cache")
@@ -172,39 +175,70 @@ Deno.serve(async (req) => {
     const lon = astroRec.birth_longitude;
     const tzone = parseTzNum(astroRec.birth_timezone) ?? Math.round(lon / 15);
 
-    const res = await fetch(`${ASTRO_BASE}/daily_nakshatra_prediction`, {
-      method: "POST",
-      headers: astroHeaders,
-      body: JSON.stringify({ day, month, year, hour, min, lat, lon, tzone }),
-    });
+    // ── Layer 1: Live Astrology API call ────────────────────────────────────
+    let apiSucceeded = false;
+    try {
+      const res = await fetch(`${ASTRO_BASE}/daily_nakshatra_prediction`, {
+        method: "POST",
+        headers: astroHeaders,
+        body: JSON.stringify({ day, month, year, hour, min, lat, lon, tzone }),
+      });
 
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error("[daily-insights] daily_nakshatra_prediction error", res.status, errBody);
-      return json({ error: "astrology_api_error", status: res.status }, 502);
+      if (res.ok) {
+        const data = await res.json();
+        moonSign = data.birth_moon_sign ?? null;
+        moonNakshatra = data.birth_moon_nakshatra ?? null;
+        prediction = data.prediction as DailyPrediction;
+        apiSucceeded = true;
+
+        // Cache the fresh result — ON CONFLICT DO NOTHING so a concurrent
+        // race for the same nakshatra is harmless.
+        const { error: upsertError } = await db.from("daily_insights_cache").upsert(
+          {
+            nakshatra,
+            prediction_date: todayStr,
+            moon_sign: moonSign,
+            moon_nakshatra: moonNakshatra,
+            prediction,
+          },
+          { onConflict: "nakshatra,prediction_date", ignoreDuplicates: true }
+        );
+        if (upsertError) {
+          console.error("[daily-insights] cache upsert failed (non-fatal):", upsertError);
+        }
+      } else {
+        const errBody = await res.text().catch(() => "");
+        console.warn("[daily-insights] API returned", res.status, errBody, "— trying fallback layers");
+      }
+    } catch (fetchErr) {
+      console.warn("[daily-insights] API fetch threw (network/timeout):", fetchErr, "— trying fallback layers");
     }
 
-    const data = await res.json();
-    moonSign = data.birth_moon_sign ?? null;
-    moonNakshatra = data.birth_moon_nakshatra ?? null;
-    prediction = data.prediction as DailyPrediction;
+    if (!apiSucceeded) {
+      // ── Layer 2: Most recent cache row for this nakshatra (any date) ─────
+      // Even yesterday's prediction is better than an error screen.
+      const { data: staleRow } = await db
+        .from("daily_insights_cache")
+        .select("moon_sign, moon_nakshatra, prediction")
+        .eq("nakshatra", nakshatra)
+        .order("prediction_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    // ON CONFLICT DO NOTHING: if a concurrent request for this same nakshatra
-    // already won the race, that's fine — the content is the same for a given
-    // (nakshatra, date) regardless of whose birth data triggered the call.
-    const { error: upsertError } = await db.from("daily_insights_cache").upsert(
-      {
-        nakshatra,
-        prediction_date: todayStr,
-        moon_sign: moonSign,
-        moon_nakshatra: moonNakshatra,
-        prediction,
-      },
-      { onConflict: "nakshatra,prediction_date", ignoreDuplicates: true }
-    );
-
-    if (upsertError) {
-      console.error("[daily-insights] cache upsert failed", upsertError);
+      if (staleRow?.prediction) {
+        moonSign = staleRow.moon_sign;
+        moonNakshatra = staleRow.moon_nakshatra;
+        prediction = staleRow.prediction as DailyPrediction;
+        cached = true;
+        fallback_source = "cache";
+        console.info("[daily-insights] serving stale cache for nakshatra:", nakshatra);
+      } else {
+        // ── Layer 3: Static per-nakshatra fallback (never fails) ──────────
+        prediction = getStaticFallbackPrediction(nakshatra, today);
+        cached = true;
+        fallback_source = "static";
+        console.info("[daily-insights] serving static fallback for nakshatra:", nakshatra);
+      }
     }
   }
 
@@ -246,6 +280,7 @@ Deno.serve(async (req) => {
     prediction_date: todayStr,
     prediction,
     cached,
+    fallback_source,
     moon_phase,
     day_ruler,
     lucky_color: luckyColor,

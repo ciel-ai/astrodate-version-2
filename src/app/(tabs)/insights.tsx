@@ -171,13 +171,20 @@ export default function InsightsScreen() {
       setState(dailyInsight ? 'revealed' : 'error');
     } catch (err: any) {
       console.error('[reveal] error loading daily insight:', err);
-      setState('error');
+      // Only hard-error for auth/incomplete-birth-data issues.
+      // API outages are handled server-side with the three-layer fallback, so
+      // this catch block should only fire for real unrecoverable problems.
       if (err?.status === 422 || err?.message?.includes('incomplete_birth_data') || String(err).includes('422')) {
-        setErrorDetails('Please complete your birth details in your profile first.');
-      } else if (err?.status === 502 || err?.message?.includes('astrology_api_error') || String(err).includes('502')) {
-        setErrorDetails('Astrology API limit reached or service temporarily unavailable.');
+        setState('error');
+        setErrorDetails('Please complete your birth details in your profile to unlock daily insights.');
+      } else if (err?.status === 401 || err?.status === 403) {
+        setState('error');
+        setErrorDetails('Session expired. Please log in again.');
       } else {
-        setErrorDetails(err?.message || String(err));
+        // Any other error (network, timeout, unexpected) — still show error
+        // but with a friendlier message and no raw error dump.
+        setState('error');
+        setErrorDetails('');
       }
     }
   }, []);
@@ -407,20 +414,25 @@ export default function InsightsScreen() {
 
       {state === 'error' && (
         <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>🔮</Text>
           <Text style={[styles.errorText, { color: palette.textPrimary }]}>
-            Couldn&apos;t load today&apos;s insight.
+            {errorDetails
+              ? errorDetails
+              : 'The stars are quiet right now.'}
           </Text>
-          {errorDetails ? (
+          {!errorDetails && (
             <Text style={[styles.errorSubText, { color: palette.textSecondary }]}>
-              {errorDetails}
+              We couldn&apos;t reach the cosmos today. Please try again in a moment.
             </Text>
-          ) : null}
-          <Pressable
-            onPress={() => user && reveal(user.id)}
-            style={[styles.retryBtn, { backgroundColor: palette.accent }]}
-          >
-            <Text style={[styles.retryText, { color: palette.retryText }]}>Try Again</Text>
-          </Pressable>
+          )}
+          {!errorDetails && (
+            <Pressable
+              onPress={() => user && reveal(user.id)}
+              style={[styles.retryBtn, { backgroundColor: palette.accent }]}
+            >
+              <Text style={[styles.retryText, { color: palette.retryText }]}>Try Again</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -429,6 +441,20 @@ export default function InsightsScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
+          {/* Fallback banner — shown when live API was unavailable */}
+          {insight.fallback_source !== 'live' && (
+            <View style={styles.fallbackBanner}>
+              <Text style={styles.fallbackBannerIcon}>
+                {insight.fallback_source === 'cache' ? '🌙' : '✦'}
+              </Text>
+              <Text style={styles.fallbackBannerText}>
+                {insight.fallback_source === 'cache'
+                  ? 'Showing your most recent insight — live data will return shortly.'
+                  : 'Showing your cosmic baseline — live insights will return shortly.'}
+              </Text>
+            </View>
+          )}
+
           {/* Top Semicircle Gauge Card & Best Time Card combined in Galaxy Image BG.
               Light theme has no equivalent photo asset -- tabs-bg-light.jpg is a
               flat, subtle wash meant as a backdrop behind opaque cards elsewhere,
@@ -858,6 +884,27 @@ const styles = StyleSheet.create({
     marginTop: -4,
     lineHeight: 18,
   },
+  fallbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(196, 160, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 160, 255, 0.2)',
+    borderRadius: 12,
+  },
+  fallbackBannerIcon: {
+    fontSize: 16,
+  },
+  fallbackBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: 'rgba(196, 160, 255, 0.85)',
+    lineHeight: 17,
+  },
 });
-
-

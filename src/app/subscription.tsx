@@ -122,7 +122,10 @@ export default function SubscriptionScreen() {
                   {isPlanUnavailable ? (
                     <Text style={styles.planPrice}>Unavailable</Text>
                   ) : (
-                    <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                    <>
+                      <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                      <Text style={styles.planBillingPeriod}>Billed monthly · Cancel any time</Text>
+                    </>
                   )}
 
                   <Text style={styles.planTagline}>{plan.tagline}</Text>
@@ -282,6 +285,7 @@ const styles = StyleSheet.create({
   popularTagText: { fontSize: 11, fontWeight: '800' },
   planBadge: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   planPrice: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 2 },
+  planBillingPeriod: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1, marginBottom: 4 },
   planTagline: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginBottom: 12 },
   featureList: { gap: 8, marginBottom: 16 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

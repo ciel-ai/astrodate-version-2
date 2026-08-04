@@ -270,6 +270,21 @@ export default function BirthDetailsScreen() {
       return;
     }
 
+    // ── Age gate: dating app must reject under-18 users (Apple Guideline 1.2) ─
+    const birthYear = parseInt(year, 10);
+    const birthMonth = month - 1; // JS months are 0-indexed
+    const birthDay = parseInt(day, 10);
+    const today18Check = new Date();
+    const age18Threshold = new Date(today18Check.getFullYear() - 18, today18Check.getMonth(), today18Check.getDate());
+    const birthDateForCheck = new Date(birthYear, birthMonth, birthDay);
+    if (birthDateForCheck > age18Threshold) {
+      alert(
+        'Age Requirement',
+        'You must be 18 years or older to use AstroDate. This app is not intended for minors.'
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
