@@ -3,7 +3,6 @@ import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSubscriptionStatus } from '@/context/subscription';
 import { useSubscriptionPayment } from '@/hooks/use-subscription-payment';
@@ -39,7 +38,7 @@ export default function SubscriptionScreen() {
 
   useEffect(() => {
     if (paymentStatus === 'active') {
-      const timer = setTimeout(() => safeBack(router), 900);
+      const timer = setTimeout(() => router.back(), 900);
       return () => clearTimeout(timer);
     }
   }, [paymentStatus]);
@@ -56,7 +55,7 @@ export default function SubscriptionScreen() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}
       >
-        <Pressable onPress={() => safeBack(router)} accessibilityRole="button" accessibilityLabel="Close" style={[styles.closeBtn, { backgroundColor: T.closeBtnBg }]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" style={[styles.closeBtn, { backgroundColor: T.closeBtnBg }]}>
           <Text style={[styles.closeText, { color: T.text }]}>✕</Text>
         </Pressable>
 
@@ -181,7 +180,7 @@ export default function SubscriptionScreen() {
           disabled={isBusy || restoringPurchases}
           onPress={async () => {
             const restored = await restorePurchases();
-            if (restored) safeBack(router);
+            if (restored) router.back();
           }}
           accessibilityRole="button"
         >

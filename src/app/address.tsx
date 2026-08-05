@@ -14,7 +14,6 @@ import {
 import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -81,12 +80,18 @@ export default function AddressScreen() {
 
       {/* Back button */}
       <Pressable
-        // Reached via router.replace (not push) when it's the resume point
-        // for a user mid-onboarding (see getOnboardingResumeRoute in
-        // lib/user-profile.ts) -- that leaves no history entry for back()
-        // to go to, so the button did nothing. safeBack falls back to the
-        // previous step in the flow instead.
-        onPress={() => safeBack(router, '/onboarding')}
+        onPress={() => {
+          // Reached via router.replace (not push) when it's the resume point
+          // for a user mid-onboarding (see getOnboardingResumeRoute in
+          // lib/user-profile.ts) -- that leaves no history entry for back()
+          // to go to, so the button did nothing. Fall back to the previous
+          // step in the flow instead.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/onboarding');
+          }
+        }}
         style={[
           styles.backBtn,
           {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -46,7 +45,7 @@ export default function SavedInsightsScreen() {
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
 
       <Pressable
-        onPress={() => safeBack(router)}
+        onPress={() => router.back()}
         style={[
           styles.backBtn,
           {

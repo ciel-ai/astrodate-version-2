@@ -1,11 +1,11 @@
-name: EAS Build
+name: EAS Build (Android)
 
 on:
   push:
     branches: [master]
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
@@ -45,32 +45,3 @@ jobs:
 
       - name: Build Android (production)
         run: eas build --platform android --profile production --non-interactive --no-wait
-
-  build-ios:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set up EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      # Credentials (distribution cert + provisioning profile) are managed
-      # remotely by EAS (`eas credentials -p ios`), not this workflow -- same
-      # EXPO_TOKEN as the Android job is sufficient, no Apple secrets needed
-      # here. Submission to App Store Connect is a separate, manual step
-      # (`eas submit -p ios`) until an ASC API key is wired up.
-      - name: Build iOS (production)
-        run: eas build --platform ios --profile production --non-interactive --no-wait

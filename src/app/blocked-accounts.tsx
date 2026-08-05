@@ -18,7 +18,6 @@ import {
 import { alert } from '@/lib/themed-alert';
 import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,7 +88,7 @@ export default function BlockedAccountsScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <Pressable
-        onPress={() => safeBack(router)}
+        onPress={() => router.back()}
         style={[
           styles.backBtn,
           {

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { router, useLocalSearchParams } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -86,7 +85,7 @@ export default function MatchScreen() {
   }, [channelId, otherUserId, otherUserName, otherUserPhoto]);
 
   const handleKeepDiscovering = useCallback(() => {
-    safeBack(router);
+    router.back();
   }, []);
 
   if (!fontsLoaded) {

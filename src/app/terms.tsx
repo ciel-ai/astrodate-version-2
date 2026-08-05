@@ -1,6 +1,5 @@
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import {
   ImageBackground,
@@ -59,7 +58,7 @@ export default function TermsScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => safeBack(router)}
+        onPress={() => router.back()}
         style={[styles.backBtn, { top: insets.top + 8, backgroundColor: T.backBtnBg, borderColor: T.backBtnBorder }]}
         hitSlop={10}
         accessibilityRole="button"

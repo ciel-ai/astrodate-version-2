@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PLANS } from '@/lib/plan-display';
 import { useAppTheme } from '@/lib/theme-context';
@@ -89,7 +88,7 @@ export default function PaywallScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <View style={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
-        <Pressable onPress={() => safeBack(router)} accessibilityRole="button" accessibilityLabel="Close" style={[styles.closeBtn, { top: insets.top + 8, backgroundColor: T.closeBtnBg }]}>
+        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" style={[styles.closeBtn, { top: insets.top + 8, backgroundColor: T.closeBtnBg }]}>
           <Text style={[styles.closeText, { color: T.closeText }]}>✕</Text>
         </Pressable>
 
@@ -107,7 +106,7 @@ export default function PaywallScreen() {
           <Text style={styles.ctaText}>See plans</Text>
         </Pressable>
 
-        <Pressable onPress={() => safeBack(router)} accessibilityRole="button">
+        <Pressable onPress={() => router.back()} accessibilityRole="button">
           <Text style={[styles.notNow, { color: T.notNow }]}>Not now</Text>
         </Pressable>
       </View>

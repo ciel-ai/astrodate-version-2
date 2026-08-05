@@ -15,7 +15,6 @@ import {
 import { Image, ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -175,12 +174,17 @@ export default function CreateAccountScreen() {
 
       {/* Back button */}
       <Pressable
-        // Reached via router.replace (not push) after signing out or
-        // deleting an account -- auth.tsx's onAuthStateChange listener
-        // resets the stack straight to this screen, leaving no history
-        // entry for back() to go to. safeBack falls back to the
-        // get-started screen ('/', its default) in that case.
-        onPress={() => safeBack(router)}
+        onPress={() => {
+          // Reached via router.replace (not push) after signing out or
+          // deleting an account -- auth.tsx's onAuthStateChange listener
+          // resets the stack straight to this screen, leaving no history
+          // entry for back() to go to. Fall back to the get-started screen.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/');
+          }
+        }}
         style={[
           styles.backBtn,
           {

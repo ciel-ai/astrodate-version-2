@@ -1,6 +1,5 @@
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import {
   ImageBackground,
@@ -59,7 +58,7 @@ export default function PrivacyScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => safeBack(router)}
+        onPress={() => router.back()}
         style={[styles.backBtn, { top: insets.top + 8, backgroundColor: T.backBtnBg, borderColor: T.backBtnBorder }]}
         hitSlop={10}
         accessibilityRole="button"
@@ -70,7 +69,7 @@ export default function PrivacyScreen() {
 
       <View style={[styles.container, { paddingTop: insets.top + 50, paddingBottom: insets.bottom + 16 }]}>
         <Text style={[styles.title, { color: T.text }]}>Privacy Policy</Text>
-        <Text style={[styles.lastUpdated, { color: T.dim }]}>Effective August 5, 2026</Text>
+        <Text style={[styles.lastUpdated, { color: T.dim }]}>Effective June 29, 2026</Text>
 
         <ScrollView
           style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}
@@ -108,13 +107,15 @@ export default function PrivacyScreen() {
           </Text>
 
           <Text style={[styles.subSubTitle, { color: T.text }]}>Usage Data</Text>
-          <Text style={[styles.paragraph, { color: T.body }]}>We collect:</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Interactions such as likes, matches, and messages, as part of normal app functionality</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• On a limited number of specific requests (such as checking whether a phone number is already registered), your IP address is used briefly to prevent abuse and automated misuse. It is not used to track your general activity in the App.</Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>We automatically collect:</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Device type, operating system, and IP address</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Pages and features accessed within the App</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Time and duration of App sessions</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Interactions such as likes, matches, and messages</Text>
 
           <Text style={[styles.subSubTitle, { color: T.text }]}>Communications</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Any messages exchanged between matched users on the platform are stored to enable the chat feature. We may review flagged communications solely for safety and moderation purposes.
+            Any messages exchanged between matched users on the platform are stored temporarily to enable the chat feature. We may review flagged communications solely for safety and moderation purposes.
           </Text>
 
           <Text style={styles.sectionTitle}>How We Use Your Information</Text>
@@ -124,6 +125,7 @@ export default function PrivacyScreen() {
           <Text style={[styles.bullet, { color: T.body }]}>• Suggest potential matches based on compatibility and location</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Enable profile display, messaging, and match interactions</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Send you notifications, updates, and relevant alerts</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Improve App performance and user experience through analytics</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Ensure platform safety by detecting fraud, abuse, or violations</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Comply with applicable legal obligations</Text>
 
@@ -161,14 +163,13 @@ export default function PrivacyScreen() {
           <Text style={[styles.bullet, { color: T.body }]}>• AstrologyAPI.com — calculates birth charts, planetary positions, and compatibility scores from the birth date, time, and place you provide</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Supabase — used for cloud storage, database, and backend hosting</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Sentry — crash and error reporting to help us diagnose and fix technical issues</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Analytics providers — to be confirmed in a future update</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             Additional payment, analytics, or service providers may be introduced in future updates. This section will be updated accordingly when such changes are made, and users will be notified through the App or by email.
           </Text>
 
           <Text style={styles.sectionTitle}>Data Retention</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            We retain your personal data for as long as your account is active. If you delete your account, your personal data — including birth details, photos, and messages — is deleted immediately, except where retention is required by applicable Indian law (e.g., financial transaction records).
+            We retain your personal data for as long as your account is active. If you delete your account, your personal data including birth details, photos, and messages will be deleted within 30 days, except where retention is required by applicable Indian law (e.g., financial transaction records).
           </Text>
 
           <Text style={styles.sectionTitle}>Account and Data Deletion</Text>

@@ -1,6 +1,5 @@
 import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -177,12 +176,17 @@ export default function LoginScreen() {
 
       {/* Back button */}
       <Pressable
-        // Reached via router.replace (not push) when it's the resume point
-        // after onboarding.tsx's own back-on-step-1, or after verify-otp's
-        // session-expired redirect -- both leave no history entry for
-        // back() to go to. safeBack falls back to the get-started screen
-        // ('/', its default) in that case.
-        onPress={() => safeBack(router)}
+        onPress={() => {
+          // Reached via router.replace (not push) when it's the resume point
+          // after onboarding.tsx's own back-on-step-1, or after verify-otp's
+          // session-expired redirect -- both leave no history entry for
+          // back() to go to. Fall back to the get-started screen.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/');
+          }
+        }}
         style={[
           styles.backBtn,
           {

@@ -13,7 +13,6 @@ import {
 import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -129,13 +128,18 @@ export default function OnboardingQuesScreen() {
 
       {/* Back Button */}
       <Pressable
-        // This screen is reached via router.replace (not push) whenever
-        // it's the resume point after login/OTP -- app/index.tsx and
-        // verify-otp.tsx both do this for a user mid-onboarding, which
-        // leaves no history entry for back() to go to, so the button did
-        // nothing. safeBack falls back to the previous step in the flow
-        // instead.
-        onPress={() => safeBack(router, '/profile-preview')}
+        onPress={() => {
+          // This screen is reached via router.replace (not push) whenever
+          // it's the resume point after login/OTP -- app/index.tsx and
+          // verify-otp.tsx both do this for a user mid-onboarding, which
+          // leaves no history entry for back() to go to, so the button did
+          // nothing. Fall back to the previous step in the flow instead.
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/profile-preview');
+          }
+        }}
         style={[styles.backBtn, { top: Math.max(insets.top, 16), backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)', borderColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.1)' }]}
         hitSlop={10}
         accessibilityRole="button"

@@ -6,7 +6,6 @@ import { useFonts } from 'expo-font';
 import { Image, ImageBackground } from 'expo-image';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { safeBack } from '@/lib/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { alert } from '@/lib/themed-alert';
@@ -1122,12 +1121,18 @@ export default function ZodiacPreviewScreen() {
             <Text style={[styles.errorText, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>Invalid birth details</Text>
             <TouchableOpacity
               style={styles.backButton}
-              // Reached via router.replace (not push) when it's the resume
-              // point for a user mid-onboarding (see getOnboardingResumeRoute
-              // in lib/user-profile.ts) -- that leaves no history entry for
-              // back() to go to, so the button did nothing. safeBack falls
-              // back to the previous step in the flow instead.
-              onPress={() => safeBack(router, '/birth-details')}
+              onPress={() => {
+                // Reached via router.replace (not push) when it's the resume
+                // point for a user mid-onboarding (see getOnboardingResumeRoute
+                // in lib/user-profile.ts) -- that leaves no history entry for
+                // back() to go to, so the button did nothing. Fall back to the
+                // previous step in the flow instead.
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/birth-details');
+                }
+              }}
             >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
