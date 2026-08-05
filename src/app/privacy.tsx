@@ -70,7 +70,7 @@ export default function PrivacyScreen() {
 
       <View style={[styles.container, { paddingTop: insets.top + 50, paddingBottom: insets.bottom + 16 }]}>
         <Text style={[styles.title, { color: T.text }]}>Privacy Policy</Text>
-        <Text style={[styles.lastUpdated, { color: T.dim }]}>Effective June 29, 2026</Text>
+        <Text style={[styles.lastUpdated, { color: T.dim }]}>Effective August 5, 2026</Text>
 
         <ScrollView
           style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}
@@ -108,15 +108,13 @@ export default function PrivacyScreen() {
           </Text>
 
           <Text style={[styles.subSubTitle, { color: T.text }]}>Usage Data</Text>
-          <Text style={[styles.paragraph, { color: T.body }]}>We automatically collect:</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Device type, operating system, and IP address</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Pages and features accessed within the App</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Time and duration of App sessions</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Interactions such as likes, matches, and messages</Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>We collect:</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Interactions such as likes, matches, and messages, as part of normal app functionality</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• On a limited number of specific requests (such as checking whether a phone number is already registered), your IP address is used briefly to prevent abuse and automated misuse. It is not used to track your general activity in the App.</Text>
 
           <Text style={[styles.subSubTitle, { color: T.text }]}>Communications</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Any messages exchanged between matched users on the platform are stored temporarily to enable the chat feature. We may review flagged communications solely for safety and moderation purposes.
+            Any messages exchanged between matched users on the platform are stored to enable the chat feature. We may review flagged communications solely for safety and moderation purposes.
           </Text>
 
           <Text style={styles.sectionTitle}>How We Use Your Information</Text>
@@ -126,7 +124,6 @@ export default function PrivacyScreen() {
           <Text style={[styles.bullet, { color: T.body }]}>• Suggest potential matches based on compatibility and location</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Enable profile display, messaging, and match interactions</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Send you notifications, updates, and relevant alerts</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Improve App performance and user experience through analytics</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Ensure platform safety by detecting fraud, abuse, or violations</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Comply with applicable legal obligations</Text>
 
@@ -163,6 +160,7 @@ export default function PrivacyScreen() {
           <Text style={[styles.bullet, { color: T.body }]}>• Google Gemini — automatically screens text messages, profile photos, and chat images/voice messages between matched users for harassment, spam, explicit content, and other safety violations before they are delivered or shown</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• AstrologyAPI.com — calculates birth charts, planetary positions, and compatibility scores from the birth date, time, and place you provide</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Supabase — used for cloud storage, database, and backend hosting</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Sentry — crash and error reporting to help us diagnose and fix technical issues</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Analytics providers — to be confirmed in a future update</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             Additional payment, analytics, or service providers may be introduced in future updates. This section will be updated accordingly when such changes are made, and users will be notified through the App or by email.
@@ -170,12 +168,12 @@ export default function PrivacyScreen() {
 
           <Text style={styles.sectionTitle}>Data Retention</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            We retain your personal data for as long as your account is active. If you delete your account, your personal data including birth details, photos, and messages will be deleted within 30 days, except where retention is required by applicable Indian law (e.g., financial transaction records).
+            We retain your personal data for as long as your account is active. If you delete your account, your personal data — including birth details, photos, and messages — is deleted immediately, except where retention is required by applicable Indian law (e.g., financial transaction records).
           </Text>
 
           <Text style={styles.sectionTitle}>Account and Data Deletion</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            You may request deletion of your Astro Date account and all associated data by contacting <Text style={styles.linkText}>hello@astrodate.in</Text>. All deletion requests will be processed within 30 days. Certain financial records may be retained as required by Indian tax and regulatory laws.
+            You can delete your Astro Date account and all associated data directly from the app: go to Settings → Delete account. Deletion is immediate and permanent. Certain financial records may be retained as required by Indian tax and regulatory laws. If you need further assistance, contact <Text style={styles.linkText}>hello@astrodate.in</Text>.
           </Text>
 
           <Text style={styles.sectionTitle}>Children&apos;s Privacy</Text>
@@ -192,7 +190,7 @@ export default function PrivacyScreen() {
           <Text style={[styles.paragraph, { color: T.body }]}>You have the right to:</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Access the personal data we hold about you</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Request correction of inaccurate data</Text>
-          <Text style={[styles.bullet, { color: T.body }]}>• Request deletion of your account and data</Text>
+          <Text style={[styles.bullet, { color: T.body }]}>• Delete your account and all associated data directly from the app (Settings → Delete account)</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             To exercise any of these rights, contact <Text style={styles.linkText}>hello@astrodate.in</Text>.
           </Text>
