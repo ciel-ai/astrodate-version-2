@@ -44,8 +44,8 @@ export default function TermsScreen() {
 
   const BG_SHIFT = Math.round(deviceH * 0.18);
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/create-bg-light.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/create-bg-light.webp');
 
   return (
     <ImageBackground
@@ -79,11 +79,11 @@ export default function TermsScreen() {
         >
           <Text style={styles.sectionTitle}>Introduction</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            By downloading, installing, or using the Astro Date App, you (&quot;User&quot;) agree to be bound by these Terms and Conditions (&quot;Terms&quot;). If you do not agree, do not use the App. These Terms form a legally binding agreement between you and AstroDate Private Limited.
+            By downloading, installing, or using the AstroDate App, you (&quot;User&quot;) agree to be bound by these Terms and Conditions (&quot;Terms&quot;). If you do not agree, do not use the App. These Terms form a legally binding agreement between you and AstroDate Private Limited.
           </Text>
 
           <Text style={styles.sectionTitle}>Eligibility</Text>
-          <Text style={[styles.paragraph, { color: T.body }]}>To use Astro Date, you must:</Text>
+          <Text style={[styles.paragraph, { color: T.body }]}>To use AstroDate, you must:</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Be at least 18 years of age</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Be legally capable of entering into a binding agreement under Indian law</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Not be prohibited from using the App under any applicable law</Text>
@@ -99,9 +99,9 @@ export default function TermsScreen() {
             AstroDate Private Limited reserves the right to suspend or terminate accounts with false, misleading, or incomplete information.
           </Text>
 
-          <Text style={styles.sectionTitle}>How Astro Date Works</Text>
+          <Text style={styles.sectionTitle}>How AstroDate Works</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Astro Date uses your birth details to generate an astrological birth chart and calculate compatibility scores between users. These scores are used to suggest potential matches. The compatibility score is an algorithmically generated output based on astrological principles and is provided for entertainment and guidance purposes only. It does not constitute a guarantee of relationship compatibility, success, or outcome.
+            AstroDate uses your birth details to generate an astrological birth chart and calculate compatibility scores between users. These scores are used to suggest potential matches. The compatibility score is an algorithmically generated output based on astrological principles and is provided for entertainment and guidance purposes only. It does not constitute a guarantee of relationship compatibility, success, or outcome.
           </Text>
 
           <Text style={styles.sectionTitle}>User Conduct</Text>
@@ -137,7 +137,7 @@ export default function TermsScreen() {
 
           <Text style={styles.sectionTitle}>Subscriptions and Premium Plans</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Astro Date offers optional paid subscription plans (Astro+ and AstroX) that unlock additional features such as increased daily likes, visibility into who has liked you, super likes, rewinds, and priority placement in the daily deck. Core features remain available on the free plan.
+            AstroDate offers optional paid subscription plans (Astro+ and AstroX) that unlock additional features such as increased daily likes, visibility into who has liked you, super likes, rewinds, and priority placement in the daily deck. Core features remain available on the free plan.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>Subscriptions are billed through your Apple App Store or Google Play account, not directly by AstroDate Private Limited. By purchasing a subscription, you agree to:</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Payment being charged to your App Store or Google Play account at confirmation of purchase</Text>
@@ -152,21 +152,21 @@ export default function TermsScreen() {
 
           <Text style={styles.sectionTitle}>Compatibility Scores — Disclaimer</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            The astrological compatibility scores and birth chart readings provided on Astro Date are powered by astrological data and calculations sourced from the Astrology API provided by astrology.com, a third-party service provider.
+            The astrological compatibility scores and birth chart readings provided on AstroDate are powered by astrological data and calculations sourced from the Astrology API provided by astrology.com, a third-party service provider.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             These scores and readings are based on established astrological traditions and are intended for entertainment and personal guidance purposes only. AstroDate Private Limited makes no representations or warranties regarding the accuracy, reliability, or predictive value of any compatibility score or astrological reading generated through this API.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            The results are dependent on the data and algorithms provided by astrology.com, and Astro Date Pvt Ltd is not responsible for any errors, inaccuracies, or changes in the output of the third-party API.
+            The results are dependent on the data and algorithms provided by astrology.com, and AstroDate Private Limited is not responsible for any errors, inaccuracies, or changes in the output of the third-party API.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Users should exercise their own judgment in all personal and relationship decisions. Astro Date&apos;s compatibility scores should not be relied upon as a substitute for professional advice of any kind.
+            Users should exercise their own judgment in all personal and relationship decisions. AstroDate&apos;s compatibility scores should not be relied upon as a substitute for professional advice of any kind.
           </Text>
 
           <Text style={styles.sectionTitle}>Safety and Interactions with Other Users</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            Astro Date facilitates connections between users but is not responsible for the conduct of any user outside the App. When meeting someone in person, we strongly recommend:
+            AstroDate facilitates connections between users but is not responsible for the conduct of any user outside the App. When meeting someone in person, we strongly recommend:
           </Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Meeting in a public place for initial meetings</Text>
           <Text style={[styles.bullet, { color: T.body }]}>• Informing a trusted friend or family member of your plans</Text>
@@ -182,7 +182,7 @@ export default function TermsScreen() {
 
           <Text style={styles.sectionTitle}>Intellectual Property</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            All content, designs, trademarks, logos, algorithms, and software in the Astro Date App are the intellectual property of AstroDate Private Limited or its licensors. You are granted a limited, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial use only.
+            All content, designs, trademarks, logos, algorithms, and software in the AstroDate App are the intellectual property of AstroDate Private Limited or its licensors. You are granted a limited, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial use only.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             You must not copy, modify, distribute, reverse-engineer, or create derivative works from any part of the App.
@@ -195,7 +195,7 @@ export default function TermsScreen() {
           </Text>
           <Text style={[styles.subSubTitle, { color: T.text }]}>By You</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            You may delete your account at any time through the App settings or by contacting <Text style={styles.linkText}>hello@astrodate.in</Text>. Deletion requests are processed within 30 days.
+            You can delete your account at any time directly from Settings → Delete account. Account deletion is immediate and permanent. Certain transaction records may be retained as required by law for up to 30 days. You can also contact <Text style={styles.linkText}>hello@astrodate.in</Text> for assistance.
           </Text>
           <Text style={[styles.subSubTitle, { color: T.text }]}>Effect of Termination</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>

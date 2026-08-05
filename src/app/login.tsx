@@ -2,11 +2,10 @@ import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
-  ImageBackground,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -17,13 +16,14 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { Image, ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
+import { KeyboardAvoidingView, useKeyboardState } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -53,6 +53,15 @@ export default function LoginScreen() {
   const { width: deviceW, height: deviceH } = useWindowDimensions();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  // formSection normally centers itself in whatever space is left below the
+  // hero text (see its comment below) -- but that centered box can shrink
+  // smaller than its own content once the keyboard eats into the available
+  // height, and the overflowing content renders upward into "Welcome Back" /
+  // the subtitle above it. Anchoring to the top instead once the keyboard is
+  // up keeps it from ever overlapping upward, at the cost of losing the
+  // centered look while typing (unavoidable -- there just isn't always
+  // enough space for both).
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,6 +74,16 @@ export default function LoginScreen() {
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.dialCode.includes(searchQuery)
   );
+
+  // Phone keyboards (phone-pad) have no Done/Return key, so once the number
+  // reaches the country's expected length there's nothing left to type --
+  // dismiss so the Send OTP button (otherwise stuck behind the keyboard)
+  // becomes reachable, matching verify-otp's behavior.
+  useEffect(() => {
+    if (phone.length === selectedCountry.length) {
+      Keyboard.dismiss();
+    }
+  }, [phone, selectedCountry.length]);
 
   const closePicker = () => {
     setSearchQuery('');
@@ -140,11 +159,11 @@ export default function LoginScreen() {
   const BG_SCALE = isDark ? 1.38 : 2.25;
 
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/create-bg-light.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/create-bg-light.webp');
   const logoSource = isDark
-    ? require('@/assets/images/logo.png')
-    : require('@/assets/images/logo-dark-text.png');
+    ? require('@/assets/images/logo.webp')
+    : require('@/assets/images/logo-dark-text.webp');
 
   return (
     <ImageBackground
@@ -158,10 +177,15 @@ export default function LoginScreen() {
 
       {/* Back button */}
       <Pressable
+        // Reached via router.replace (not push) when it's the resume point
+        // after onboarding.tsx's own back-on-step-1, or after verify-otp's
+        // session-expired redirect -- both leave no history entry for
+        // back() to go to. safeBack falls back to the get-started screen
+        // ('/', its default) in that case.
         onPress={() => safeBack(router)}
         style={[
-          styles.backBtn, 
-          { 
+          styles.backBtn,
+          {
             top: insets.top + 8,
             backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
             borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
@@ -180,6 +204,10 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
+      {/* Tapping anywhere outside the inputs/buttons (which handle their own
+          taps) dismisses the keyboard, since the phone-pad keyboard has no
+          Done key to close it otherwise. */}
+      <Pressable style={styles.container} onPress={() => Keyboard.dismiss()}>
 
         {/* ── Logo lockup ── */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
@@ -189,7 +217,7 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={[styles.wordmark, { fontSize: TITLE_FS, marginTop: -Math.round(LOGO_H * 0.30), color: isDark ? '#FFFFFF' : '#1B1528' }]}>
-            Astro date
+            AstroDate
           </Text>
           <View style={styles.sepRow}>
             <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
@@ -210,7 +238,7 @@ export default function LoginScreen() {
         </View>
 
         {/* ── Form section ── */}
-        <View style={styles.formSection}>
+        <View style={[styles.formSection, keyboardVisible && styles.formSectionKeyboardOpen]}>
 
           {/* Phone input */}
           <View 
@@ -269,6 +297,7 @@ export default function LoginScreen() {
             </Text>
           </Text>
         </View>
+      </Pressable>
       </KeyboardAvoidingView>
 
       <Modal
@@ -406,6 +435,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingBottom: 24,
+  },
+  // Overrides the centering above while the keyboard is open -- see the
+  // keyboardVisible comment where this is applied.
+  formSectionKeyboardOpen: {
+    justifyContent: 'flex-start',
+    paddingTop: 12,
   },
 
   // ── Phone input ──

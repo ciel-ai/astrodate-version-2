@@ -3,12 +3,12 @@ import { getAstroDetails, parseTzString } from '@/lib/astro';
 import { getTimezoneOffset, searchBirthPlace } from '@/lib/astro-geo';
 import { supabase } from '@/lib/supabase';
 import { useFonts } from 'expo-font';
-import { Image } from 'expo-image';
+import { Image, ImageBackground } from 'expo-image';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Animated, ImageBackground, Platform, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { alert } from '@/lib/themed-alert';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -486,12 +486,12 @@ const NAKSHATRA_ALIASES: Record<string, string> = {
   jyeshtha: 'Jyeshta', jestha: 'Jyeshta', jyestha: 'Jyeshta',
   moola: 'Mula',
   poorvashada: 'Purva Ashadha', purvashadha: 'Purva Ashadha', purvasadha: 'Purva Ashadha', poorvaashada: 'Purva Ashadha',
-  uttarashada: 'Uttara Ashadha', uttarashadha: 'Uttara Ashadha', uttarasadha: 'Uttara Ashadha', uttaraashada: 'Uttara Ashadha',
+  uttarashada: 'Uttara Ashadha', uttarashadha: 'Uttara Ashadha', uttarasadha: 'Uttara Ashadha', uttaraashada: 'Uttara Ashadha', uttrashada: 'Uttara Ashadha', uttrashadha: 'Uttara Ashadha',
   sravana: 'Shravana', shravan: 'Shravana',
   dhanistha: 'Dhanishta', dhanista: 'Dhanishta',
   sathabhisha: 'Shatabhisha', shatabhishak: 'Shatabhisha', satabhisha: 'Shatabhisha', shatataraka: 'Shatabhisha',
   poorvabhadrapada: 'Purva Bhadrapada', purvabhadrapada: 'Purva Bhadrapada', purvabhadra: 'Purva Bhadrapada', poorvabhadra: 'Purva Bhadrapada', purvabhadrapad: 'Purva Bhadrapada', poorvabhadrapad: 'Purva Bhadrapada',
-  uttarabhadrapada: 'Uttara Bhadrapada', uttarabhadra: 'Uttara Bhadrapada', uttarabhadrapad: 'Uttara Bhadrapada',
+  uttarabhadrapada: 'Uttara Bhadrapada', uttarabhadra: 'Uttara Bhadrapada', uttarabhadrapad: 'Uttara Bhadrapada', uttrabhadrapad: 'Uttara Bhadrapada', uttrabhadrapada: 'Uttara Bhadrapada', uttrabhadra: 'Uttara Bhadrapada',
   revathi: 'Revati',
 };
 
@@ -626,8 +626,8 @@ export default function ZodiacPreviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [selectedZodiacType, setSelectedZodiacType] = useState<'vedic' | 'western' | 'nakshatra'>('vedic');
@@ -1120,7 +1120,15 @@ export default function ZodiacPreviewScreen() {
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.errorContainer}>
             <Text style={[styles.errorText, { color: isDark ? '#FFFFFF' : '#1A0A2E' }]}>Invalid birth details</Text>
-            <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router)}>
+            <TouchableOpacity
+              style={styles.backButton}
+              // Reached via router.replace (not push) when it's the resume
+              // point for a user mid-onboarding (see getOnboardingResumeRoute
+              // in lib/user-profile.ts) -- that leaves no history entry for
+              // back() to go to, so the button did nothing. safeBack falls
+              // back to the previous step in the flow instead.
+              onPress={() => safeBack(router, '/birth-details')}
+            >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
           </View>
@@ -1141,6 +1149,35 @@ export default function ZodiacPreviewScreen() {
       <Sparkle size={15} color={isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(124, 92, 246, 0.08)"} style={[styles.bgSparkle, { bottom: 100, right: 35 }]} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {/* Back button */}
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/birth-details');
+            }
+          }}
+          style={[
+            styles.headerBackBtn,
+            {
+              // position: 'absolute' is relative to SafeAreaView's own box,
+              // not its safe-area-inset padding -- a bare `top: 16` in the
+              // style landed the button under the status bar/notch instead
+              // of below it, since the safe-area padding never applies to
+              // absolutely positioned children.
+              top: Math.max(insets.top, 16),
+              backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+              borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+            },
+          ]}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <View style={[styles.headerBackChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
+        </Pressable>
+
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
@@ -1275,6 +1312,8 @@ export default function ZodiacPreviewScreen() {
                     source={cardImageSource}
                     style={styles.cardImage}
                     contentFit="contain"
+                    cachePolicy="memory-disk"
+                    transition={150}
                   />
                 </Animated.View>
               ) : (
@@ -1418,10 +1457,31 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerBackBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBackChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 60,
     paddingBottom: 120,
     justifyContent: 'flex-start',
   },

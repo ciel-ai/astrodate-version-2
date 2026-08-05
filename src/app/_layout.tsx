@@ -17,7 +17,7 @@ import { ThemedAlertHost } from '@/lib/themed-alert';
 initSentry();
 
 function RootLayout() {
-  const { theme } = useAppTheme();
+  const { theme, isLoaded: themeLoaded } = useAppTheme();
 
   // App-wide, registered once regardless of auth state so a cold-start tap
   // (before AuthProvider resolves) is still captured by
@@ -31,7 +31,7 @@ function RootLayout() {
       <SubscriptionProvider>
         <KeyboardProvider>
         <NavThemeProvider value={theme === 'dark' ? NavDarkTheme : NavDefaultTheme}>
-          <AnimatedSplashOverlay />
+          <AnimatedSplashOverlay ready={themeLoaded} />
           <ThemedAlertHost />
           <Stack
             screenOptions={{

@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   ImageBackground,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -185,12 +186,13 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           setSigningOut(true);
+          // No dismissAll+replace here -- signOut() triggers Supabase's
+          // SIGNED_OUT event, which auth.tsx's onAuthStateChange listener
+          // already reacts to with that exact navigation. Doing it again
+          // here raced the same POP_TO_TOP against a nav tree the listener
+          // had just collapsed, which is what "POP_TO_TOP was not handled
+          // by any navigator" was coming from.
           await signOut();
-          // dismissAll first: (tabs)/chat/etc. stay mounted in the stack
-          // otherwise, reachable again via back-gesture/hardware-back with
-          // the previous account's data still showing.
-          router.dismissAll();
-          router.replace('/create-account');
           setSigningOut(false);
         },
       },
@@ -206,6 +208,12 @@ export default function SettingsScreen() {
       `This removes your profile, photos, matches, and messages forever. This can't be undone.${subscriptionNote}`,
       [
         { text: 'Cancel', style: 'cancel' },
+        ...(membership?.is_active && Platform.OS === 'ios'
+          ? [{
+              text: 'Manage Subscription',
+              onPress: () => Linking.openURL('itms-apps://apps.apple.com/account/subscriptions'),
+            } as const]
+          : []),
         {
           text: 'Delete my account',
           style: 'destructive',
@@ -224,9 +232,9 @@ export default function SettingsScreen() {
               );
               return;
             }
+            // No dismissAll+replace here -- see the same comment in
+            // handleSignOut above.
             await signOut();
-            router.dismissAll();
-            router.replace('/create-account');
             setDeleting(false);
           },
         },
@@ -246,11 +254,12 @@ export default function SettingsScreen() {
 
   const phoneDisplay = user?.phone ? `+${user.phone}` : 'Not linked';
   const planDisplay = membership?.is_active ? membership?.plan_badge ?? membership?.plan_name ?? 'Member' : 'Free plan';
-  const appVersion = Constants.expoConfig?.version ?? '1.0.0';
+  const appVersion = Constants.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '1.0.0';
+  const buildNumber = Constants.nativeBuildVersion;
 
   const bgSource = theme === 'dark'
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   return (
     <ImageBackground
@@ -621,7 +630,7 @@ export default function SettingsScreen() {
                   <Text style={[styles.rowTitle, { color: theme === 'dark' ? '#FFFFFF' : '#1B1528' }]}>App version</Text>
                 </View>
               </View>
-              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{appVersion}</Text>
+              <Text style={[styles.rowValue, { color: theme === 'dark' ? '#7C7796' : '#6B7280' }]}>{buildNumber ? `${appVersion} (${buildNumber})` : appVersion}</Text>
             </View>
           </View>
 

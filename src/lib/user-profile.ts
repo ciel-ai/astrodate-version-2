@@ -138,6 +138,7 @@ export type OnboardingResumeRoute =
   | '/onboarding-ques-01'
   | '/onboarding-ques-08'
   | '/upload-photos'
+  | '/finish-ques'
   | '/(tabs)/discover';
 
 export const getOnboardingResumeRoute = async (): Promise<OnboardingResumeRoute> => {
@@ -151,7 +152,7 @@ export const getOnboardingResumeRoute = async (): Promise<OnboardingResumeRoute>
   // timeout at all, leaving the "Verification Successful" alert stuck
   // forever instead of falling back to /onboarding the way a thrown error
   // already does.
-  const [profileRes, astroRes, section1Res, personalityRes, photosRes] = await withTimeout(
+  const [profileRes, astroRes, section1Res, personalityRes, photosRes, promptsRes] = await withTimeout(
     Promise.all([
       supabase.from('user_profiles').select('full_name, location').eq('user_id', userId).maybeSingle(),
       supabase.from('astro_details').select('western_sign, indian_sign, nakshatra_name').eq('user_id', userId).maybeSingle(),
@@ -160,6 +161,12 @@ export const getOnboardingResumeRoute = async (): Promise<OnboardingResumeRoute>
       // how_often_do_you_overthink_relationships is only written by onboarding-ques-10.tsx, the last screen of that block.
       supabase.from('personality_qns').select('how_often_do_you_overthink_relationships').eq('user_id', userId).maybeSingle(),
       supabase.from('user_photos').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      // All 3 prompt slots are mandatory (finish-ques.tsx gates Continue on
+      // this) -- select the actual columns rather than just counting rows,
+      // since saveUserPrompts only ever skipped rows with no question
+      // selected, so a pre-this-change row could exist with a question but
+      // an empty answer.
+      supabase.from('user_prompts').select('question, answer').eq('user_id', userId),
     ]),
     15000,
     'getOnboardingResumeRoute timed out'
@@ -172,6 +179,8 @@ export const getOnboardingResumeRoute = async (): Promise<OnboardingResumeRoute>
   if (!section1Res.data?.partner_preference) return '/onboarding-ques-01';
   if (!personalityRes.data?.how_often_do_you_overthink_relationships) return '/onboarding-ques-08';
   if ((photosRes.count ?? 0) < 3) return '/upload-photos';
+  const completePrompts = (promptsRes.data ?? []).filter((p) => p.question && p.answer).length;
+  if (completePrompts < 3) return '/finish-ques';
   return '/(tabs)/discover';
 };
 

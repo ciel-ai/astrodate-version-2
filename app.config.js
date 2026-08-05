@@ -32,6 +32,13 @@ export default ({ config }) => ({
       // answer rather than leaving Apple to ask it per-build.
       ITSAppUsesNonExemptEncryption: false,
     },
+    // Required for production push notifications via expo-notifications.
+    // 'development' is injected automatically during debug/sim builds;
+    // production store binaries need this declared explicitly so Xcode
+    // code-signs with the APS Production entitlement, not development.
+    entitlements: {
+      'aps-environment': 'production',
+    },
     // Apple's "required reason" API declarations (effective for all App
     // Store submissions since Spring 2024) -- several dependencies in this
     // app's native tree (RevenueCat's SDK, AsyncStorage, expo-secure-store's
@@ -45,34 +52,25 @@ export default ({ config }) => ({
     // undeclared API, add its category+reason here rather than guessing
     // preemptively at more than this.
     privacyManifests: {
-      NSPrivacyAccessedAPITypes: [
-        {
-          // expo-secure-store's AsyncStorage fallback, AsyncStorage itself
-          // (theme preference), and RevenueCat's own SDK all read/write
-          // UserDefaults-backed storage that never leaves the app.
-          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
-          NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
-        },
-        {
-          // expo-file-system reads local file bytes (voice messages, photo
-          // uploads) without ever displaying their timestamps to the user.
-          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
-          NSPrivacyAccessedAPITypeReasons: ['0A2A.1'],
-        },
-        {
-          // Used internally for elapsed-time calculations (animation/retry
-          // timing), not to display the device's actual boot time.
-          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
-          NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
-        },
-        {
-          // react-native-keyboard-controller reads the active keyboard to
-          // drive KeyboardAvoidingView's layout math.
-          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryActiveKeyboard',
-          NSPrivacyAccessedAPITypeReasons: ['3EC4.1'],
-        },
-      ],
+  NSPrivacyAccessedAPITypes: [
+    {
+      NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+      NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
     },
+    {
+      NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+      NSPrivacyAccessedAPITypeReasons: ['0A2A.1'],
+    },
+    {
+      NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+      NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
+    },
+    {
+      NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryDiskSpace',
+      NSPrivacyAccessedAPITypeReasons: ['E174.1'],
+    },
+  ],
+},
   },
   android: {
     adaptiveIcon: {

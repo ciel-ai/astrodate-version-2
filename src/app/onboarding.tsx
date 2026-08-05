@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
+  Keyboard,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { saveUserProfile } from '@/lib/user-profile';
+import { KeyboardAwareScrollView } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -74,8 +75,8 @@ export default function OnboardingScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -312,12 +313,17 @@ export default function OnboardingScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, 20) + 60 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
-        <View style={styles.container}>
+        {/* The name field auto-focuses on step 1, so the keyboard is up from
+            the start -- tapping anywhere outside the input/buttons (which
+            handle their own taps) dismisses it. */}
+        <Pressable style={styles.container} onPress={() => Keyboard.dismiss()}>
           {/* Steps Horizontal Bar Indicator — 4 total (name / gender / address / birth details) */}
           <View style={styles.progressRow}>
             <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, step >= 1 && styles.progressSegmentActive]} />
@@ -346,8 +352,8 @@ export default function OnboardingScreen() {
               )}
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
+        </Pressable>
+      </KeyboardAwareScrollView>
     </ImageBackground>
   );
 }

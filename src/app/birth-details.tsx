@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -13,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
@@ -25,6 +26,7 @@ import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { getAstroDetails, parseTzString } from '@/lib/astro';
 import { searchBirthPlace, getTimezoneOffset } from '@/lib/astro-geo';
+import { KeyboardAwareScrollView } from '@/lib/keyboard-controller';
 
 type PlaceResult = { place_name: string; latitude: number; longitude: number; timezone_id: string };
 
@@ -39,8 +41,8 @@ export default function BirthDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -145,7 +147,7 @@ export default function BirthDetailsScreen() {
       (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
     if (!hasHadBirthdayThisYear) age -= 1;
     if (age < 18) {
-      alert('Must Be 18 or Older', 'You must be at least 18 years old to use Astro date.');
+      alert('Must Be 18 or Older', 'You must be at least 18 years old to use AstroDate.');
       return;
     }
 
@@ -266,6 +268,21 @@ export default function BirthDetailsScreen() {
     }
     if (!placeOfBirth.trim()) {
       alert('Place Required', 'Please enter your Place of Birth.');
+      return;
+    }
+
+    // ── Age gate: dating app must reject under-18 users (Apple Guideline 1.2) ─
+    const birthYear = parseInt(year, 10);
+    const birthMonth = month - 1; // JS months are 0-indexed
+    const birthDay = parseInt(day, 10);
+    const today18Check = new Date();
+    const age18Threshold = new Date(today18Check.getFullYear() - 18, today18Check.getMonth(), today18Check.getDate());
+    const birthDateForCheck = new Date(birthYear, birthMonth, birthDay);
+    if (birthDateForCheck > age18Threshold) {
+      alert(
+        'Age Requirement',
+        'You must be 18 years or older to use AstroDate. This app is not intended for minors.'
+      );
       return;
     }
 
@@ -398,7 +415,12 @@ export default function BirthDetailsScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => safeBack(router)}
+        // Reached via router.replace (not push) when it's the resume point
+        // for a user mid-onboarding (see getOnboardingResumeRoute in
+        // lib/user-profile.ts) -- that leaves no history entry for back()
+        // to go to, so the button did nothing. safeBack falls back to the
+        // previous step in the flow instead.
+        onPress={() => safeBack(router, '/address')}
         style={[
           styles.backBtn,
           {
@@ -414,7 +436,7 @@ export default function BirthDetailsScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
@@ -422,8 +444,12 @@ export default function BirthDetailsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
-        <View style={styles.container}>
+        {/* Place of Birth has no Done key on its keyboard -- tapping anywhere
+            outside the input/buttons (which handle their own taps) dismisses
+            it, since Generate Astro Profile otherwise sits behind it. */}
+        <Pressable style={styles.container} onPress={() => Keyboard.dismiss()}>
           {/* Steps Horizontal Bar Indicator — step 4 of 4 */}
           <View style={styles.progressRow}>
             <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
@@ -588,8 +614,8 @@ export default function BirthDetailsScreen() {
             </Pressable>
 
           </View>
-        </View>
-      </ScrollView>
+        </Pressable>
+      </KeyboardAwareScrollView>
 
       {/* ── DATE PICKER MODAL ── */}
       <Modal

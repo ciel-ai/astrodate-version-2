@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
@@ -30,8 +30,8 @@ export default function ProfilePreviewScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -177,7 +177,31 @@ export default function ProfilePreviewScreen() {
       <View style={styles.glowBlob1} />
       <View style={styles.glowBlob2} />
 
-      <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) + 32, paddingBottom: insets.bottom + 32 }]}>
+      {/* Back button */}
+      <Pressable
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/cosmic-identity');
+          }
+        }}
+        style={[
+          styles.backBtn,
+          {
+            top: Math.max(insets.top, 16),
+            backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
+          },
+        ]}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
+      </Pressable>
+
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) + 60, paddingBottom: insets.bottom + 32 }]}>
 
         {/* Title */}
         <View style={styles.header}>
@@ -265,6 +289,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
+  },
+
+  // ── Back button ──
+  backBtn: {
+    position: 'absolute',
+    left: 18,
+    zIndex: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backChevron: {
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
+    transform: [{ rotate: '45deg' }],
+    marginLeft: 4,
   },
 
   // ── Glow Blobs ──

@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
-  ImageBackground,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import { Image, ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Glitters from '@/components/glitters';
 import { supabase } from '@/lib/supabase';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { KeyboardAvoidingView } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -65,6 +66,16 @@ export default function CreateAccountScreen() {
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.dialCode.includes(searchQuery)
   );
+
+  // Phone keyboards (phone-pad) have no Done/Return key, so once the number
+  // reaches the country's expected length there's nothing left to type --
+  // dismiss so the terms checkbox / Send OTP button (otherwise stuck behind
+  // the keyboard) become reachable, matching verify-otp's behavior.
+  useEffect(() => {
+    if (phone.length === selectedCountry.length) {
+      Keyboard.dismiss();
+    }
+  }, [phone, selectedCountry.length]);
 
   const closePicker = () => {
     setSearchQuery('');
@@ -144,11 +155,11 @@ export default function CreateAccountScreen() {
   const BG_SHIFT = isDark ? Math.round(deviceH * 0.18) : Math.round(deviceH * 0.26);
   const BG_SCALE = isDark ? 1.38 : 2.25;
   const bgSource = isDark
-    ? require('@/assets/images/create-bg.png')
-    : require('@/assets/images/create-bg-light.png');
+    ? require('@/assets/images/create-bg.webp')
+    : require('@/assets/images/create-bg-light.webp');
   const logoSource = isDark
-    ? require('@/assets/images/logo.png')
-    : require('@/assets/images/logo-dark-text.png');
+    ? require('@/assets/images/logo.webp')
+    : require('@/assets/images/logo-dark-text.webp');
 
   return (
     <ImageBackground
@@ -164,10 +175,15 @@ export default function CreateAccountScreen() {
 
       {/* Back button */}
       <Pressable
+        // Reached via router.replace (not push) after signing out or
+        // deleting an account -- auth.tsx's onAuthStateChange listener
+        // resets the stack straight to this screen, leaving no history
+        // entry for back() to go to. safeBack falls back to the
+        // get-started screen ('/', its default) in that case.
         onPress={() => safeBack(router)}
         style={[
-          styles.backBtn, 
-          { 
+          styles.backBtn,
+          {
             top: insets.top + 8,
             backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
             borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.08)',
@@ -180,7 +196,15 @@ export default function CreateAccountScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      >
+      {/* Tapping anywhere outside the inputs/buttons (which handle their own
+          taps) dismisses the keyboard, since the phone-pad keyboard has no
+          Done key to close it otherwise. */}
+      <Pressable style={styles.content} onPress={() => Keyboard.dismiss()}>
         {/* Logo lockup */}
         <View style={[styles.lockup, { marginTop: LOGO_TOP }]} pointerEvents="none">
           <Image
@@ -198,7 +222,7 @@ export default function CreateAccountScreen() {
               }
             ]}
           >
-            Astro date
+            AstroDate
           </Text>
           <View style={styles.sepRow}>
             <View style={[styles.sepLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.40)' : 'rgba(75,0,130,0.25)' }]} />
@@ -310,7 +334,8 @@ export default function CreateAccountScreen() {
             </Text>
           </Text>
         </View>
-      </View>
+      </Pressable>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={countryPickerVisible}

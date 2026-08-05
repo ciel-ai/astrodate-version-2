@@ -23,6 +23,18 @@ function isPromptSlotId(value: string): value is PromptSlotId {
   return (PROMPT_SLOTS as readonly string[]).includes(value);
 }
 
+/** A slot only counts once it has both a selected question and a non-empty
+ *  answer -- picking a question but leaving the answer blank isn't enough. */
+export function isPromptSlotComplete(slot: PromptSlotData): boolean {
+  return !!slot.question && slot.answer.trim().length > 0;
+}
+
+/** All 3 prompts are mandatory (finish-ques.tsx during onboarding, and
+ *  Profile's edit-prompts.tsx afterward both gate Continue/Save on this). */
+export function arePromptSlotsComplete(slots: PromptSlots): boolean {
+  return PROMPT_SLOTS.every((slotId) => isPromptSlotComplete(slots[slotId]));
+}
+
 /** Fetches the caller's own 3 prompt slots, filled in wherever answered. */
 export async function getUserPrompts(): Promise<{ success: boolean; data?: PromptSlots; error?: string }> {
   try {

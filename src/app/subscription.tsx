@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
@@ -118,17 +118,15 @@ export default function SubscriptionScreen() {
                     pointerEvents="none"
                   />
 
-                  {plan.popular && !isPlanUnavailable && (
-                    <View style={styles.popularTag}>
-                      <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
-                    </View>
-                  )}
                   <Text style={styles.planBadge}>{plan.badge}</Text>
 
                   {isPlanUnavailable ? (
                     <Text style={styles.planPrice}>Unavailable</Text>
                   ) : (
-                    <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                    <>
+                      <Text style={styles.planPrice}>{matchedPackage.product.priceString}/mo</Text>
+                      <Text style={styles.planBillingPeriod}>Billed monthly · Cancel any time</Text>
+                    </>
                   )}
 
                   <Text style={styles.planTagline}>{plan.tagline}</Text>
@@ -163,6 +161,17 @@ export default function SubscriptionScreen() {
                     )}
                   </Pressable>
                 </View>
+
+                {/* Rendered as a sibling of the card, not a child -- the card
+                    needs overflow: hidden to clip its gradient fills to the
+                    rounded corners, which was also clipping this badge's
+                    deliberate top: -10 overhang down to a barely-visible
+                    sliver. cardShadowWrap (this view) has no overflow set. */}
+                {plan.popular && !isPlanUnavailable && (
+                  <View style={styles.popularTag}>
+                    <Text style={[styles.popularTagText, { color: plan.accentColor }]}>MOST POPULAR</Text>
+                  </View>
+                )}
               </View>
             );
           })
@@ -205,6 +214,17 @@ export default function SubscriptionScreen() {
           <Text style={[styles.disclosureText, { color: T.dim2 }]}>
             You can manage your subscriptions and turn off auto-renewal by going to your Account Settings on the App Store after purchase.
           </Text>
+          {Platform.OS === 'ios' && (
+            <Pressable
+              onPress={() => Linking.openURL('itms-apps://apps.apple.com/account/subscriptions')}
+              accessibilityRole="link"
+              accessibilityLabel="Manage subscriptions in the App Store"
+            >
+              <Text style={[styles.disclosureText, { color: T.dim2, textDecorationLine: 'underline' }]}>
+                Manage Subscriptions in App Store →
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -266,6 +286,7 @@ const styles = StyleSheet.create({
   popularTagText: { fontSize: 11, fontWeight: '800' },
   planBadge: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   planPrice: { color: '#FFFFFF', fontSize: 22, fontWeight: '800', marginTop: 2 },
+  planBillingPeriod: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1, marginBottom: 4 },
   planTagline: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginBottom: 12 },
   featureList: { gap: 8, marginBottom: 16 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

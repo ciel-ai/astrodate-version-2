@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
+  Keyboard,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glitters from '@/components/glitters';
 import { saveUserProfile } from '@/lib/user-profile';
+import { KeyboardAwareScrollView } from '@/lib/keyboard-controller';
 
 const SERIF = 'Baskerville-Old-Face';
 
@@ -28,8 +29,8 @@ export default function AddressScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -80,7 +81,12 @@ export default function AddressScreen() {
 
       {/* Back button */}
       <Pressable
-        onPress={() => safeBack(router)}
+        // Reached via router.replace (not push) when it's the resume point
+        // for a user mid-onboarding (see getOnboardingResumeRoute in
+        // lib/user-profile.ts) -- that leaves no history entry for back()
+        // to go to, so the button did nothing. safeBack falls back to the
+        // previous step in the flow instead.
+        onPress={() => safeBack(router, '/onboarding')}
         style={[
           styles.backBtn,
           {
@@ -96,7 +102,7 @@ export default function AddressScreen() {
         <View style={[styles.backChevron, { borderColor: isDark ? '#FFFFFF' : '#1B1528' }]} />
       </Pressable>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
@@ -104,8 +110,9 @@ export default function AddressScreen() {
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
-        <View style={styles.container}>
+        <Pressable style={styles.container} onPress={() => Keyboard.dismiss()}>
           {/* Steps Horizontal Bar Indicator — step 3 of 4 */}
           <View style={styles.progressRow}>
             <View style={[styles.progressSegment, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)' }, styles.progressSegmentActive]} />
@@ -184,8 +191,8 @@ export default function AddressScreen() {
               )}
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
+        </Pressable>
+      </KeyboardAwareScrollView>
     </ImageBackground>
   );
 }

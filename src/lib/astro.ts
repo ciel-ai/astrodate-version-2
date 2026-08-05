@@ -157,6 +157,10 @@ export type DailyInsight = {
   prediction_date: string;
   prediction: DailyPrediction | null;
   cached: boolean;
+  /** Which data layer served this response. 'live' = fresh API, 'cache' = stored
+   *  result from a prior day, 'static' = built-in nakshatra text (no API needed).
+   *  The client uses this to decide whether to show an offline notice. */
+  fallback_source: 'live' | 'cache' | 'static';
   moon_phase: string;
   day_ruler: string;
   lucky_color: string;
@@ -172,16 +176,27 @@ export type DailyInsight = {
  * — never call the Astrology API directly from the client for this feature.
  */
 export async function getDailyInsight(userId: string): Promise<DailyInsight> {
+  // The edge function now implements a three-layer fallback:
+  //   Layer 1 — Live Astrology API (fresh data)
+  //   Layer 2 — Stale cache row for this nakshatra (any prior date)
+  //   Layer 3 — Built-in static prediction (always available, never fails)
+  // It should therefore never return a 502 or empty data. The only remaining
+  // hard errors are 401/403 (auth) and 422 (incomplete birth data).
   const { data, error } = await invokeSupabaseFunctionWithTimeout(
     () => supabase.functions.invoke('daily-insights', { body: { user_id: userId } }),
     45000
   );
   if (error) {
-    console.error('[getDailyInsight] Supabase function returned error:', error);
+    console.error('[getDailyInsight] Supabase function invocation error:', error);
     throw error;
   }
   if (!data) {
     throw new Error('No data returned from daily insights');
   }
-  return data as DailyInsight;
+  // Normalise: older edge function deployments won't have fallback_source yet.
+  const insight = data as DailyInsight;
+  if (!insight.fallback_source) {
+    insight.fallback_source = insight.cached ? 'cache' : 'live';
+  }
+  return insight;
 }

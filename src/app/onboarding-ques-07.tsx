@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   ActivityIndicator,
-  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { ImageBackground } from 'expo-image';
 import { alert } from '@/lib/themed-alert';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/lib/navigation';
@@ -39,8 +39,8 @@ export default function OnboardingQues7Screen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgSource = isDark
-    ? require('@/assets/images/onboard-bg.png')
-    : require('@/assets/images/onboard-light-bg.png');
+    ? require('@/assets/images/onboard-bg.webp')
+    : require('@/assets/images/onboard-light-bg.webp');
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -126,7 +126,7 @@ export default function OnboardingQues7Screen() {
         style={styles.scrollStyle}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: Math.max(insets.top, 20) + 25 },
+          { paddingTop: Math.max(insets.top, 20) + 60 },
         ]}
         showsVerticalScrollIndicator={false}
       >
