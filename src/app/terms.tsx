@@ -151,13 +151,13 @@ export default function TermsScreen() {
 
           <Text style={styles.sectionTitle}>Compatibility Scores — Disclaimer</Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            The astrological compatibility scores and birth chart readings provided on AstroDate are powered by astrological data and calculations sourced from the Astrology API provided by astrology.com, a third-party service provider.
+            The astrological compatibility scores and birth chart readings provided on AstroDate are powered by astrological data and calculations sourced from the Astrology API provided by AstrologyAPI.com, a third-party service provider.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             These scores and readings are based on established astrological traditions and are intended for entertainment and personal guidance purposes only. AstroDate Private Limited makes no representations or warranties regarding the accuracy, reliability, or predictive value of any compatibility score or astrological reading generated through this API.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
-            The results are dependent on the data and algorithms provided by astrology.com, and AstroDate Private Limited is not responsible for any errors, inaccuracies, or changes in the output of the third-party API.
+            The results are dependent on the data and algorithms provided by AstrologyAPI.com, and AstroDate Private Limited is not responsible for any errors, inaccuracies, or changes in the output of the third-party API.
           </Text>
           <Text style={[styles.paragraph, { color: T.body }]}>
             Users should exercise their own judgment in all personal and relationship decisions. AstroDate&apos;s compatibility scores should not be relied upon as a substitute for professional advice of any kind.
